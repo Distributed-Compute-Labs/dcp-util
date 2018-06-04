@@ -8,61 +8,60 @@
  *  @date       May 2018
  */
 
-const fs        = require('fs');
-const readline  = require('readline');
-const rl        = readline.createInterface({
-  input:  process.stdin,
+const fs = require('fs')
+const readline = require('readline')
+const rl = readline.createInterface({
+  input: process.stdin,
   output: process.stdout
-});
+})
 
 var packageJSON = {
   name: '',
-  version: "0.0.0",
+  version: '0.0.0',
   files: {}
 }
 
-var currentQuestion = 0;
 var questions = [
-  ["Name of the package",    "name"],
-  ["Version of the package", "version"]
-];
+  ['Name of the package', 'name'],
+  ['Version of the package', 'version']
+]
 
-ask = (index) => {
-  let field = questions[index][1];
-  rl.question(questions[index][0] + " (" + packageJSON[field] + "): ", answer => {
-    if(answer.length > 0) packageJSON[field] = answer;
-    if(++index < questions.length) ask(index);
-    else files();
-  });
+var ask = (index) => {
+  let field = questions[index][1]
+  rl.question(questions[index][0] + ' (' + packageJSON[field] + '): ', answer => {
+    if (answer.length > 0) packageJSON[field] = answer
+    if (++index < questions.length) ask(index)
+    else files()
+  })
 }
 
-files = () => {
-  if(Object.keys(packageJSON.files).length > 0){
-    console.log("Current Files:");
-    console.log(JSON.stringify(packageJSON.files, null, 2));
+var files = () => {
+  if (Object.keys(packageJSON.files).length > 0) {
+    console.log('Current Files:')
+    console.log(JSON.stringify(packageJSON.files, null, 2))
   }
 
-  rl.question("Add file To deployment: ", filepath => {
-    if(filepath.length === 0){
-      write();
-    }else{
-      packageJSON.files[filepath] = "";
-      rl.question("Deploy to path (" + filepath + "): ", deploypath => {
-        if(filepath.length > 0) packageJSON.files[filepath] = deploypath;
-        files();
-      });
+  rl.question('Add file To deployment: ', filepath => {
+    if (filepath.length === 0) {
+      write()
+    } else {
+      packageJSON.files[filepath] = ''
+      rl.question('Deploy to path (' + filepath + '): ', deploypath => {
+        if (filepath.length > 0) packageJSON.files[filepath] = deploypath
+        files()
+      })
     }
-  });
+  })
 }
 
-write = () => {
-  fs.writeFileSync("package.dcp", JSON.stringify(packageJSON, null, 2));
-  process.exit();
+var write = () => {
+  fs.writeFileSync('package.dcp', JSON.stringify(packageJSON, null, 2))
+  process.exit()
 }
 
-fs.stat("package.dcp", (error, status) => {
-  if(!error){
-    packageJSON = JSON.parse(fs.readFileSync("package.dcp"));
+fs.stat('package.dcp', (error, status) => {
+  if (!error) {
+    packageJSON = JSON.parse(fs.readFileSync('package.dcp'))
   }
-  ask(0);
-});
+  ask(0)
+})
