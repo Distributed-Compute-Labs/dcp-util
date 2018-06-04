@@ -8,40 +8,40 @@
  *  @date       May 2018
  */
 
-const fs       = require('fs');
-const readline  = require('readline');
-const rl        = readline.createInterface({
-  input:  process.stdin,
+const fs = require('fs')
+const readline = require('readline')
+const rl = readline.createInterface({
+  input: process.stdin,
   output: process.stdout
-});
+})
 
-const protocol = require('../src/node/protocol-node.js');
+const protocol = require('../src/node/protocol-node.js')
 
-rl.question("Privatekey (leave blank to generate a new privatekey): ", privatekey => {
-  rl.question("Keystore password: ", password => {
-    let wallet;
-    try{
-      wallet = protocol.createWallet(privatekey.length ? privatekey : false, password);
-    }catch(error){
-      console.log('Failed to create wallet from privatekey');
-      console.log(error);
-      process.exit();
+rl.question('Privatekey (leave blank to generate a new privatekey): ', privatekey => {
+  rl.question('Keystore password: ', password => {
+    let wallet
+    try {
+      wallet = protocol.createWallet(privatekey.length ? privatekey : false, password)
+    } catch (error) {
+      console.log('Failed to create wallet from privatekey')
+      console.log(error)
+      process.exit()
     }
 
-    let keystore = protocol.createKeystore(wallet, password);
+    let keystore = protocol.createKeystore(wallet, password)
 
-    rl.question("Write keystore to path (myDCPKey.keystore): ", filepath => {
-      if(filepath.length === 0) filepath = "myDCPKey.keystore";
+    rl.question('Write keystore to path (myDCPKey.keystore): ', filepath => {
+      if (filepath.length === 0) filepath = 'myDCPKey.keystore'
       fs.stat(filepath, (error, status) => {
-        if(status){
-          console.log("Filepath already exsits");
-          process.exit();
-        }else{
-          fs.writeFileSync(filepath, JSON.stringify(keystore, null, 2));
-          console.log("Keystore for address " + keystore.address + " created and stored at " + filepath);
-          process.exit();
+        if (error) {
+          fs.writeFileSync(filepath, JSON.stringify(keystore, null, 2))
+          console.log('Keystore for address ' + keystore.address + ' created and stored at ' + filepath)
+          process.exit()
+        } else {
+          console.log('Filepath already exsits')
+          process.exit()
         }
-      });
-    });
-  });
-});
+      })
+    })
+  })
+})
