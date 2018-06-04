@@ -4,7 +4,6 @@ const server = require('http').Server(app)
 
 const path = require('path')
 const https = require('https')
-const { URL } = require('url')
 
 const md5 = require('md5')
 
@@ -200,7 +199,7 @@ app.post('/fetch/module', (request, result, next) => {
           }
         }
 
-        if (depList.match(/^\s*[\(\)]\s*function/)) { /* no deps listed */
+        if (depList.match(/^\s*[()]\s*function/)) { /* no deps listed */
           return getDescriptor() // continue with next file
         }
 
