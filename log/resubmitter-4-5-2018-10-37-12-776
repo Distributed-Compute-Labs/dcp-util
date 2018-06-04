@@ -1,0 +1,2 @@
+DCP TASK RESUBMITTER 0.0.1
+Error: {"errno":-4058,"code":"ENOENT","syscall":"scandir","path":"C:\\Users\\matthew\\git\\DCP\\dcp-testing\\bin\\db\\tasks\\pending"}
