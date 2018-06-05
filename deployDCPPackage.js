@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  *  @file       deploy.js
  *              Copyright (c) 2018, Kings Distributed Systems, Ltd.  All Rights Reserved.
