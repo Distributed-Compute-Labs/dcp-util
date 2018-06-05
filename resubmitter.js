@@ -7,6 +7,9 @@
  *
  *  Will be run from a cronjob, every X minutes.
  *
+ *  Usage: `node resubmitter.js 'path to db'`
+ *  Example: `node bin/resubmitter.js db/`
+ *
  *  @author Matthew Palma, mpalma@sparc.network
  *  @date June 2018
  *
