@@ -22,6 +22,10 @@ var config = {
   listen_host: process.env.DCPMS_LISTEN_HOST || '127.0.0.1'
 }
 
+app.get('/status', function (req, res) {
+  res.status(200).end()
+})
+
 // these are only to make testing simple
 app.use(express.static('src'))
 app.use(express.static('utilities'))
@@ -36,6 +40,7 @@ app.use((req, res, next) => {
   ].join(' '))
 
   res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', 'GET,POST')
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
 
   next()
@@ -385,4 +390,10 @@ var deployModuleFromRequest = function (request, result) {
 app.post('/deploy/module', deployModuleFromRequest)
 
 server.listen(config.listen_port, config.listen_host)
-console.log('Server listening on ' + config.listen_host + ':' + config.listen_port)
+console.log('Modules Server listening on ' + config.listen_host + ':' + config.listen_port)
+
+module.exports = {
+  app,
+  server,
+  config
+}

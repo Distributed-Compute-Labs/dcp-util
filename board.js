@@ -2,6 +2,11 @@ const express = require('express')
 const app = express()
 const server = require('http').Server(app)
 
+var config = {
+  listen_port: process.env.DCPMS_LISTEN_PORT || '3000',
+  listen_host: process.env.DCPMS_LISTEN_HOST || '127.0.0.1'
+}
+
 // This can be a rule in nginx.conf
 app.use(express.static('examples'))
 app.use(express.static('src'))
@@ -107,9 +112,9 @@ bank.init(app, {}, server)
 //         });
 // }
 
-server.listen(3000)
+server.listen(config.listen_port, config.listen_host)
 
-console.log('DCP server running')
+console.log('Board Server listening on ' + config.listen_host + ':' + config.listen_port)
 
 // http://glynnbird.tumblr.com/post/54739664725/graceful-server-shutdown-with-nodejs-and-express
 let gracefulShutdown = function () {
@@ -136,5 +141,6 @@ process.on('SIGINT', gracefulShutdown)
 
 module.exports = {
   app,
-  server
+  server,
+  config
 }
