@@ -16,7 +16,7 @@ logger.createLog('DCP MODULES VERSION ' + version + '\n', 'modules')
 
 const modulesLocation = 'modules/'
 
-var debug = true
+var debug = false
 var config = {
   listen_port: process.env.DCPMS_LISTEN_PORT || '9001',
   listen_host: process.env.DCPMS_LISTEN_HOST || '127.0.0.1'
@@ -74,7 +74,7 @@ app.post('*', (request, result, next) => {
 app.post('/fetch/module', (request, result, next) => {
   try {
     let modulePathsList = request.body.message.module
-    console.log('Got Request For: ', modulePathsList)
+    if (debug) console.log('Got Request For: ', modulePathsList)
 
     let packagesWithFilesToLoad = {}
     let loadedPackages = {}
