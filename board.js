@@ -73,14 +73,24 @@ app.use((req, res, next) => {
  */
 
 var options = {
-  mine: false
+  bank: false,
+  board: false,
+  fork: false
 }
 
 for (let i = 0; i < process.argv.length; i++) {
   let values = process.argv[i].split('=')
-  if (values[0] === 'mine') options.mine = true
-  else if (values[0] === 'board') options.board = true
-  else if (values[0] === 'bank') options.bank = true
+  switch (values[0]) {
+    case 'bank':
+    case 'board': // not sure any of these are used anymore except fork
+    case 'fork':
+      options[values[0]] = true
+      break
+    case 'database':
+      global.database = require('../src/node/database.js')
+      global.database.setPath(values[1])
+      break
+  }
 }
 
 app.get('/status', function (req, res) {
@@ -95,21 +105,6 @@ const io = board.init(app, {}, server)
 // if(options.bank){
 const bank = require('../src/node/bank.js')
 bank.init(app, {}, server)
-// }
-
-// if(options.mine){
-//   const miner = require('./src/node/miner.js');
-//         miner.open('v8/v8.exe', function(message){
-//           message = JSON.parse(message);
-//           console.log('from c:', message);
-//           if(message.request === "ready"){
-//             console.log('running task:');
-//             miner.run({
-//               request : 'main',
-//               limit : 100000
-//             });
-//           }
-//         });
 // }
 
 server.listen(config.listen_port, config.listen_host)
@@ -143,4 +138,11 @@ module.exports = {
   app,
   server,
   config
+}
+
+if (options.fork) {
+  process.send({
+    request: 'Server Started',
+    config
+  })
 }

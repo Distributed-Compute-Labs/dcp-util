@@ -22,6 +22,33 @@ var config = {
   listen_host: process.env.DCPMS_LISTEN_HOST || '127.0.0.1'
 }
 
+/**
+ * Command line options
+ *
+ * npm start arg1 arg2=val2 arg3 ..
+ *
+ * EG: npm start dev port=3000
+ */
+
+var options = {
+  bank: false,
+  board: false,
+  fork: false
+}
+
+for (let i = 0; i < process.argv.length; i++) {
+  let values = process.argv[i].split('=')
+  switch (values[0]) {
+    case 'bank':
+    case 'board': // not sure any of these are used anymore except fork
+    case 'fork':
+      options[values[0]] = true
+      break
+  }
+}
+
+logger.log(JSON.stringify(options, null, 2))
+
 app.get('/status', function (req, res) {
   res.status(200).end()
 })
@@ -396,4 +423,11 @@ module.exports = {
   app,
   server,
   config
+}
+
+if (options.fork) {
+  process.send({
+    request: 'Server Started',
+    config
+  })
 }
