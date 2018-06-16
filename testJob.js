@@ -9,7 +9,9 @@ const rl = readline.createInterface({
 })
 
 rl.question('Job File Location:', answer => {
-  let job = JSON.parse(fs.readFileSync(answer))
+  let file = fs.readFileSync(answer)
+  console.log(file.toString())
+  let job = JSON.parse(file.toString())
 
   let next = function (index) {
     console.log('Running Test ' + index)
@@ -21,7 +23,13 @@ rl.question('Job File Location:', answer => {
   }
 
   console.log('Starting Miner')
-  miner.start().then(message => {
-    next(0)
-  })
+  miner.start()
+    .then(message => {
+      console.log(message)
+      next(0)
+    })
+    .catch(error => {
+      console.log(error)
+      process.exit(1)
+    })
 })
