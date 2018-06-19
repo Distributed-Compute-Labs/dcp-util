@@ -16,7 +16,7 @@ rl.question('Job File Location:', answer => {
   let next = function (index) {
     console.log('Running Test ' + index)
     miner.run(job, job.tests[index]).then(message => {
-      console.log('Test ' + index + ' Results: ', message.result)
+      console.log('Test ' + index + ' Results: ', message)
       if (job.tests.length > ++index) next(index)
       else miner.close().then(message => process.exit(0))
     })
