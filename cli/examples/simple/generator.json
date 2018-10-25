@@ -1,0 +1,1 @@
+{"job":"0x6f1b54e951d782682be500f651eda8e18e99e2e2a36f59c6922fdba7e2decd7578d41d6b42c6f60029dcd6d2c3ff96be6d48391896fd908edf3e47e55869cef11c","frame":0,"frames":1,"sort":0,"request":"main","options":{"bytesPerSlice":1,"paymentPerSlice":0.0001,"maxTotalPayment":0.001,"sendFullDataSet":true},"arguments":{},"data":[1,2,3,5,8,13,21,34,55,89],"payment":1}

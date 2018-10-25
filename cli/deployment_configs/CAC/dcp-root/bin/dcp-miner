@@ -1,0 +1,157 @@
+#! /bin/bash -a
+#
+# @file		mine	DCP Miner Control Script, suitable for /etc/init.d
+# @author	Wes Garland, wes@sparc.network
+# @date		Apr 2018
+#
+
+dcp_root=/global/home/tmp10011/dcp-root
+key=./etc/keys/miner
+options="$dcp_root/etc/miner.opts"
+output="$dcp_root/var/log/dcp-miner.log"
+stderr="$dcp_root/var/log/stderr"
+
+cd "$dcp_root"
+
+[ "$quiet" ] && echo=quiet || echo=echo
+quiet()
+{
+  sleep 0
+}
+
+$echo
+$echo "DCP Miner Control Script - runs a single instance of the DCP Miner."
+$echo "Copyright (c) 2018 Kings Distributed Systems. All Rights Reserved."
+$echo
+
+log_to_file()
+{
+  while read line;
+  do
+    header="`date \"+%b %e %T dcp-miner[$PPID]\"`"
+    echo "$header: $line"
+  done \
+  | ( 
+      if [ "$quiet" ]; then
+        cat -u > "$output"
+      else
+        tee -a "$output"
+      fi
+    )
+}
+
+run_miner()
+{
+  exitNow=""
+  trap "rm $dcp_root/var/run/dcp-miner.pid" EXIT
+  trap '$echo Exiting; exitNow=Yes; kill $child' 2 10
+  
+  while [ "$exitNow" = "" ] && [ -f "$dcp_root/var/run/dcp-miner.pid" ]
+  do
+    trap '$echo Exiting; exitNow=Yes; kill $child' 1 2 10
+    date
+    git/dcp-cli/dcpmine start --key="$key" 2>$stderr &
+    child="$!"
+    wait $child
+    [ "$PPID" = "1" ] && exitNow=Yes
+    [ "$exitNow" ] || sleep 5
+  done | log_to_file
+
+  rm $dcp_root/var/run/dcp-miner.pid
+}
+
+start_miner()
+{
+  if [ -f "$dcp_root/var/run/dcp-miner.pid" ] && kill -0 `cat "$dcp_root/var/run/dcp-miner.pid" 2>/dev/null` 2>/dev/null ]; then
+    echo "DCP miner control script is already running!"
+  fi
+
+  [ -d "`dirname $key`" ] || mkdir -p "`dirname $key`"
+  [ -d "$dcp_root/var/run" ] || mkdir -p "$dcp_root/var/run"
+  [ -f "$key" ] || git/dcp-cli/dcpmine create --key="$key" || exit 1
+
+  if [ -f "$dcp_root/var/run/xinetd.pid" ] && ! kill -HUP `cat $dcp_root/var/run/xinetd.pid`; then
+    rm "$dcp_root/var/run/xinetd.pid"
+  fi
+
+  [ -f "$dcp_root/var/run/xinetd.pid" ] || \
+  (
+    . $dcp_root/etc/sysconfig/xinetd
+    "$dcp_root/usr/sbin/xinetd" -pidfile "$dcp_root/var/run/xinetd.pid" -f "$dcp_root/etc/xinetd.conf"
+  )
+
+  if ! kill -0 `cat $dcp_root/var/run/xinetd.pid 2>/dev/null` 2>/dev/null; then
+    echo "Could not start xinetd!" >/dev/stderr
+    $echo "CMD: $dcp_root/usr/sbin/xinetd" -pidfile "$dcp_root/var/run/xinetd.pid" -f "$dcp_root/etc/xinetd.conf" >/dev/stderr
+    exit 1
+  fi
+
+  run_miner 2>$stderr &
+  miner_pid="$!"
+
+  echo "$miner_pid" > "$dcp_root/var/run/dcp-miner.pid"
+  $echo "Background miner running, control process is pid $miner_pid"
+}
+
+wait_for_workers()
+{
+  now=`date +%s`
+  wait="$1"
+  while [ "`date +%s`" -lt $[$now + $wait] ]
+  do
+    remain="`pgrep 'dcp-miner-v8|dcp-miner-jsapi' | grep -c .`"
+    [ "$remain" = "0" ] && break
+    $echo "`date` - Waiting for $remain processes to finish"
+    sleep 2
+  done
+}
+
+soft_stop_miner()
+{
+  wait_for_workers 60
+  [ -f "$dcp_root/var/run/dcp-miner.pid" ] && pkill --parent="`cat \"$dcp_root/var/run/dcp-miner.pid\"`"
+  $echo Done.
+}
+
+stop_miner()
+{
+  wait_for_workers 5
+
+  [ -f "$dcp_root/var/run/xinetd.pid" ] && kill -TERM `cat "$dcp_root/var/run/xinetd.pid"`
+  [ -f "$dcp_root/var/run/xinetd.pid" ] && kill `cat "$dcp_root/var/run/xinetd.pid" 2>/dev/null` 2>/dev/null
+
+  timeout=5
+  [ -f "$dcp_root/var/run/dcp-miner.pid" ] && kill -0 `cat "$dcp_root/var/run/dcp-miner.pid"` && [ "`date +%s`" -lt $[$now + $timeout] ] && $echo -n Terminating `cat "$dcp_root/var/run/dcp-miner.pid"`
+  while [ -f "$dcp_root/var/run/dcp-miner.pid" ] && kill -2 `cat "$dcp_root/var/run/dcp-miner.pid"` && [ "`date +%s`" -lt $[$now + $timeout] ]
+  do
+    sleep 1
+    $echo -n . 
+  done
+
+  [ -f "$dcp_root/var/run/dcp-miner.pid" ] && pkill --parent="`cat \"$dcp_root/var/run/dcp-miner.pid\"`" && sleep 1
+  [ -f "$dcp_root/var/run/dcp-miner.pid" ] && kill -15 `cat "$dcp_root/var/run/dcp-miner.pid"` && sleep 1
+  [ -f "$dcp_root/var/run/dcp-miner.pid" ] && kill -9 `cat "$dcp_root/var/run/dcp-miner.pid"` && echo "Sent signal 9!"
+
+  $echo Done.
+}
+
+case "$1" in
+	start)
+		start_miner
+	;;
+	stop)
+		stop_miner
+	;;
+	soft_stop|soft-stop)
+		soft_stop_miner
+	;;
+	restart)
+		soft_stop_miner
+		start_miner
+	;;
+	*)
+		echo "Usage: $0 <start|soft-stop|stop|restart>"
+esac
+
+
+

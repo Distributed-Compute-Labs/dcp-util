@@ -1,0 +1,20 @@
+CAC Deployment Notes
+--------------------
+ - x86_64
+ - CentOS Linux release 7.3.1611 (Core) 
+ - no elevated privs
+ - xinetd package installed under ~/dcp-root via rpm2cpio | cpio
+
+ - git repos in ~/dcp-root/git
+   - dcp-cli: 			606605e4ff791b819821daf106e446c59a8a52d8
+   - dcp-miner-standalone: 	c284c6987245f0d45f53acc1d01f5ae4053573f6
+   - DCP-Core:			fbd399e9083b2c52ba99426722af61d9e2470935
+
+ - dcp-miner-standalone installed in
+	~/dcp-root/opt/dcp/bin/dcp-miner-v8
+	~/dcp-root/opt/dcp/bin/dcp-miner-control.js
+
+ - v8 support blobs installed in
+	~/dcp-root/opt/dcp/libexec/snapshot_blob.bin
+	~/dcp-root/opt/dcp/libexec/natives_blob.bin
+
