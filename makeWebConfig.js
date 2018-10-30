@@ -55,11 +55,11 @@ function safeSubset(label) {
 }
 
 var webConfig = {
-  board: safeSubset('board'),
-  modules: safeSubset('modules'),
-  storage: safeSubset('storage'),
+  scheduler: safeSubset('scheduler'),
+  packageManager: safeSubset('packageManager'),
+  // storage: safeSubset('storage'),
   bank: safeSubset('bank'),
-  userPortal: safeSubset('userPortal'),
+  portal: safeSubset('portal'),
 }
 
 require('fs').writeFileSync(dcpConfig.root + "/www/docs/etc/dcp-config.js", 'var dcpConfig = ' + JSON.stringify(webConfig), "utf-8")
