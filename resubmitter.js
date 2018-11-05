@@ -32,11 +32,10 @@ require('dcp-rtlink/rtLink').link(module.paths)
 require('config').load()
 
 const database = require('database.js')
-
-const protocol = require('../lib/protocol-node.js')
-
-const version = '0.0.1'
+const protocol = require('protocol-node.js')
 const logger = require('logger.js')
+const version = '0.0.1'
+
 logger.createLog('DCP TASK RESUBMITTER ' + version + '\n', 'resubmitter')
 
 var config = dcpConfig.resubmitter

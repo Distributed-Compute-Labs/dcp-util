@@ -1,5 +1,5 @@
 #! /usr/bin/env node
-/** @file       dcpjob          Command-line utility to access the DCP Job board.
+/** @file       dcpjob          Command-line utility to communicate with the scheduler
  *  @author     Wes Garland, wes@sparc.network
  *  @date       Feb 2018
  */
@@ -7,7 +7,7 @@
 /* global */
 
 require('dcp-rtlink/rtLink.js').link(module.paths)
-// console.log(require('process').env.NODE_PATH)
+console.log(require('process').env.NODE_PATH)
 require('config').load()
 
 // polyfill
