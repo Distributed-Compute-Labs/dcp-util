@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 /**
- * @file        makeWebConfig.js        Extract relevant configuration information from 
+ * @file        makeWebConfig.js        Extract relevant configuration information from
  *                                      this host and format it to be usable from the web
  *                                      content via script tag.
  *
