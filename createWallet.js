@@ -9,7 +9,7 @@
  */
 
 require('dcp-rtlink/rtLink').link(module.paths)
-require('config').load()
+require('../src/node/config.js').load()
 const fs = require('fs')
 const readline = require('readline')
 const rl = readline.createInterface({
@@ -17,7 +17,7 @@ const rl = readline.createInterface({
   output: process.stdout
 })
 
-const protocol = require('protocol-node.js')
+const protocol = require('../src/node/protocol-node.js')
 
 rl.question('Privatekey (leave blank to generate a new privatekey): ', privatekey => {
   rl.question('Keystore password: ', password => {

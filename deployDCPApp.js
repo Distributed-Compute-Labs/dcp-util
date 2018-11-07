@@ -4,7 +4,7 @@
  *
  *              Utility for compiling and deploying DCP Modules from npm repositories
  *
- *              CLI Usage: deployDCPPacakge.js package=package.dcp keystore=myDCPKey.keystore keypass=mypass
+ *              CLI Usage: deployDCPPacakge.js package=app.dcp keystore=myDCPKey.keystore keypass=mypass
  *
  *  @author     Greg Agnew, gagnew@sparc.network
  *  @date       May 2018
@@ -13,18 +13,19 @@
 /* global dcpConfig */
 
 require('dcp-rtlink/rtLink').link(module.paths)
-require('config').load()
-global.Promise = Promise = require('promiseDebug').init(Promise)
+require('../src/node/config.js').load()
+// global.Promise = Promise = require('promiseDebug').init(Promise)
 const fs = require('fs')
 const process = require('process')
 const path = require('path')
 const readline = require('readline')
+const base64Img = require('base64-img')
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 })
 
-const protocol = require('protocol-node.js')
+const protocol = require('../src/node/protocol-node.js')
 var debug = process.env.DCPDP_DEBUG || process.env.DEBUG || ''
 
 /**
@@ -52,46 +53,32 @@ var ask = function (question, defaultAnswer, optionKey) {
   })
 }
 
-var getFiles = (packageJSON) => {
-  let filenames = Object.keys(packageJSON.files)
-  let deployPaths = Object.values(packageJSON.files)
-  let missingFiles = false
-  let deployFiles = {}
-
-  for (let i = 0; i < filenames.length; i++) {
-    try {
-      deployFiles[deployPaths[i] || filenames[i]] = fs.readFileSync(filenames[i]).toString()
-    } catch (error) {
-      console.log('Missing File: ' + filenames[i])
-      missingFiles = true
-    }
-  }
-
-  if (!Object.keys(deployFiles).length) {
-    console.error("Cannot deploy package with no files")
-    process.exit(2)
-  }
-
-  if (missingFiles) {
-    process.exit(1)
-  }
-
-  packageJSON.files = deployFiles
-}
-
 var main = async () => {
-  let packageLocation = await ask('Location of package file (package.dcp):', 'package.dcp', 'package')
+  let appLocation = await ask('Location of package file (app.dcp):', 'app.dcp', 'app')
 
   let status
   try {
-    status = fs.statSync(packageLocation)
+    status = fs.statSync(appLocation)
   } catch (error) {
-    console.log('Can not locate package.dcp. Please run: node init.dcp')
+    console.log('Can not locate app.dcp. Please run: node init.dcp')
     process.exit()
   }
 
-  let packageJSON = JSON.parse(fs.readFileSync(packageLocation))
-  getFiles(packageJSON)
+  let appJSON = JSON.parse(fs.readFileSync(appLocation))
+
+  try {
+    appJSON.index = fs.readFileSync(appJSON.index).toString()
+  } catch (error) {
+    console.error('Cannot locate index file')
+    process.exit(2)
+  }
+
+  try {
+    appJSON.icon = base64Img.base64Sync(appJSON.icon)
+  } catch (error) {
+    console.error('Cannot locate index file')
+    process.exit(2)
+  }
 
   let keystoreLocation = await ask('Location of keystore file (myDCPKey.keystore):', 'myDCPKey.keystore', 'keystore')
 
@@ -105,19 +92,19 @@ var main = async () => {
   }
 
   let baseURL = `http://${dcpConfig.packageManager.hostname}:${dcpConfig.packageManager.port}`
-  let URL = baseURL + '/deploy/module'
+  let URL = baseURL + '/deploy/app'
 
   let password = await ask('Keystore password:', '', 'keypass')
   let wallet = protocol.unlock(keystoreFile, password)
   protocol.setWallet(wallet)
-  protocol.setOptions({
-    useSockets: true
-  })
+  // protocol.setOptions({
+  //   useSockets: true
+  // })
 
   let result
   try {
-    console.log('Sending module to server:', baseURL)
-    result = await protocol.send(URL, packageJSON)
+    console.log('Sending module to server:', baseURL, URL)
+    result = await protocol.send(URL, appJSON)
   } catch (error) {
     if (error.hasOwnProperty('remote')) {
       if (error.remote.status === 'error') {
@@ -137,7 +124,7 @@ var main = async () => {
 
   console.log('Response: ')
   console.log(JSON.stringify(result, null, 2))
-  console.log(`Module ${packageJSON.name} deployed to ${URL}/${packageJSON.name}`)
+  console.log(`Application ${appJSON.name} deployed to ${URL}/${appJSON.name}`)
   process.exit(0)
 }
 
