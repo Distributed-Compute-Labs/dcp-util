@@ -54,7 +54,7 @@ var ask = function (question, defaultAnswer, optionKey) {
 }
 
 var main = async () => {
-  let appLocation = await ask('Location of package file (app.dcp):', 'app.dcp', 'app')
+  let appLocation = process.cwd() + '/' + await ask('Location of package file (app.dcp):', 'app.dcp', 'app')
 
   let status
   try {
@@ -67,14 +67,14 @@ var main = async () => {
   let appJSON = JSON.parse(fs.readFileSync(appLocation))
 
   try {
-    appJSON.index = fs.readFileSync(appJSON.index).toString()
+    appJSON.index = fs.readFileSync(process.cwd() + '/' + appJSON.index).toString()
   } catch (error) {
     console.error('Cannot locate index file')
     process.exit(2)
   }
 
   try {
-    appJSON.icon = base64Img.base64Sync(appJSON.icon)
+    appJSON.icon = base64Img.base64Sync(process.cwd() + '/' + appJSON.icon)
   } catch (error) {
     console.error('Cannot locate index file')
     process.exit(2)
@@ -84,7 +84,7 @@ var main = async () => {
 
   let keystoreFile
   try {
-    keystoreFile = fs.readFileSync(keystoreLocation).toString()
+    keystoreFile = fs.readFileSync(process.cwd() + '/' + keystoreLocation).toString()
   } catch (error) {
     console.log('Could not open keystore file' + (error.code === 'ENOENT' ? ' - use ' + path.resolve(path.dirname(process.argv[1]) + '/createWallet.js') + ' to create' : ''))
     console.log(error)
