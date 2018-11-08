@@ -16,7 +16,7 @@ require('dcp-rtlink/rtLink').link(module.paths)
 require('config').load(process.argv[2], process.argv[3])
 
 const whiteLists = {
-  default: [ 'hostname', 'port', /[a-z]U[rR][lL]$/ ]
+  default: [ 'hostname', 'port', 'protocol', /[a-z]U[rR][lL]$/ ]
 }
 
 function safeSubset(label) {
