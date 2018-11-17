@@ -43,15 +43,12 @@ var ask = function (question, defaultAnswer, optionKey) {
 
 var main = async () => {
   let appJSON = {
-    name: '',
-    version: '0.0.0',
-    index: 'index.html',
-    icon: 'icon.png'
+    name: await ask('Name:', '', 'name'),
+    version: await ask('Version:', '0.0.0', 'version'),
+    index: await ask('Index Page:', 'index.html', 'index'),
+    icon: await ask('Icon', 'icon.png', 'icon')
   }
-  appJSON.name = await ask('Name:', '""', 'name')
-  appJSON.version = await ask('Version:', '0.0.0', 'version')
-  appJSON.index = await ask('Index Page:', 'index.html', 'index')
-  appJSON.icon = await ask('Icon', 'icon.png', 'icon')
+
   let outputLocation = await ask('Output Location:', 'app.dcp', 'output')
 
   fs.writeFileSync(outputLocation, JSON.stringify(appJSON, null, 2))
