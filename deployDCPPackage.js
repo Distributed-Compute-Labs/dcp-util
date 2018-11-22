@@ -112,7 +112,7 @@ var main = async () => {
   let wallet = protocol.unlock(keystoreFile, password)
   protocol.setWallet(wallet)
   protocol.setOptions({
-    useSockets: true
+    useSockets: false
   })
 
   let result
