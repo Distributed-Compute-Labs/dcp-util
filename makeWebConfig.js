@@ -60,6 +60,7 @@ var webConfig = {
   storage: safeSubset('storage'),
   bank: safeSubset('bank'),
   portal: safeSubset('portal'),
+  terminal: safeSubset('terminal')
 }
 
 console.log(' * Creating ' + dcpConfig.root + '/www/docs/etc/dcp-config.js')
