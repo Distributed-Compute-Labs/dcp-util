@@ -4,17 +4,30 @@
  *                                      this host and format it to be usable from the web
  *                                      content via script tag.
  *
- *                                      Use the first and second arguments to specify parameters
- *                                      to require('config').load()
+ *                                      In addition to the usual DCP configuration, this
+ *                                      program also loads etc/dcp-site-config-web.js, so
+ *                                      that we can document external-facing URLs.
  *
  * @author      Wes Garland, wes@kingsds.network
  * @date        July 2018
  */
-const process = require('process')
-
 require('dcp-rtlink/rtLink').link(module.paths)
-require('config').load(process.argv[2], process.argv[3])
+const process = require('process')
+const path = require('path')
+const rtlink = require('dcp-rtlink/rtLink')
+const config = require('config')
 
+config.addConfigFile(path.join(rtlink.installLocation, 'etc', 'dcp-site-config-web.js'))
+config.load()
+
+/* Only properties whose names String.match a whiteList will be emitted into 
+ * the web-facing config file (www/docs/etc/dcp-config.js) when creating a 
+ * safe subset.
+ *
+ * Two whitelists are considered for each property:
+ *  - default: considered for all properties
+ *  - someName: considered for properties of dcpConfig.someName.
+ */
 const whiteLists = {
   default: [ 'hostname', 'port', 'protocol', /[a-z]U[rR][lL]$/ ]
 }
@@ -54,6 +67,7 @@ function safeSubset(label) {
   return copy
 }
 
+/** This object becomes the web config JSON that is loaded by SCRIPT tag in apps */
 var webConfig = {
   scheduler: safeSubset('scheduler'),
   packageManager: safeSubset('packageManager'),
