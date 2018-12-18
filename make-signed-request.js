@@ -17,7 +17,7 @@ function usage () {
   var progName = path.basename(process.argv[1])
 
   console.log(`
-${progName} - Query values from dcpConfig
+${progName} - Make signed requests on the command line
 Copyright (c) 2018 Kings Distributed Systems Ltd., All Rights Reserved.
 
 Usage:   ${progName} --host=hostname/method --body='{}' --key=0xPrivateKey
