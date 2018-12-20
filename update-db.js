@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 /**
- *  @file               make-signed-request.js
+ *  @file               update-db.js
  *                      Utility to create and update all or some of the databases.
  *
  *  @author             Matthew Palma, mpalma@kingsds.network
@@ -48,7 +48,7 @@ function usage () {
   var progName = path.basename(process.argv[1])
 
   console.log(`
-${progName} - Update the database because its important
+${progName} - Updates the database(s) because its important
 Copyright (c) 2018 Kings Distributed Systems Ltd., All Rights Reserved.
 
 Usage:   ${progName} [all, scheduler, bank, portal]
