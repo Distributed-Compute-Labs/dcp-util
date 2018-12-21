@@ -83,6 +83,7 @@ async function updateDB (db) {
     for (let key of keys) {
       args.push(`${key}=${options[db][key]}`)
     }
+    console.log(' * Updating database', options[db].database, 'on', options[db].hostname)
     fork(`${dcpConfig.runningLocation}/ormdb/mysql-legacy/bin/setup.js`, args)
       .on('close', resolve)
   })
