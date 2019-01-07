@@ -59,5 +59,5 @@ if (stdout) {
   console.log(rfc822Message)
 } else {
   console.log(`Sending e-mail to ${argv[3]}...`)
-  require('email').deliver(rfc822Message, argv[3])
+  require('email').deliver(rfc822Message, argv[1], argv[3])
 }
