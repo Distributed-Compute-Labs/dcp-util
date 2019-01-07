@@ -105,7 +105,7 @@ var main = async () => {
     process.exit()
   }
 
-  let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}:${dcpConfig.packageManager.port}`
+  let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}`
   let URL = baseURL + '/deploy/module'
 
   let password = await ask('Keystore password:', '', 'keypass')
