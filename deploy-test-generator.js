@@ -15,7 +15,6 @@ require('config').load() // eslint-disable-line
 // polyfill
 global.window = global
 global.window.location = { protocol: (dcpConfig.build.indexOf('release') >= 0) ? 'https:' : 'http:' }
-// global.crypto = { getRandomValues: require('crypto').randomBytes }
 global.XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest
 global.performance = require('perf_hooks').performance
 global.navigator = { hardwareConcurrency: 1 }
@@ -50,6 +49,13 @@ Options:
            (default:false)
 
 Example:   ${progName} --app=emcoil --key=0xsomePrivateKeyWithDCCAtCurrentBank
+           
+           You can also use config overrides to change destinations:
+
+             DCP_CONFIG_SCHEDULER='{"hostname":"scheduler.devserver"}'
+             DCP_CONFIG_BANK='{"hostname":"bank.devserver"}'
+             DCP_CONFIG_PACKAGE_MANAGER='{"hostname": "modules.devserver"}'
+             ${progName} --app=emcoil --key=0xsomePrivateKeyWithDCCAtCurrentBank
 `)
   process.exit(1)
 }
