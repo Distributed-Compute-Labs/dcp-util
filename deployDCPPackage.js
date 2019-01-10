@@ -111,9 +111,9 @@ var main = async () => {
   let password = await ask('Keystore password:', '', 'keypass')
   let wallet = protocol.unlock(keystoreFile, password)
   protocol.setWallet(wallet)
-  protocol.setOptions({
-    useSockets: false
-  })
+  // protocol.setOptions({
+  //   useSockets: false
+  // })
 
   let result
   try {
