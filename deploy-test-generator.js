@@ -36,10 +36,10 @@ To change the following, change your dcp-site-config.js.
 Scheduler: ${dcpConfig.scheduler.protocol}//${dcpConfig.scheduler.hostname}
 Bank: ${dcpConfig.bank.protocol}//${dcpConfig.bank.hostname}
 
-Usage:     ${progName} --name=genName --key=0xPrivateKey
+Usage:     ${progName} --app=genName --key=0xPrivateKey
 
 Where:
-  --name   the name of the generator to deploy
+  --app    the name of the generator to deploy
            available generators: ${Object.keys(generatorMap)}
   --key    the private key to use to submit the generator
            (must have DCC's at: ${dcpConfig.bank.protocol}//${dcpConfig.bank.hostname})
