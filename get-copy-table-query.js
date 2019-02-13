@@ -26,7 +26,14 @@ function usage () {
 ${progName} - Get a mysql statement to copy one table into another.
 Copyright (c) 2018 Kings Distributed Systems Ltd., All Rights Reserved.
 
-Usage:   ${progName} <schema name> <from table> <to table> [ignored columns]
+Usage:   ${progName} <schemaName> <fromTable> <toTable> [ignoredColumns]
+
+Arguments:
+  schemaName      - the name of the schema where the fromTable exists [bank, portal, or scheduler]
+  fromTable       - the name of the table to copy rows from
+  toTable         - the name of the table to copy rows into
+  ignoredColumns  - the name of columns to ignore in the copy
+
 Example: ${progName} scheduler heap heap_new id
 `)
   process.exit(1)
