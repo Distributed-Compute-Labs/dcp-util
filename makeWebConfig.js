@@ -29,7 +29,7 @@ config.load()
  *  - someName: considered for properties of dcpConfig.someName.
  */
 const whiteLists = {
-  default: [ 'hostname', 'port', 'protocol', /[a-z]U[rR][lL]$/ ]
+  default: [ 'hostname', 'port', 'protocol', 'isDown', /[a-z]U[rR][lL]$/ ]
 }
 
 function safeSubset(label) {
