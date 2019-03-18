@@ -19,6 +19,7 @@ const options = {
     board: 'Y',
     bank: 'N',
     user: 'N',
+    storage: 'N',
     hostname: dcpConfig.scheduler.database.hostname,
     username: dcpConfig.scheduler.database.username,
     password: dcpConfig.scheduler.database.password,
@@ -28,6 +29,7 @@ const options = {
     board: 'N',
     bank: 'Y',
     user: 'N',
+    storage: 'N',
     hostname: dcpConfig.bank.database.hostname,
     username: dcpConfig.bank.database.username,
     password: dcpConfig.bank.database.password,
@@ -37,10 +39,21 @@ const options = {
     board: 'N',
     bank: 'N',
     user: 'Y',
+    storage: 'N',
     hostname: dcpConfig.portal.database.hostname,
     username: dcpConfig.portal.database.username,
     password: dcpConfig.portal.database.password,
     database: dcpConfig.portal.database.name
+  },
+  storage: {
+    board: 'N',
+    bank: 'N',
+    user: 'N',
+    storage: 'Y',
+    hostname: dcpConfig.storage.database.hostname,
+    username: dcpConfig.storage.database.username,
+    password: dcpConfig.storage.database.password,
+    database: dcpConfig.storage.database.name
   }
 }
 
@@ -51,7 +64,7 @@ function usage () {
 ${progName} - Updates the database(s) because its important
 Copyright (c) 2018 Kings Distributed Systems Ltd., All Rights Reserved.
 
-Usage:   ${progName} [all, scheduler, bank, portal]
+Usage:   ${progName} [all, scheduler, bank, portal, storage]
          
 Example: ${progName} scheduler bank
 `)
