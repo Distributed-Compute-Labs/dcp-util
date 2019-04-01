@@ -28,6 +28,8 @@ const rl = readline.createInterface({
 const protocol = require('protocol-node.js')
 var debug = process.env.DCPDP_DEBUG || process.env.DEBUG || ''
 
+const argvZero = require('path').basename(__filename)
+
 /**
  * Command line options
  *
@@ -47,7 +49,6 @@ for (let i = 0; i < process.argv.length; i++) {
 }
 
 const usage = () => {
-  const argvZero = require('path').basename(__filename)
   console.log(`
 ${argvZero} - Utility to deploy a new/updated DCP package
 Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
@@ -64,6 +65,12 @@ Where:
                 Path to keystore file (default: ask, look for ./myDCPKey.keystore)
   --package=/path/to/package.dcp
                 Path to DCP Package definition (default: ask, look for ./package.dcp)
+
+Environment:
+  DEBUG         If truthy, enable debug mode. If a string, treat as a list of extended debug flags
+                (eg. DEBUG="verbose protocol" to enable DEBUG mode, with the "verbose" and "protocol" flags)
+  DCP_KEYSTORE_PASSWORD
+                If present, use its value as the keystore password (default: prompt for password)
 `)
   
   // console.log('CLI options:', options)
@@ -110,14 +117,17 @@ var getFiles = (packageJSON) => {
 }
 
 var main = async () => {
+  console.log(`${argvZero} - Utility to deploy a new/updated DCP package
+Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
+  
   let packageLocation = options['--package'] || await ask('Location of package file (package.dcp):', 'package.dcp', 'package')
 
   let status
   try {
     status = fs.statSync(packageLocation)
   } catch (error) {
-    console.log('Can not locate package.dcp. Please run: node init.dcp')
-    process.exit()
+    console.log('Can not locate package description file. Please run: initDCPPackage.js')
+    process.exit(2)
   }
 
   let packageJSON = JSON.parse(fs.readFileSync(packageLocation))
@@ -131,15 +141,17 @@ var main = async () => {
   } catch (error) {
     console.log('Could not open keystore file' + (error.code === 'ENOENT' ? ' - use ' + path.resolve(path.dirname(process.argv[1]) + '/createWallet.js') + ' to create' : ''))
     console.log(error)
-    process.exit()
+    process.exit(2)
   }
 
-  let password = await ask('Keystore password:', '', 'keypass')
-  let wallet = protocol.unlock(keystoreFile, password)
-  protocol.setWallet(wallet)
-  // protocol.setOptions({
-  //   useSockets: false
-  // })
+  let password = process.env.DCP_KEYSTORE_PASSWORD || await ask('Keystore password:', '', 'keypass')
+  let wallet
+  try {
+    wallet = protocol.unlock(keystoreFile, password)
+    protocol.setWallet(wallet)
+  } catch (error) {
+    console.error('Could not unlock keystore; please check your password and try again')
+  }
 
   var result = null
   try {
@@ -164,6 +176,8 @@ var main = async () => {
 async function deployNetwork (packageJSON, wallet) {
   let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}`
   let URL = baseURL + '/deploy/module'
+
+  console.log(` * Deploying via network to ${URL}...`)
 
   let result
   try {
@@ -197,11 +211,13 @@ async function deployNetwork (packageJSON, wallet) {
 async function deployLocal (packageJSON, wallet) {
   let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}`
   let URL = baseURL + '/deploy/module'
-
+  
   const database = require('database.js')
   database.init(dcpConfig.packageManager.database)
 
   const libDeployPackage = require('../lib/deploy-package')
+
+  console.log(` * Deploying locally to ${database.getFilePath()}/packages/${packageJSON.name}...`)
 
   const signedMessage = protocol.sign(packageJSON, wallet.privateKey)
 
