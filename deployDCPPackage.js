@@ -39,7 +39,36 @@ var debug = process.env.DCPDP_DEBUG || process.env.DEBUG || ''
 var options = {}
 for (let i = 0; i < process.argv.length; i++) {
   let values = process.argv[i].split('=')
-  options[values[0]] = values[1] === 'true' ? true : values[1] === 'false' ? false : values[1]
+  if (values.length === 1) {
+    options[values[0]] = true
+  } else {
+    options[values[0]] = values[1] === 'true' ? true : values[1] === 'false' ? false : values[1]
+  }
+}
+
+const usage = () => {
+  const argvZero = require('path').basename(__filename)
+  console.log(`
+${argvZero} - Utility to deploy a new/updated DCP package
+Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
+
+Usage:  ${argvZero} OPTIONS
+
+Where:
+  --help        Display this usage screen
+
+  --network     Deploy package to package server at ${dcpConfig.packageManager.hostname} (default)
+  --local       Deploy package directly to local filesystem
+
+  --keystore=/path/to/your.keystore
+                Path to keystore file (default: ask, look for ./myDCPKey.keystore)
+  --package=/path/to/package.dcp
+                Path to DCP Package definition (default: ask, look for ./package.dcp)
+`)
+  
+  // console.log('CLI options:', options)
+  
+  process.exit(1)
 }
 
 var ask = function (question, defaultAnswer, optionKey) {
@@ -69,7 +98,7 @@ var getFiles = (packageJSON) => {
   }
 
   if (!Object.keys(deployFiles).length) {
-    console.error("Cannot deploy package with no files")
+    console.error('Cannot deploy package with no files')
     process.exit(2)
   }
 
@@ -81,7 +110,7 @@ var getFiles = (packageJSON) => {
 }
 
 var main = async () => {
-  let packageLocation = await ask('Location of package file (package.dcp):', 'package.dcp', 'package')
+  let packageLocation = options['--package'] || await ask('Location of package file (package.dcp):', 'package.dcp', 'package')
 
   let status
   try {
@@ -94,7 +123,7 @@ var main = async () => {
   let packageJSON = JSON.parse(fs.readFileSync(packageLocation))
   getFiles(packageJSON)
 
-  let keystoreLocation = await ask('Location of keystore file (myDCPKey.keystore):', 'myDCPKey.keystore', 'keystore')
+  let keystoreLocation = options['--keystore'] || await ask('Location of keystore file (myDCPKey.keystore):', 'myDCPKey.keystore', 'keystore')
 
   let keystoreFile
   try {
@@ -105,15 +134,36 @@ var main = async () => {
     process.exit()
   }
 
-  let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}`
-  let URL = baseURL + '/deploy/module'
-
   let password = await ask('Keystore password:', '', 'keypass')
   let wallet = protocol.unlock(keystoreFile, password)
   protocol.setWallet(wallet)
   // protocol.setOptions({
   //   useSockets: false
   // })
+
+  var result = null
+  try {
+    let r
+    
+    if (options['--local']) {
+      r = await deployLocal(packageJSON, wallet)
+    } else {
+      r = await deployNetwork(packageJSON, wallet)
+    }
+
+    result = r.result
+  } catch (error) {
+    console.error(error)
+    process.exit(1)
+  }
+
+  process.exit(0)
+}
+
+/// Send the package over the DCP network to deploy via the package-manager server
+async function deployNetwork (packageJSON, wallet) {
+  let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}`
+  let URL = baseURL + '/deploy/module'
 
   let result
   try {
@@ -130,7 +180,7 @@ var main = async () => {
     } else {
       console.error('Cannot send module to server;', error)
     }
-    process.exit(1)
+    throw error
   }
 
   // estimate credits cost to deploy
@@ -139,7 +189,29 @@ var main = async () => {
   console.log('Response: ')
   console.log(JSON.stringify(result, null, 2))
   console.log(`Module ${packageJSON.name} deployed to ${URL}/${packageJSON.name}`)
-  process.exit(0)
+
+  return { status: 'ok', result }
+}
+
+/// Directly deploy the package to the local filesystem
+async function deployLocal (packageJSON, wallet) {
+  let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}`
+  let URL = baseURL + '/deploy/module'
+
+  const database = require('database.js')
+  database.init(dcpConfig.packageManager.database)
+
+  const libDeployPackage = require('../lib/deploy-package')
+
+  const signedMessage = protocol.sign(packageJSON, wallet.privateKey)
+
+  const result = await libDeployPackage.deployPackage(signedMessage)
+
+  console.log('Response: ')
+  console.log(JSON.stringify(result, null, 2))
+  console.log(`Module ${packageJSON.name} deployed to ${URL}/${packageJSON.name}`)
+
+  return { status: 'ok', result }
 }
 
 process.on('unhandledRejection', (reason, p) => {
@@ -147,4 +219,8 @@ process.on('unhandledRejection', (reason, p) => {
   process.exit(1)
 })
 
-main()
+if (options['--help']) {
+  return usage()
+} else {
+  return main()
+}
