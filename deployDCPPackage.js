@@ -28,6 +28,8 @@ const rl = readline.createInterface({
 const protocol = require('protocol-node.js')
 var debug = process.env.DCPDP_DEBUG || process.env.DEBUG || ''
 
+const argvZero = require('path').basename(__filename)
+
 /**
  * Command line options
  *
@@ -39,7 +41,41 @@ var debug = process.env.DCPDP_DEBUG || process.env.DEBUG || ''
 var options = {}
 for (let i = 0; i < process.argv.length; i++) {
   let values = process.argv[i].split('=')
-  options[values[0]] = values[1] === 'true' ? true : values[1] === 'false' ? false : values[1]
+  if (values.length === 1) {
+    options[values[0]] = true
+  } else {
+    options[values[0]] = values[1] === 'true' ? true : values[1] === 'false' ? false : values[1]
+  }
+}
+
+const usage = () => {
+  console.log(`
+${argvZero} - Utility to deploy a new/updated DCP package
+Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
+
+Usage:  ${argvZero} OPTIONS
+
+Where:
+  --help        Display this usage screen
+
+  --network     Deploy package to package server at ${dcpConfig.packageManager.hostname} (default)
+  --local       Deploy package directly to local filesystem
+
+  --keystore=/path/to/your.keystore
+                Path to keystore file (default: ask, look for ./myDCPKey.keystore)
+  --package=/path/to/package.dcp
+                Path to DCP Package definition (default: ask, look for ./package.dcp)
+
+Environment:
+  DEBUG         If truthy, enable debug mode. If a string, treat as a list of extended debug flags
+                (eg. DEBUG="verbose protocol" to enable DEBUG mode, with the "verbose" and "protocol" flags)
+  DCP_KEYSTORE_PASSWORD
+                If present, use its value as the keystore password (default: prompt for password)
+`)
+  
+  // console.log('CLI options:', options)
+  
+  process.exit(1)
 }
 
 var ask = function (question, defaultAnswer, optionKey) {
@@ -69,7 +105,7 @@ var getFiles = (packageJSON) => {
   }
 
   if (!Object.keys(deployFiles).length) {
-    console.error("Cannot deploy package with no files")
+    console.error('Cannot deploy package with no files')
     process.exit(2)
   }
 
@@ -81,20 +117,23 @@ var getFiles = (packageJSON) => {
 }
 
 var main = async () => {
-  let packageLocation = await ask('Location of package file (package.dcp):', 'package.dcp', 'package')
+  console.log(`${argvZero} - Utility to deploy a new/updated DCP package
+Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
+  
+  let packageLocation = options['--package'] || await ask('Location of package file (package.dcp):', 'package.dcp', 'package')
 
   let status
   try {
     status = fs.statSync(packageLocation)
   } catch (error) {
-    console.log('Can not locate package.dcp. Please run: node init.dcp')
-    process.exit()
+    console.log('Can not locate package description file. Please run: initDCPPackage.js')
+    process.exit(2)
   }
 
   let packageJSON = JSON.parse(fs.readFileSync(packageLocation))
   getFiles(packageJSON)
 
-  let keystoreLocation = await ask('Location of keystore file (myDCPKey.keystore):', 'myDCPKey.keystore', 'keystore')
+  let keystoreLocation = options['--keystore'] || await ask('Location of keystore file (myDCPKey.keystore):', 'myDCPKey.keystore', 'keystore')
 
   let keystoreFile
   try {
@@ -102,18 +141,43 @@ var main = async () => {
   } catch (error) {
     console.log('Could not open keystore file' + (error.code === 'ENOENT' ? ' - use ' + path.resolve(path.dirname(process.argv[1]) + '/createWallet.js') + ' to create' : ''))
     console.log(error)
-    process.exit()
+    process.exit(2)
   }
 
+  let password = process.env.DCP_KEYSTORE_PASSWORD || await ask('Keystore password:', '', 'keypass')
+  let wallet
+  try {
+    wallet = protocol.unlock(keystoreFile, password)
+    protocol.setWallet(wallet)
+  } catch (error) {
+    console.error('Could not unlock keystore; please check your password and try again')
+  }
+
+  var result = null
+  try {
+    let r
+    
+    if (options['--local']) {
+      r = await deployLocal(packageJSON, wallet)
+    } else {
+      r = await deployNetwork(packageJSON, wallet)
+    }
+
+    result = r.result
+  } catch (error) {
+    console.error(error)
+    process.exit(1)
+  }
+
+  process.exit(0)
+}
+
+/// Send the package over the DCP network to deploy via the package-manager server
+async function deployNetwork (packageJSON, wallet) {
   let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}`
   let URL = baseURL + '/deploy/module'
 
-  let password = await ask('Keystore password:', '', 'keypass')
-  let wallet = protocol.unlock(keystoreFile, password)
-  protocol.setWallet(wallet)
-  // protocol.setOptions({
-  //   useSockets: false
-  // })
+  console.log(` * Deploying via network to ${URL}...`)
 
   let result
   try {
@@ -130,7 +194,7 @@ var main = async () => {
     } else {
       console.error('Cannot send module to server;', error)
     }
-    process.exit(1)
+    throw error
   }
 
   // estimate credits cost to deploy
@@ -139,7 +203,31 @@ var main = async () => {
   console.log('Response: ')
   console.log(JSON.stringify(result, null, 2))
   console.log(`Module ${packageJSON.name} deployed to ${URL}/${packageJSON.name}`)
-  process.exit(0)
+
+  return { status: 'ok', result }
+}
+
+/// Directly deploy the package to the local filesystem
+async function deployLocal (packageJSON, wallet) {
+  let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}`
+  let URL = baseURL + '/deploy/module'
+  
+  const database = require('database.js')
+  database.init(dcpConfig.packageManager.database)
+
+  const libDeployPackage = require('../lib/deploy-package')
+
+  console.log(` * Deploying locally to ${database.getFilePath()}/packages/${packageJSON.name}...`)
+
+  const signedMessage = protocol.sign(packageJSON, wallet.privateKey)
+
+  const result = await libDeployPackage.deployPackage(signedMessage)
+
+  console.log('Response: ')
+  console.log(JSON.stringify(result, null, 2))
+  console.log(`Module ${packageJSON.name} deployed to ${URL}/${packageJSON.name}`)
+
+  return { status: 'ok', result }
 }
 
 process.on('unhandledRejection', (reason, p) => {
@@ -147,4 +235,8 @@ process.on('unhandledRejection', (reason, p) => {
   process.exit(1)
 })
 
-main()
+if (options['--help']) {
+  return usage()
+} else {
+  return main()
+}
