@@ -10,7 +10,7 @@
  */
 
 require('dcp-rtlink/rtLink').link(module.paths)
-require('../src/node/config.js').load()
+require('config').load()
 const fs = require('fs')
 const readline = require('readline')
 const rl = readline.createInterface({
@@ -18,7 +18,8 @@ const rl = readline.createInterface({
   output: process.stdout
 })
 
-const protocol = require('../src/node/protocol-node.js')
+global.crypto = { getRandomValues: require('polyfill-crypto.getrandomvalues') }
+require('dcp-client/dist/protocol.min')
 
 rl.question('Privatekey (leave blank to generate a new privatekey): ', privatekey => {
   rl.question('Keystore password: ', password => {
