@@ -20,8 +20,8 @@ const config = require('config')
 config.addConfigFile(path.join(rtlink.installLocation, 'etc', 'dcp-site-config-web.js'))
 config.load()
 
-/* Only properties whose names String.match a whiteList will be emitted into 
- * the web-facing config file (www/docs/etc/dcp-config.js) when creating a 
+/* Only properties whose names String.match a whiteList will be emitted into
+ * the web-facing config file (www/docs/etc/dcp-config.js) when creating a
  * safe subset.
  *
  * Two whitelists are considered for each property:
@@ -29,7 +29,7 @@ config.load()
  *  - someName: considered for properties of dcpConfig.someName.
  */
 const whiteLists = {
-  default: [ 'hostname', 'port', 'protocol', 'isDown', /[a-z]U[rR][lL]$/ ]
+  default: [ 'hostname', 'port', 'protocol', 'isDown', 'useBlockchain', /[a-z]U[rR][lL]$/ ]
 }
 
 function safeSubset(label) {
@@ -72,6 +72,7 @@ var webConfig = {
   scheduler: safeSubset('scheduler'),
   packageManager: safeSubset('packageManager'),
   storage: safeSubset('storage'),
+  global: safeSubset('global'),
   bank: safeSubset('bank'),
   portal: safeSubset('portal'),
   terminal: safeSubset('terminal')
