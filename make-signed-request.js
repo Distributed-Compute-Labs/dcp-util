@@ -20,8 +20,14 @@ function usage () {
 ${progName} - Make signed requests on the command line
 Copyright (c) 2018 Kings Distributed Systems Ltd., All Rights Reserved.
 
-Usage:   ${progName} --host=hostname/method --body='{}' --key=0xPrivateKey
+Usage:   ${progName} --host=hostname/method --body='{}' --key=0xPrivateKey --useSocket=true
 Example: ${progName} --host=http://scheduler.devserver.office.kingsds.network/fetch/task --body='{"minValue": 100}'
+
+Where:
+  --host        location of the request
+  --body        the message to sign and send
+  --key         the private key to use to send the request with
+  --useSocket   where or not to use a socket to send the request (default: false)
 `)
   process.exit(1)
 }
@@ -42,11 +48,16 @@ async function start () {
 async function sendRequest (host, body, key) {
   let result
   try {
-    result = await protocol.send(host, body, key)
+    if (!argv.useSocket || argv.useSocket.toLowerCase() === 'false') {
+      result = await protocol.send(host, body, key)
+    } else {
+      result = await protocol.sendOverSocket(host, body, key)
+    }
   } catch (error) {
     result = error
   }
   console.log(result)
+  protocol.disconnect()
 }
 
 start()
