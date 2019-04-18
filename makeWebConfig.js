@@ -32,6 +32,11 @@ const whiteLists = {
   default: [ 'hostname', 'port', 'protocol', 'isDown', /[a-z]U[rR][lL]$/ ]
 }
 
+/** Generate the safe subset (whitelisted properties) of a property of dcpConfig.
+ *
+ *  @param      label           the name of the top level property (e.g. 'scheduler')
+ *  @returns    an object containing the safe subset
+ */
 function safeSubset(label) {
   var copy = {}
   var o = dcpConfig[label]
@@ -77,5 +82,48 @@ var webConfig = {
   terminal: safeSubset('terminal')
 }
 
-console.log(' * Creating ' + dcpConfig.root + '/www/docs/etc/dcp-config.js')
-require('fs').writeFileSync(dcpConfig.root + '/www/docs/etc/dcp-config.js', 'var dcpConfig = ' + JSON.stringify(webConfig), 'utf-8')
+/** Main program entry point */
+function main(argv) {
+  let outputFile = dcpConfig.root + '/www/docs/etc/dcp-config.js'
+  let quiet = false
+  let exitCode = 0
+  
+  for (let optind = 1; optind < argv.length; optind++)
+    switch(argv[optind]) {
+    default:
+      exitCode = 1  
+    case '--help': 
+    case '-h':
+      console.log(`
+${path.basename(argv[0])} - Create dcpConfig for external hosts.
+Copyright (c) 2018-2019 Kings Distributed Systems Ltd., All Rights Reserved.
+
+Usage: ${path.basename(argv[0])} [options] [-o filename]
+Where:
+  • The default behaviour is to create the output file, ${outputFile}
+  • --help or -h displays this help
+  • --quiet or -q suppresses all non-error output
+  • -o filename specifies an alternate output filename
+  • --showfiles dumps the list of config files which would be distilled into the 
+    output file before exiting
+`)
+      process.exit(exitCode)
+      break
+    case '--showfiles':
+      console.log('Files loaded:\n - ' + require('config').loadedFiles.join('\n - ') + '\n')
+      console.log('Output file:', outputFile)
+      process.exit(0)
+    case '-o':
+      outputFile = argv[optind + 1]
+      optind++
+      break
+    case '-q': case '--quiet': 
+      quiet = true
+      break
+  }
+
+  if (!quiet)
+    console.log(' * Creating ' + outputFile)
+  require('fs').writeFileSync(dcpConfig.root + '/www/docs/etc/dcp-config.js', 'var dcpConfig = ' + JSON.stringify(webConfig), 'utf-8')
+}
+main(process.argv.slice(1))
