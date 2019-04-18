@@ -23,7 +23,8 @@ const options = {
     hostname: dcpConfig.scheduler.database.hostname,
     username: dcpConfig.scheduler.database.username,
     password: dcpConfig.scheduler.database.password,
-    database: dcpConfig.scheduler.database.name
+    database: dcpConfig.scheduler.database.name,
+    port:     dcpConfig.scheduler.database.port
   },
   bank: {
     board: 'N',
@@ -33,7 +34,8 @@ const options = {
     hostname: dcpConfig.bank.database.hostname,
     username: dcpConfig.bank.database.username,
     password: dcpConfig.bank.database.password,
-    database: dcpConfig.bank.database.name
+    database: dcpConfig.bank.database.name,
+    port:     dcpConfig.bank.database.port
   },
   portal: {
     board: 'N',
@@ -43,7 +45,8 @@ const options = {
     hostname: dcpConfig.portal.database.hostname,
     username: dcpConfig.portal.database.username,
     password: dcpConfig.portal.database.password,
-    database: dcpConfig.portal.database.name
+    database: dcpConfig.portal.database.name,
+    port:     dcpConfig.portal.database.port
   },
   storage: {
     board: 'N',
@@ -53,7 +56,8 @@ const options = {
     hostname: dcpConfig.storage.database.hostname,
     username: dcpConfig.storage.database.username,
     password: dcpConfig.storage.database.password,
-    database: dcpConfig.storage.database.name
+    database: dcpConfig.storage.database.name,
+    port:     dcpConfig.storage.database.port
   }
 }
 
