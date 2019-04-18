@@ -25,7 +25,7 @@ Example: ${progName} scheduler.hostname
   process.exit(1)
 }
 
-if (process.argv.length < 3) {
+if (process.argv.length < 3 || process.argv[2] === '--help') {
   usage()
 }
 
