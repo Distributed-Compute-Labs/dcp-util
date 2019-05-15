@@ -25,7 +25,8 @@ const rl = readline.createInterface({
   output: process.stdout
 })
 
-const protocol = require('protocol-node.js')
+// const protocol = require('protocol-node.js')
+require('dcp-client/dist/protocol.min.js')
 var debug = process.env.DCPDP_DEBUG || process.env.DEBUG || ''
 
 const argvZero = require('path').basename(__filename)
@@ -148,7 +149,7 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
   let wallet
   try {
     wallet = protocol.unlock(keystoreFile, password)
-    protocol.setWallet(wallet)
+    protocol.keychain.addWallet(wallet)
   } catch (error) {
     console.error('Could not unlock keystore; please check your password and try again')
   }
@@ -182,7 +183,7 @@ async function deployNetwork (packageJSON, wallet) {
   let result
   try {
     console.log('Sending module to server:', baseURL)
-    result = await protocol.send(URL, packageJSON)
+    result = await protocol.send(URL, packageJSON, wallet.getPrivateKeyString())
   } catch (error) {
     if (error.hasOwnProperty('remote')) {
       if (error.remote.status === 'error') {
