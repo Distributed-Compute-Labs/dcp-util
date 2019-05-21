@@ -164,6 +164,7 @@ async function loadCompute () {
     for (let i=0; i<process.argv[1].split('/').length-1; i++) {
       location = location + '/' + process.argv[1].split('/')[i]
     }
+    location = location.slice(1)
     console.log('must supply a valid keystore, use the -i option to give a filepath to your keystore, or put your keystore in '+location+'/myDCPKey.keystore');
     console.log(error);
     // ends program with an error if a valid keystore is not supplied
@@ -173,41 +174,56 @@ async function loadCompute () {
   protocol.keychain.addKeystore(keystore, keystorePassword, true)
 }
 
-/** called when a job is accepted by the scheduler
- */
-function onAccepted (jobID) {
-  jobsSent++
-  totalSlicesSent += numSlicesPerJob
-  if (verbose) {
-    console.log('Job accepted, ID: ' + jobID)
-  } else {
-    // if not verbose, only display the first 20 digits of the job ID, we're slicing 22 off since the first two digits are 0x
-    console.log('Job accepted, ID: ' + jobID.slice(0, 22))
-  }
-
-  updateSliceCount()
-}
-
-/** called when a slice is returned by the scheduler
- */
-function onResult () {
-  if (this.cancelled) { return } // DCP-563
-
-  slicesReturned++
-  totalSlicesReturned++
-
-  updateSliceCount()
-}
-
-/** called when all the slices from a job are returned
- */
-function onJobComplete () {
-  jobsCompleted++
-}
 
 /** body of the program, does the actual pinging and interaction with compute API
  */
 async function ping (numSlices) {
+
+  /** called when a job is accepted by the scheduler
+  */
+  function onAccepted (jobID) {
+    jobsSent++
+    totalSlicesSent += numSlicesPerJob
+    if (verbose) {
+      console.log('Job accepted, ID: ' + jobID)
+    } else {
+      // if not verbose, only display the first 20 digits of the job ID, we're slicing 22 off since the first two digits are 0x
+      console.log('Job accepted, ID: ' + jobID.slice(0, 22))
+    }
+
+    updateSliceCount()
+  }
+
+  /** called when a slice is returned by the scheduler
+   */
+  function onResult (res) {
+    var result = res.result
+    // console.log('xxx', result)
+    if (this.cancelled) { return } // DCP-563
+
+    slicesReturned++
+    totalSlicesReturned++
+
+    if (verbose) {
+      // calculates the tiume for the return of the slice
+      let returnTime = eval(new Date()).getTime() - startTime
+      //erases the output of the last line
+      erase(150)
+      //the number of spaces at the end of this line is because of a bug, for some reason erase()
+      //in this case does not erase the characters but simply moves the cursor backwards, so we
+      //overwrite characters after what we've written here
+      console.log('slice number : '+result+' : Time for return = '+returnTime+'ms                              ')
+    }
+
+    updateSliceCount()
+  }
+
+  /** called when all the slices from a job are returned
+   */
+  function onJobComplete () {
+    jobsCompleted++
+}
+
   // this is the array that will be distributed on the network
   let input = []
   for (let i = 1; i < numSlices + 1; i++) {
@@ -220,6 +236,7 @@ async function ping (numSlices) {
   job.on('accepted', () => onAccepted(job.id))
   job.on('result', resultFn)
   job.on('complete', () => onJobComplete())
+  job._generator.public = {name: 'DCPing'};
 
   // resets number of slices returned
   slicesReturned = 0
@@ -296,6 +313,8 @@ Usage:    ${name} -c stop sending jobs after a certain number of jobs have been 
           ${name} --shceduler configure the URL of the scheduler, default is https://portal.distributed.computer/etc/dcp-config.js.
 
           ${name} -h display this help message
+
+          ${name} -v gives verbose output, the full job ID, and the time for return of each slice
 
 NOTE TO THE USER
 This is by no means a complete utility, certain libraries are missing that would otherwise have been used here, namely some API for keystore access, and a safeMarketValue function, where the market value of a slice is recieved from the scheduler and used as the cost per slice.
