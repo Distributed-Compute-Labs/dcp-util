@@ -15,6 +15,9 @@ const path = require('path')
 const process = require('process')
 const protocol = require('protocol-node')
 
+/** 
+ * Shows the help for this utility
+ */
 function usage () {
   var progName = path.basename(process.argv[1])
 
@@ -54,19 +57,29 @@ Where:      --action      desired action
 
 var argv = require('yargs').argv
 
+/** 
+ * Parses arguments, sends the request 
+ */
 async function start () {
   if (!argv.action && !argv.job && !argv.key) {
     usage()
     return
   }
   let action = argv.action
-  // let url = `${dcpConfig.scheduler.protocol}//scheduler.karen.office.kingsds.network/generator/${argv.action}` // DO NOT CHECK IN
-  let url = `${dcpConfig.scheduler.protocol}//scheduler.karen.office.kingsds.network/generator/`
-  let job = argv.generator || null
+  let url = `${dcpConfig.scheduler.protocol}//${dcpConfig.scheduler.hostname}/generator/`
+  let job = argv.job || null
   let key = argv.key || protocol.createWallet().getPrivateKeyString()
   sendRequest(action, url, job, key)
 }
 
+/**
+ * Sends the request to the route specified. Manipulates the owner's jobs accordingly.
+ * 
+ * @param {string} action 
+ * @param {string} url 
+ * @param {string} job 
+ * @param {string} key 
+ */
 async function sendRequest (action, url, job, key) {
   let result
   let getListUrl = url + 'listJobs'
@@ -75,9 +88,12 @@ async function sendRequest (action, url, job, key) {
     let list = await protocol.send(getListUrl, {job}, key)
 
     if (action === 'listJobs') {
+      // list attributes of the jobs belonging to the given private key
       result = list
     } else if (action === 'countTasks') {
+      // list all tasks belonging to the specified job
       if (job === null) {
+        // if no job specified, list all slices of all jobs
         result = []
         // iterate through each object in list
         for (let j of list) {
@@ -86,11 +102,17 @@ async function sendRequest (action, url, job, key) {
           result.push({address: job, tasks: res}) 
         }
       } else {
+        // job specified, so return slices for only that job
         result = await protocol.send(actionUrl, {job}, key)
       }
-    } else {
+    } else if ((action === 'elapsedTime') || (action === 'deleteJob')) {
+      // either elapsedTime or deleteJob
       result = await protocol.send(actionUrl, {job}, key)
-    } 
+    } else {
+      // if there was an invalid action specified, display help
+      console.log('Invalid action specified, please try again.')
+      usage()
+    }
   } catch (error) {
     result = error
   }
