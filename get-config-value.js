@@ -8,7 +8,6 @@
  *  @date               Nov 2018
  */
 require('dcp-rtlink/rtLink').link(module.paths)
-const dcpConfig = require('config').load()
 const path = require('path')
 const process = require('process')
 
@@ -33,6 +32,8 @@ if (process.argv[2] === '--showfiles') {
   console.log('Files loaded:\n - ' + require('config').loadedFiles.join('\n - ') + '\n')
   process.argv.splice(2,1)
 }
+
+const dcpConfig = require('config').load()
 
 for (let i=2; i < process.argv.length; i++) {
   let entries = process.argv[i].split('.')
