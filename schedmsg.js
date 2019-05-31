@@ -10,11 +10,6 @@
  * @date May 2019
  */
 
-// const rpn = require('request-promise-native') //HTTP request client 'request'
-// const fs = require('fs')
-// const ppromt = require('password-prompt')
-// const SCHED_PATH = "https://portal.distributed.computer/etc/dcp-config.js"
-// const KEYSTORE_PATH = 'myDCPKey.keystore'
 
 //States is the message is persistent or not. By default, it is not persistent
 let persistent = false
@@ -48,9 +43,9 @@ for (let j = 0; j < args.length; j++) {
 }
 
 //Creates an object containing all message info
-var msg = {"type" : type, "content" : content, "persistent" : persistent, "timestamp" : 0}
+var msg = {"type" : type, "payload" : content, "persistent" : persistent, "timestamp" : 0}
 
 //this sends the message to protocol.js where it will be signed and 
-//sent to the /schedmsg/send route of the scheduler
-protocol.send('/schedmsg/send', msg)
+//sent to the /msg/send route of the scheduler
+protocol.send('/msg/send', msg)
 //should add await?
