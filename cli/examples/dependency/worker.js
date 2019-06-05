@@ -1,9 +1,9 @@
-/** @file	worker.js	        Function for dependency example
- *  @author	Matthew Palma
- *  @date	April 2018
+/** @file       worker.js               Function for dependency example
+ *  @author     Matthew Palma
+ *  @date       April 2018
  */
 
-function fn = (x,y) => {
+function fn(x,y) {
   return RMath.sinpi(x + y * y) * RMath.dpois(-(x*x + y*y*.5), x+y, true);
 };
 
