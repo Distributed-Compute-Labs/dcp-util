@@ -11,9 +11,10 @@
 
 require('dcp-rtlink/rtLink').link(module.paths)
 require('config').load() // eslint-disable-line
+require('dcp-client/dist/protocol.min.js') /* side effect: global protocol now defined :( */
+
 const path = require('path')
 const process = require('process')
-const protocol = require('protocol-node')
 
 /** 
  * Shows the help for this utility
