@@ -8,12 +8,11 @@
  * @date        July 2018
  */
 require('dcp-rtlink/rtLink').link(module.paths)
+require('config').load()
+
 const process = require('process')
 const path = require('path')
-const rtlink = require('dcp-rtlink/rtLink')
-const config = require('config')
-
-config.load()
+let   outputFilename = dcpConfig.installLocation + '/www/docs/etc/dcp-config.js'
 
 /* Only properties whose names String.match a whiteList will be emitted into
  * the web-facing config file (www/docs/etc/dcp-config.js) when creating a
@@ -80,7 +79,6 @@ var webConfig = {
 
 /** Main program entry point */
 function main(argv) {
-  let outputFile = dcpConfig.root + '/www/docs/etc/dcp-config.js'
   let quiet = false
   let exitCode = 0
   
@@ -96,7 +94,7 @@ Copyright (c) 2018-2019 Kings Distributed Systems Ltd., All Rights Reserved.
 
 Usage: ${path.basename(argv[0])} [options] [-o filename]
 Where:
-  • The default behaviour is to create the output file, ${outputFile}
+  • The default behaviour is to create the output file, ${outputFilename}
   • --help or -h displays this help
   • --quiet or -q suppresses all non-error output
   • -o filename specifies an alternate output filename
@@ -107,10 +105,10 @@ Where:
       break
     case '--showfiles':
       console.log('Files loaded:\n - ' + require('config').loadedFiles.join('\n - ') + '\n')
-      console.log('Output file:', outputFile)
+      console.log('Output file:', outputFilename)
       process.exit(0)
     case '-o':
-      outputFile = argv[optind + 1]
+      outputFilename = argv[optind + 1]
       optind++
       break
     case '-q': case '--quiet': 
@@ -119,7 +117,7 @@ Where:
   }
 
   if (!quiet)
-    console.log(' * Creating ' + outputFile)
-  require('fs').writeFileSync(dcpConfig.root + '/www/docs/etc/dcp-config.js', 'var dcpConfig = ' + JSON.stringify(webConfig), 'utf-8')
+    console.log(' * Creating ' + outputFilename)
+  require('fs').writeFileSync(outputFilename, 'var dcpConfig = ' + JSON.stringify(webConfig), 'utf-8')
 }
 main(process.argv.slice(1))
