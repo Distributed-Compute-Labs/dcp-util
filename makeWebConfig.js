@@ -77,10 +77,70 @@ var webConfig = {
   terminal: safeSubset('terminal')
 }
 
+if (false && dcpConfig.build === 'release') {
+  function indent() {
+    return ''
+  }
+} else {
+  function indent(depth) {
+    const spaces='                                     '
+    return (depth ? '\n' : '\n') + spaces.substr(0, 2 * depth)
+  }
+}
+
+/** Stringification routine which emits legal JavaScript object literals (superset of JSON),
+ *  which include special configuration directives from the DCP config.js 'language', eg. url() 
+ */
+function stringify(obj, depth, label) {
+  let s = ''
+  let URL = require('dcp-url').URL
+  
+  if (!depth) {
+    depth = 0
+    label = ''
+  }
+  
+  depth++
+  Object.keys(obj).forEach((p) => {
+    let val = obj[p]
+
+    if (val instanceof String)
+      val = val.toString()
+    else if (val instanceof Number || val instanceof Boolean)
+      val = val.valueOf()
+
+    if (s)
+      s += ','
+    s += indent(depth) + '"' + p + '": '
+
+    switch (typeof(obj[p])) {
+      case 'object':
+        if (val instanceof URL)
+          s += `url('${val.href}')`
+        else
+          s += stringify(obj[p], depth, label + (label ? '.' : ''), p)
+        break;
+      case 'boolean':
+      case 'number':
+      case 'string':
+        s += JSON.stringify(obj[p])
+        break;
+      default:
+        throw new Error('Cannot serialize property ' + label + (label ? '.' : '') + p)
+    }
+  })
+  depth--
+
+  if (s)
+    return indent(depth) + '{' + s + indent(depth) + '}'
+  return '{}'
+}
+
 /** Main program entry point */
 function main(argv) {
   let quiet = false
   let exitCode = 0
+  let confStr = ''
   
   for (let optind = 1; optind < argv.length; optind++)
     switch(argv[optind]) {
@@ -118,6 +178,14 @@ Where:
 
   if (!quiet)
     console.log(' * Creating ' + outputFilename)
-  require('fs').writeFileSync(outputFilename, 'var dcpConfig = ' + JSON.stringify(webConfig), 'utf-8')
+
+  require('fs').writeFileSync(outputFilename,
+                              `window.addEventListener('load', function dcpInitConfig() { 
+function url(urlString) {
+  return new require('dcp-url').URL(urlString)
+}
+
+window.dcpConfig = ${stringify(webConfig)}})`,
+                              'utf-8')
 }
 main(process.argv.slice(1))
