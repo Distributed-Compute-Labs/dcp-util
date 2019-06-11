@@ -4,10 +4,6 @@
  *                                      this host and format it to be usable from the web
  *                                      content via script tag.
  *
- *                                      In addition to the usual DCP configuration, this
- *                                      program also loads etc/dcp-site-config-web.js, so
- *                                      that we can document external-facing URLs.
- *
  * @author      Wes Garland, wes@kingsds.network
  * @date        July 2018
  */
@@ -17,7 +13,6 @@ const path = require('path')
 const rtlink = require('dcp-rtlink/rtLink')
 const config = require('config')
 
-config.addConfigFile(path.join(rtlink.installLocation, 'etc', 'dcp-site-config-web.js'))
 config.load()
 
 /* Only properties whose names String.match a whiteList will be emitted into
@@ -29,7 +24,7 @@ config.load()
  *  - someName: considered for properties of dcpConfig.someName.
  */
 const whiteLists = {
-  default: [ 'hostname', 'port', 'protocol', 'isDown', 'useBlockchain', /[a-z]U[rR][lL]$/ ]
+  default: [ 'location', 'isDown', 'useBlockchain', /[a-z]U[rR][lL]$/ ]
 }
 
 /** Generate the safe subset (whitelisted properties) of a property of dcpConfig.
