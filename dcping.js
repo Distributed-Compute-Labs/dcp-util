@@ -24,7 +24,8 @@ const fs = require('fs')
 // needed to take password from keystore
 const pprompt = require('password-prompt')
 // path to the keystore, can be configured with -i
-let keyStorePath = location+'/myDCPKey.keystore'
+const expandTilde = require('expand-tilde')
+let keyStorePath = expandTilde('~')+'/.dcp/default.keystore'
 // address of the scheduler, can be configured with the --scheduler option
 let scheduler = 'https://portal.distributed.computer/etc/dcp-config.js'
 // number of ping jobs the program will send to scheduler
@@ -115,6 +116,17 @@ for (let j = 0; j < args.length; j++) {
       // displays help message and ends the program
       Usage()
       endProgram(0)
+      break;
+    case '--help':
+      // displays help message and ends the program
+      Usage()
+      endProgram(0)
+      break;
+    case '-?':
+      // displays help message and ends the program
+      Usage()
+      endProgram(0)
+      break;
   }
 }
 
@@ -167,7 +179,7 @@ async function loadCompute () {
     keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
   } catch (error) {
     // catches the error thrown if a valid keystore is not supplied, and tells the user how to supply one
-    console.log('must supply a valid keystore, use the -i option to give a filepath to your keystore, or put your keystore in '+location+'/myDCPKey.keystore. -h will print a help message options');
+    console.log('must supply a valid keystore, use the -i option to give a filepath to your keystore, or put your keystore in '+expandTilde('~')+'/.dcp/default.keystore. -h will print a help message options');
     console.log(error);
     // ends program with an error if a valid keystore is not supplied
     endProgram(1);
@@ -286,7 +298,7 @@ Usage:    ${name} -c stop sending jobs after a certain number of jobs have been 
 
           ${name} -C configure the amount of DCC being bid per slice, default is 0.0005
 
-          ${name} -i give the file path to the keystore to be used, default is ./myDCPKey.keystore
+          ${name} -i give the file path to the keystore to be used, default is ~/.dcp/default.keystore
 
           ${name} -f send as many jobs to the scheduler as possible and do not track returned slices, be careful as this option burns through DCC
 
