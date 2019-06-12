@@ -74,7 +74,8 @@ var webConfig = {
   global: safeSubset('global'),
   bank: safeSubset('bank'),
   portal: safeSubset('portal'),
-  terminal: safeSubset('terminal')
+  terminal: safeSubset('terminal'),
+  build: dcpConfig.build
 }
 
 if (false && dcpConfig.build === 'release') {
@@ -116,7 +117,7 @@ function stringify(obj, depth, label) {
     switch (typeof(obj[p])) {
       case 'object':
         if (val instanceof URL)
-          s += `url('${val.href}')`
+          s += `new URL('${val.href}')`
         else
           s += stringify(obj[p], depth, label + (label ? '.' : ''), p)
         break;
@@ -180,12 +181,8 @@ Where:
     console.log(' * Creating ' + outputFilename)
 
   require('fs').writeFileSync(outputFilename,
-                              `window.addEventListener('load', function dcpInitConfig() { 
-function url(urlString) {
-  return new require('dcp-url').URL(urlString)
-}
-
-window.dcpConfig = ${stringify(webConfig)}})`,
-                              'utf-8')
+`/* Generated ${Date()} by ${process.env.USER} on ${process.env.HOSTNAME} */
+window.dcpConfig = ${stringify(webConfig)}
+`, 'utf-8')
 }
 main(process.argv.slice(1))
