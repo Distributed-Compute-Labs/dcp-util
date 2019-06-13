@@ -75,10 +75,10 @@ async function start () {
 /**
  * Sends the request to the route specified. Manipulates the owner's jobs accordingly.
  * 
- * @param {string} action 
- * @param {string} url 
- * @param {string} job 
- * @param {string} key 
+ * @param {string} action   Action to perform: listJobs, countTasks, elapsedTime, deleteJob
+ * @param {string} url      Base URL with trailing slash; action will be appended
+ * @param {string} job      Address of a job to operate on; optional for countTasks
+ * @param {string} key      Private key (string) to sign requests with; must be job owner
  */
 async function sendRequest (action, url, job, key) {
   let result
@@ -87,31 +87,37 @@ async function sendRequest (action, url, job, key) {
   try {
     let list = await protocol.send(getListUrl, {job}, key)
 
-    if (action === 'listJobs') {
-      // list attributes of the jobs belonging to the given private key
-      result = list
-    } else if (action === 'countTasks') {
-      // list all tasks belonging to the specified job
-      if (job === null) {
-        // if no job specified, list all slices of all jobs
-        result = []
-        // iterate through each object in list
-        for (let j of list) {
-          job = j.address
-          res = await protocol.send(actionUrl, {job}, key)
-          result.push({address: job, tasks: res}) 
+    switch (action) {
+      case 'listJobs':
+        result = list
+        break
+
+      case 'countTasks':
+        if (job === null) {
+          // if no job specified, list all slices of all jobs
+          result = []
+          for (let j of list) {
+            job = j.address
+            res = await protocol.send(actionUrl, {job}, key)
+            result.push({address: job, tasks: res})
+          }
+        } else {
+          // job specified, return slices for only that job
+          result = await protocol.send(actionUrl, {job}, key)
         }
-      } else {
-        // job specified, so return slices for only that job
+        break
+
+      case 'elapsedTime':
+      case 'deleteJob':
+        // either elapsedTime or deleteJob
         result = await protocol.send(actionUrl, {job}, key)
-      }
-    } else if ((action === 'elapsedTime') || (action === 'deleteJob')) {
-      // either elapsedTime or deleteJob
-      result = await protocol.send(actionUrl, {job}, key)
-    } else {
-      // if there was an invalid action specified, display help
-      console.log('Invalid action specified, please try again.')
-      usage()
+        break
+      
+      default:
+        // if there was an invalid action specified, display help
+        console.log('Invalid action specified, please try again.')
+        usage()
+        break
     }
   } catch (error) {
     result = error
