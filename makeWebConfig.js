@@ -68,6 +68,7 @@ function safeSubset(label) {
 
 /** This object becomes the web config JSON that is loaded by SCRIPT tag in apps */
 var webConfig = {
+  worker: dcpConfig.worker,
   scheduler: safeSubset('scheduler'),
   packageManager: safeSubset('packageManager'),
   storage: safeSubset('storage'),
