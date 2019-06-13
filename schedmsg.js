@@ -10,42 +10,53 @@
  * @date May 2019
  */
 
+const path = require('path')
+const process = require('process')
 
-//States is the message is persistent or not. By default, it is not persistent
-let persistent = false
-//States the type of the message. For now, the only valid type is 'broadcast'
-let type = ''
-//The content contains the text for the message
-let content = ''
 
-//holds the message from the command line
-//skips first two slices because we know they are node and schedmsg.js
-const args = process.argv.slice(2)
-//searches for command line arguments and changes appropriate variables
-for (let j = 0; j < args.length; j++) {
-  switch (args[j]) {
-    case '-b':
-      // specifies type broadcast
-      type = 'broadcast'
-      console.log('type: broadcast')
-      break
-    case '-p':
-      //message is persistent
-      persistent = true
-      console.log('message is persistent')
-      break
-    case '-m':
-      //the content of the message
-      content = args[j+1]
-      console.log('the message is: '+content)
-      break
-  }
+
+function help () {
+  var progName = path.basename(process.argv[1])
+
+  console.log(`
+${progName} - Send messages to the scheduler and workers
+
+Usage:   ${progName} --type='' --body='' --persistent='t/f'
+Example: ${progName} --type='broadcast' --body='Hello World!' --persistent=true
+
+Where:
+  --type          type of message being send (broadcast)
+  --body          the message to sign and send
+  --persistent    whether the message should be persistent (default: false)
+`)
+  process.exit(1)
 }
 
-//Creates an object containing all message info
-var msg = {"type" : type, "payload" : content, "persistent" : persistent, "timestamp" : 0}
+var argv = require('yargs').argv
 
-//this sends the message to protocol.js where it will be signed and 
-//sent to the /msg/send route of the scheduler
-protocol.send('/msg/send', msg)
-//should add await?
+async function start () {
+  if (!argv.type && !argv.body && !argv.persistent) {
+    help()
+    return
+  }
+  let type = argv.type
+  let body = argv.body
+  let persistent = false
+  if (argv.persistent)
+    persistent = true
+  sendMessage(type, body, persistent)
+}
+
+async function sendMessage (type, body, persistent) {
+  let result
+  let msg = {"type" : type, "payload" : body, "persistent" : persistent, "timestamp" : 0}
+  try {
+      result = await protocol.send('/msg/send', msg)
+  } catch (error) {
+    result = error
+  }
+  console.log(result)
+  protocol.disconnect()
+}
+
+start()
