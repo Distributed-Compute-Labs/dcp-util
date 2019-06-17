@@ -149,7 +149,7 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
   let wallet
   try {
     wallet = protocol.unlock(keystoreFile, password)
-    protocol.keychain.addWallet(wallet)
+    protocol.keychain.addWallet(wallet, true)
   } catch (error) {
     console.error('Could not unlock keystore; please check your password and try again')
   }
