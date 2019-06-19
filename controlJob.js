@@ -16,7 +16,7 @@ global.window.location = { protocol: (dcpConfig.build.indexOf('release') >= 0) ?
 global.crypto = { getRandomValues: require('crypto').randomBytes }
 global.ethereumjs = require('ethereumjs-tx/ethereumjs-tx-1.3.3.min.js')
 global.ethereumjs.Wallet = require('ethereumjs-wallet')
-global.XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest
+global.XMLHttpRequest = require('dcp-xhr').XMLHttpRequest
 global.performance = require('perf_hooks').performance
 global.navigator = { hardwareConcurrency: 1 }
 global.io = require('socket.io-client')
