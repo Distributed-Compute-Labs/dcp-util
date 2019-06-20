@@ -105,7 +105,17 @@ class DcpKeystoreUtility {
 		} else if ( (typeof(options) === 'string') && (!secondParam) ) {
 			//form 3
 			// console.log('getWallet: form 3')
-			optionsObj.name = options
+			//if the path given is a string, either it is simply a name of a keystore, in which case it is assumed that it is in the user's
+			//default directory of ~/.dcp, or it is a full path, in which case the string will start with ~,. ,.. , or / and will be split 
+			//into the directory and name portions
+			if ((options[0] === '~') || (options[0] === '.') || (options[0] === '..') || (options[0] === path.sep)) {
+				const pathArray = options.split(path.sep)
+				optionsObj.name = pathArray[pathArray.length-1]
+				optionsObj.dir = pathArray.slice(0,pathArray.length-1).join(path.sep)
+
+			} else {
+				optionsObj.name = options
+			}
 		} else if (Array.isArray(options)) {
 			//forms 4, 5, and 6
 			//iterates over options, which to be clear is an array in these 3 forms, and adjusts optionsObj accordingly
