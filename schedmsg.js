@@ -56,15 +56,6 @@ async function loadCompute(keystorePath) {
 }
 
 async function sendMessage (msg) {
-  //checks that all the needed information in msg was provided by the caller, displays a help function if not
-  if (!msg.type && !msg.body && !msg.persistent) {
-    console.log('You must provide a configuration for type and body')
-    help()
-    //exits the program with error flag raised. help() should have already done so, but if somebody edits it and messes that up
-    //this line will prevent the error from propegating
-    process.exit(1)
-  }
-
   //adds a timestamp to the msg, all the other information and formatting is already complete
   msg.timestamp = Date.now() + 90000
 
@@ -94,6 +85,15 @@ async function start () {
 
   //XXXXX
   // console.log(cliArgs)
+
+  //checks that all the needed information in msg was provided by the caller, displays a help function if not
+  if (!cliArgs['--type'] && !cliArgs['--body']) {
+    console.log('You must provide a configuration for type and body')
+    help()
+    //exits the program with error flag raised. help() should have already done so, but if somebody edits it and messes that up
+    //this line will prevent the error from propegating
+    process.exit(1)
+  }
 
   await loadCompute(cliArgs['--keystore'])
 
