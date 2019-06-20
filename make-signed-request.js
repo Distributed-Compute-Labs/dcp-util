@@ -11,7 +11,9 @@ require('dcp-rtlink/rtLink').link(module.paths)
 const dcpConfig = require('config').load() // eslint-disable-line
 const path = require('path')
 const process = require('process')
-const protocol = require('protocol-node')
+global.window = global
+global.navigator = { hardwareConcurrency: require('os').cpus().length }
+require('dcp-client/dist/protocol.min.js')
 
 function usage () {
   var progName = path.basename(process.argv[1])
@@ -41,7 +43,7 @@ async function start () {
   }
   let host = argv.host
   let body = JSON.parse(argv.body || '{}')
-  let key = argv.key || protocol.createWallet().getPrivateKeyString()
+  let key = argv.key || '0x'+require('crypto').randomBytes(32).toString('hex')
   sendRequest(host, body, key)
 }
 
@@ -49,7 +51,7 @@ async function sendRequest (host, body, key) {
   let result
   try {
     if (!argv.useSocket || argv.useSocket.toLowerCase() === 'false') {
-      result = await protocol.send(host, body, key)
+      result = await protocol.send(host, body, key, false, 0, false)
     } else {
       result = await protocol.sendOverSocket(host, body, key)
     }
