@@ -25,7 +25,7 @@ class DcpKeystoreUtility {
 		 *
 		 *@returns {string} - whatever the user types
 		 */
-		this.passphrasePrompt = (prompt) => pprompt(prompt, { method: 'hide' })
+		this.passphrasePrompt = (prompt) => pprompt(prompt, { method: 'hide', required: false })
 	}
 
 	/**
