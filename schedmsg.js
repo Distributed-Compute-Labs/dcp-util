@@ -1,3 +1,4 @@
+#! /usr/bin/env node
 /**
  * @file schedmsg.js
  * 
@@ -57,7 +58,7 @@ async function loadCompute(keystorePath) {
 
 async function sendMessage (msg) {
   //adds a timestamp to the msg, all the other information and formatting is already complete
-  msg.timestamp = Date.now() + 90000
+  msg.timestamp = Date.now()
 
   let result
 
