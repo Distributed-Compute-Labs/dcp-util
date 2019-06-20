@@ -8,7 +8,6 @@
  *  @date               Nov 2018
  */
 require('dcp-rtlink/rtLink').link(module.paths)
-const dcpConfig = require('config').load()
 const path = require('path')
 const process = require('process')
 
@@ -17,7 +16,7 @@ function usage() {
   
   console.log(`
 ${progName} - Query values from dcpConfig
-Copyright (c) 2018 Kings Distributed Systems Ltd., All Rights Reserved.
+Copyright (c) 2018-2019 Kings Distributed Systems Ltd., All Rights Reserved.
 
 Usage:   ${progName} [--showfiles] path.to.config.variable [path.to.config.variable...]
 Example: ${progName} scheduler.hostname
@@ -28,6 +27,8 @@ Example: ${progName} scheduler.hostname
 if (process.argv.length < 3 || process.argv[2] === '--help') {
   usage()
 }
+
+const dcpConfig = require('config').load()
 
 if (process.argv[2] === '--showfiles') {
   console.log('Files loaded:\n - ' + require('config').loadedFiles.join('\n - ') + '\n')
