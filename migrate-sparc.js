@@ -23,8 +23,7 @@ const url = require('url')
 const database = require('database.js')
 database.init(dcpConfig.portal.database)
 
-const defaultBank = dcpConfig.bank.protocol + '//' + dcpConfig.bank.hostname
-  + (dcpConfig.bank.port ? `:${dcpConfig.bank.port}` : '')
+const defaultBank = dcpConfig.bank.location.href
 
 var debug = process.env.DCPDP_DEBUG || process.env.DEBUG || ''
 

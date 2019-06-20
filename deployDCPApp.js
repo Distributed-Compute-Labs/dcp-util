@@ -91,8 +91,8 @@ var main = async () => {
     process.exit()
   }
 
-  let baseURL = `http://${dcpConfig.packageManager.hostname}:${dcpConfig.packageManager.port}`
-  let URL = baseURL + '/deploy/app'
+  let baseURL = dcpConfig.packageManager.location
+  let URL = baseURL.resolve('/deploy/app')
 
   let password = await ask('Keystore password:', '', 'keypass')
   let wallet = protocol.unlock(keystoreFile, password)

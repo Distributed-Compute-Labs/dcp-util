@@ -16,7 +16,7 @@ function usage() {
   
   console.log(`
 ${progName} - Query values from dcpConfig
-Copyright (c) 2018 Kings Distributed Systems Ltd., All Rights Reserved.
+Copyright (c) 2018-2019 Kings Distributed Systems Ltd., All Rights Reserved.
 
 Usage:   ${progName} [--showfiles] path.to.config.variable [path.to.config.variable...]
 Example: ${progName} scheduler.hostname
@@ -28,12 +28,12 @@ if (process.argv.length < 3 || process.argv[2] === '--help') {
   usage()
 }
 
+const dcpConfig = require('config').load()
+
 if (process.argv[2] === '--showfiles') {
   console.log('Files loaded:\n - ' + require('config').loadedFiles.join('\n - ') + '\n')
   process.argv.splice(2,1)
 }
-
-const dcpConfig = require('config').load()
 
 for (let i=2; i < process.argv.length; i++) {
   let entries = process.argv[i].split('.')
