@@ -27,7 +27,8 @@ const pprompt = require('password-prompt')
 const expandTilde = require('expand-tilde')
 let keyStorePath = expandTilde('~')+'/.dcp/default.keystore'
 // address of the scheduler, can be configured with the --scheduler option
-let scheduler = 'https://portal.distributed.computer/etc/dcp-config.js'
+// let scheduler = 'https://portal.distributed.computer/etc/dcp-config.js'
+let scheduler = 'https://portal.distributed.computer'
 // number of ping jobs the program will send to scheduler
 let numJobs = 3
 // this is set to 1 when there is a limited number of pings the user wishes to execute, ie, when they use the -c option
@@ -162,29 +163,30 @@ function erase (num) {
  */
 async function loadCompute () {
   try {
-    eval(await rpn(scheduler))
+    global.dcpConfig = await rpn(scheduler)
   } catch (error) {
-    console.log('there was a problem connecting to the scheduler, use --scheduler to specify the scheduler URL')
+    console.log(`there was a problem connecting to scheduler ${scheduler}, use --scheduler to specify the scheduler URL`)
     console.log(error)
     endProgram(1)
   }
 
-  global.dcpConfig = dcpConfig
   // Note: Don't do const compute = require(...), since the file already
   // injects compute and protocol into the global namespace.
-  require('/var/dcp/node_modules/dcp-client/dist/compute.min.js')
+  require('../node_modules/dcp-client/dist/compute.min.js')
+  console.log('got this far with no problems')
   // Load the keystore:
   let keystore;
   try {
     keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
   } catch (error) {
     // catches the error thrown if a valid keystore is not supplied, and tells the user how to supply one
-    console.log('must supply a valid keystore, use the -i option to give a filepath to your keystore, or put your keystore in '+expandTilde('~')+'/.dcp/default.keystore. -h will print a help message options');
+    console.log('must supply a valid keystore, use the -i option to give a filepath to your keystore, or put your keystore in '+expandTilde('~')+'/.dcp/default.keystore. -h will print a help message')
     console.log(error);
     // ends program with an error if a valid keystore is not supplied
     endProgram(1);
   }
   const keystorePassword = await pprompt('Enter keystore password:', { method: 'hide' })
+  console.log('protocol', protocol)
   protocol.keychain.addKeystore(keystore, keystorePassword, true)
 }
 
