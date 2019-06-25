@@ -15,14 +15,13 @@
 require('dcp-rtlink/rtLink').link(module.paths)
 const rpn = require('request-promise-native');
 const dcpConfig = require('config').load()
-console.log(dcpConfig)
 require('dcp-client/dist/compute.min.js')
 const path = require('path')
 const process = require('process')
-const arg_util = require('./arg_util.js')
+const arg_util = require('arg_util.js')
 //clobbers a faulty random number generator with a better one
 protocol.eth.Wallet = require('ethereumjs-wallet')
-const keystore = require('./keystore.js')
+const keystore = require('keystore.js')
 
 
 function help () {
@@ -64,7 +63,7 @@ async function sendMessage (msg) {
 
   try {
     //calls the needed route
-    console.log('x1: sending...', dcpConfig.scheduler, msg)
+    console.log('x1: sending...', dcpConfig.scheduler.location.href, msg)
     result = await protocol.send('msg/send', msg)
   } catch (error) {
     //logs the error
@@ -107,7 +106,9 @@ async function start () {
   //XXXXX
   // console.log(msg)
 
-  await sendMessage(msg)
+  const result = await sendMessage(msg)
+  
+  console.log('Result:', result)
 
   //exits the program without error flag
   process.exit(0)
