@@ -63,6 +63,7 @@ Example:   ${progName} --app=emcoil --key=0xsomePrivateKeyWithDCCAtCurrentBank
 // @todo: Scan the generator-data directory and add generators dynamically
 const generatorMap = {
   'emcoil': './generator-data/emcoil.json',
+  'emcoil-big': './generator-data/emcoil-big.json',
   'asteroids': './generator-data/asteroids.json'
   // 'diskfit': './generator-data/diskfit.json'
 }

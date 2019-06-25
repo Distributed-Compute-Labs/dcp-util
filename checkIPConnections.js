@@ -4,13 +4,13 @@ let taskEx = new RegExp('/fetch/task')
 let returnEx = new RegExp('/return/task')
 let resultsEx = new RegExp('/submit/results')
 
-let recieptEx = new RegExp('/reciept')
+let receiptEx = new RegExp('/receipt')
 
 let ips = {}
 let tasksFetched = 0
 let tasksReturned = 0
 let resultsSubmitted = 0
-let recieptsRecieved = 0
+let receiptsRecieved = 0
 
 let checkFile = (filename) => {
   let log = fs.readFileSync(path.resolve(__dirname, '../../production-logs/', filename), 'utf-8')
@@ -34,7 +34,7 @@ let checkFile = (filename) => {
       ips[ip].resultsSubmitted++
       resultsSubmitted++
     }
-    // if (recieptEx.test(lines[i])) recieptsRecieved++
+    // if (receiptEx.test(lines[i])) receiptsRecieved++
   }
 }
 
@@ -61,6 +61,6 @@ console.log('Total Requests:', totalRequests)
 console.log('Tasks Fetched:', tasksFetched)
 console.log('Tasks Return:', tasksReturned)
 console.log('Results Submitted:', resultsSubmitted)
-// console.log('Reciepts Recieved:', recieptsRecieved)
+// console.log('Reciepts Recieved:', receiptsRecieved)
 
 process.exit(0)
