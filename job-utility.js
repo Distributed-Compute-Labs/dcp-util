@@ -15,6 +15,9 @@ require('dcp-client/dist/protocol.min.js') /* side effect: global protocol now d
 
 const path = require('path')
 const process = require('process')
+const arg_util = require('./arg_util.js')
+const keystore = require('./src/keystore.js')
+const heap = require('heap')
 
 /** 
  * Shows the help for this utility
@@ -26,17 +29,17 @@ function usage () {
 ${progName} - Inspect and manipulate running jobs on the command line.
 Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
 
-Usage:      ${progName} --action=method --job=0xJobAddress --key=0xPrivateKey
+Usage:      ${progName} --action=method --job=0xJobAddress --keystore=0xPublicAddress --all=t/f
 
 
-Examples:   ${progName} --action=listJobs    --key=0xsomePrivateKey
+Examples:   ${progName} --action=listJobs    --keystore=0xsomePublicAddress --all
             
-            ${progName} --action=countTasks  --job=0xsomeJobAddress --key=0xsomePrivateKey
-            ${progName} --action=countTasks  --key=0xsomePrivateKey
+            ${progName} --action=countTasks  --job=0xsomeJobAddress --keystore=0xsomePublicAddress
+            ${progName} --action=countTasks  --keystore=0xsomePublicAddress --all
             
-            ${progName} --action=elapsedTime --job=0xsomeJobAddress --key=0xsomePrivateKey
+            ${progName} --action=elapsedTime --job=0xsomeJobAddress --keystore=0xsomePublicAddress
 
-            ${progName} --action=deleteJob   --job=0xsomeJobAddress --key=0xsomePrivateKey
+            ${progName} --action=deleteJob   --job=0xsomeJobAddress --keystore=0xsomePublicAddress
 
 
 Where:      --action      desired action
@@ -51,9 +54,17 @@ Where:      --action      desired action
                           (omit from COUNTTASKS action to return results for all jobs)
                           (required for elapsedTime action)
 
-            --key         the private key to use to send the request with
+            --keystore    the location of the keystore to use to send the request with
+
+            --all         if the keystore has been whitelisted as an administrator, indicates that all jobs
+                          on the heap will be returned (not valid on elapsedTime or deleteJob actions)
 `)
   process.exit(1)
+}
+
+async function loadCompute(keystorePath) {
+  const wallet = await keystore.getWallet(keystorePath)
+  protocol.keychain.addWallet(wallet, true)
 }
 
 var argv = require('yargs').argv
@@ -62,15 +73,32 @@ var argv = require('yargs').argv
  * Parses arguments, sends the request 
  */
 async function start () {
-  if (!argv.action && !argv.job && !argv.key) {
+  // if (!argv.action && !argv.job && !argv.keystore) {
+  //   usage()
+  //   return
+  // }
+
+  var paramObj = { '--action':'string', '--job':'string', '--keystore':'string', '--all':false }
+  var cliArgs = arg_util(paramObj)
+
+  if (!cliArgs['--action'] && !cliArgs['--job'] && !cliArgs['--keystore']) {
+    // console.log('You must provide a configuation for action, job, and keystore')
     usage()
     return
   }
-  let action = argv.action
+
+  // let action = argv.action
+  let action = cliArgs['--action']
   let url = `${dcpConfig.scheduler.protocol}//${dcpConfig.scheduler.hostname}/generator/`
-  let job = argv.job || null
-  let key = argv.key || protocol.createWallet().getPrivateKeyString()
-  sendRequest(action, url, job, key)
+  // let job = argv.job || null
+  let job = cliArgs['--job'] || null
+  // let keystore = argv.keystore || protocol.createWallet().getPrivateKeyString()
+  let keystore = cliArgs['--keystore'] || keystore.generateWallet()
+
+  let all = cliArgs['--all']
+
+  await loadCompute(keystore)
+  sendRequest(action, url, job, keystore, all)
 }
 
 /**
@@ -81,11 +109,18 @@ async function start () {
  * @param {string} job      Address of a job to operate on; optional for countTasks
  * @param {string} key      Private key (string) to sign requests with; must be job owner
  */
-async function sendRequest (action, url, job, key) {
+async function sendRequest (action, url, job, key, all) {
   let result
   let getListUrl = url + 'listJobs'
   let actionUrl = url + action
   try {
+    // if all, check that the keystore is whitelisted
+    // if everything checks out, then return all jobs on the heap
+    let list
+
+    // if (all) {
+    //   list = await protocol.send(getListUrl, {job}, /*scheduler address*/)
+    // }
     let list = await protocol.send(getListUrl, {job}, key)
 
     switch (action) {
