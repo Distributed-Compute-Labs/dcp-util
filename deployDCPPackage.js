@@ -175,8 +175,8 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
 
 /// Send the package over the DCP network to deploy via the package-manager server
 async function deployNetwork (packageJSON, wallet) {
-  let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}`
-  let URL = baseURL + '/deploy/module'
+  let baseURL = dcpConfig.packageManager.location
+  let URL = baseURL.resolve('/deploy/module')
 
   console.log(` * Deploying via network to ${URL}...`)
 

@@ -4,21 +4,15 @@
  *                                      this host and format it to be usable from the web
  *                                      content via script tag.
  *
- *                                      In addition to the usual DCP configuration, this
- *                                      program also loads etc/dcp-site-config-web.js, so
- *                                      that we can document external-facing URLs.
- *
  * @author      Wes Garland, wes@kingsds.network
  * @date        July 2018
  */
 require('dcp-rtlink/rtLink').link(module.paths)
+require('config').load()
+
 const process = require('process')
 const path = require('path')
-const rtlink = require('dcp-rtlink/rtLink')
-const config = require('config')
-
-config.addConfigFile(path.join(rtlink.installLocation, 'etc', 'dcp-site-config-web.js'))
-config.load()
+let   outputFilename = dcpConfig.installLocation + '/www/docs/etc/dcp-config.js'
 
 /* Only properties whose names String.match a whiteList will be emitted into
  * the web-facing config file (www/docs/etc/dcp-config.js) when creating a
@@ -29,7 +23,7 @@ config.load()
  *  - someName: considered for properties of dcpConfig.someName.
  */
 const whiteLists = {
-  default: [ 'hostname', 'port', 'protocol', 'isDown', 'useBlockchain', /[a-z]U[rR][lL]$/ ]
+  default: [ 'location', 'isDown', 'useBlockchain', /[a-z]U[rR][lL]$/ ]
 }
 
 /** Generate the safe subset (whitelisted properties) of a property of dcpConfig.
@@ -80,14 +74,74 @@ var webConfig = {
   global: safeSubset('global'),
   bank: safeSubset('bank'),
   portal: safeSubset('portal'),
-  terminal: safeSubset('terminal')
+  terminal: safeSubset('terminal'),
+  build: dcpConfig.build
+}
+
+if (false && dcpConfig.build === 'release') {
+  function indent() {
+    return ''
+  }
+} else {
+  function indent(depth) {
+    const spaces='                                     '
+    return (depth ? '\n' : '\n') + spaces.substr(0, 2 * depth)
+  }
+}
+
+/** Stringification routine which emits legal JavaScript object literals (superset of JSON),
+ *  which include special configuration directives from the DCP config.js 'language', eg. url() 
+ */
+function stringify(obj, depth, label) {
+  let s = ''
+  let URL = require('dcp-url').URL
+  
+  if (!depth) {
+    depth = 0
+    label = ''
+  }
+  
+  depth++
+  Object.keys(obj).forEach((p) => {
+    let val = obj[p]
+
+    if (val instanceof String)
+      val = val.toString()
+    else if (val instanceof Number || val instanceof Boolean)
+      val = val.valueOf()
+
+    if (s)
+      s += ','
+    s += indent(depth) + '"' + p + '": '
+
+    switch (typeof(obj[p])) {
+      case 'object':
+        if (val instanceof URL)
+          s += `new URL('${val.href}')`
+        else
+          s += stringify(obj[p], depth, label + (label ? '.' : ''), p)
+        break;
+      case 'boolean':
+      case 'number':
+      case 'string':
+        s += JSON.stringify(obj[p])
+        break;
+      default:
+        throw new Error('Cannot serialize property ' + label + (label ? '.' : '') + p)
+    }
+  })
+  depth--
+
+  if (s)
+    return indent(depth) + '{' + s + indent(depth) + '}'
+  return '{}'
 }
 
 /** Main program entry point */
 function main(argv) {
-  let outputFile = dcpConfig.root + '/www/docs/etc/dcp-config.js'
   let quiet = false
   let exitCode = 0
+  let confStr = ''
   
   for (let optind = 1; optind < argv.length; optind++)
     switch(argv[optind]) {
@@ -101,7 +155,7 @@ Copyright (c) 2018-2019 Kings Distributed Systems Ltd., All Rights Reserved.
 
 Usage: ${path.basename(argv[0])} [options] [-o filename]
 Where:
-  • The default behaviour is to create the output file, ${outputFile}
+  • The default behaviour is to create the output file, ${outputFilename}
   • --help or -h displays this help
   • --quiet or -q suppresses all non-error output
   • -o filename specifies an alternate output filename
@@ -112,10 +166,10 @@ Where:
       break
     case '--showfiles':
       console.log('Files loaded:\n - ' + require('config').loadedFiles.join('\n - ') + '\n')
-      console.log('Output file:', outputFile)
+      console.log('Output file:', outputFilename)
       process.exit(0)
     case '-o':
-      outputFile = argv[optind + 1]
+      outputFilename = argv[optind + 1]
       optind++
       break
     case '-q': case '--quiet': 
@@ -124,7 +178,11 @@ Where:
   }
 
   if (!quiet)
-    console.log(' * Creating ' + outputFile)
-  require('fs').writeFileSync(dcpConfig.root + '/www/docs/etc/dcp-config.js', 'var dcpConfig = ' + JSON.stringify(webConfig), 'utf-8')
+    console.log(' * Creating ' + outputFilename)
+
+  require('fs').writeFileSync(outputFilename,
+`/* Generated ${Date()} by ${process.env.USER} on ${process.env.HOSTNAME} */
+window.dcpConfig = ${stringify(webConfig)}
+`, 'utf-8')
 }
 main(process.argv.slice(1))
