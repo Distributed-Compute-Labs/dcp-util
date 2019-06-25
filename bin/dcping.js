@@ -27,8 +27,6 @@ const pprompt = require('password-prompt')
 const expandTilde = require('expand-tilde')
 let keyStorePath = expandTilde('~')+'/.dcp/default.keystore'
 // address of the scheduler, can be configured with the --scheduler option
-// let scheduler = 'https://portal.distributed.computer/etc/dcp-config.js'
-// let scheduler = 'https://portal.distributed.computer'
 let scheduler = 'https://portal.distributed.computer/etc/dcp-config.js'
 // number of ping jobs the program will send to scheduler
 let numJobs = 3
@@ -167,16 +165,26 @@ async function loadCompute () {
 
   eval(await rpn(scheduler))
 
+  console.log('checkpoint 1')
+
   global.dcpConfig = window.dcpConfig
+
+  console.log('checkpoint 2')
 
   require('../src/node/dcp-url.js').patchup(dcpConfig)
 
-  require('../dist/node_modules/dcp-client/dist/compute.min')
+  console.log('checkpoint 3')
+
+  require('../../dcp-minimal-node-client/node_modules/dcp-client/dist/compute.min')
+
+  console.log('checkpoint 4')
 
   // Load the keystore:
   const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
   const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide'})
   protocol.keychain.addKeystore(keystore, keystorePassword, true)
+
+  console.log(protocol)
 }
 
 /** called when a job is accepted by the scheduler
