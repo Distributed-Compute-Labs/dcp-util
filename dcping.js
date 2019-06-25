@@ -161,6 +161,7 @@ function erase (num) {
 /** loads the compute and protocol modules of DCP into the namespace
  */
 async function loadCompute () {
+  let window = {}
   try {
     eval(await rpn(scheduler))
   } catch (error) {
@@ -168,11 +169,14 @@ async function loadCompute () {
     console.log(error)
     endProgram(1)
   }
+  
+  global.dcpConfig = window.dcpConfig
+  window = false
 
-  global.dcpConfig = dcpConfig
   // Note: Don't do const compute = require(...), since the file already
   // injects compute and protocol into the global namespace.
-  require('/var/dcp/node_modules/dcp-client/dist/compute.min.js')
+  require('dcp-client/dist/compute.min.js')
+  
   // Load the keystore:
   let keystore;
   try {
@@ -184,7 +188,7 @@ async function loadCompute () {
     // ends program with an error if a valid keystore is not supplied
     endProgram(1);
   }
-  const keystorePassword = await pprompt('Enter keystore password:', { method: 'hide' })
+  const keystorePassword = await pprompt('Enter keystore password:', { method: 'hide', required: false })
   protocol.keychain.addKeystore(keystore, keystorePassword, true)
 }
 
