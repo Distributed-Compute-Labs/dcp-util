@@ -165,19 +165,11 @@ async function loadCompute () {
 
   eval(await rpn(scheduler))
 
-  console.log('checkpoint 1')
-
   global.dcpConfig = window.dcpConfig
-
-  console.log('checkpoint 2')
 
   require('../src/node/dcp-url.js').patchup(dcpConfig)
 
-  console.log('checkpoint 3')
-
   require('../../dcp-minimal-node-client/node_modules/dcp-client/dist/compute.min')
-
-  console.log('checkpoint 4')
 
   // Load the keystore:
   const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
