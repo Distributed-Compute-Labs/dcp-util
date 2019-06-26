@@ -162,21 +162,16 @@ function erase (num) {
  */
 async function loadCompute () {
   let window = {}
-  try {
-    eval(await rpn(scheduler))
-  } catch (error) {
-    console.log('there was a problem connecting to the scheduler, use --scheduler to specify the scheduler URL')
-    console.log(error)
-    endProgram(1)
-  }
-  
+
+  eval(await rpn(scheduler))
+
   global.dcpConfig = window.dcpConfig
   window = false
 
-  // Note: Don't do const compute = require(...), since the file already
-  // injects compute and protocol into the global namespace.
-  require('dcp-client/dist/compute.min.js')
-  
+  require('../src/node/dcp-url.js').patchup(dcpConfig)
+
+  require('../node_modules/dcp-client/dist/compute.min')
+
   // Load the keystore:
   let keystore;
   try {
