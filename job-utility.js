@@ -15,8 +15,8 @@ require('dcp-client/dist/protocol.min.js') /* side effect: global protocol now d
 
 const path = require('path')
 const process = require('process')
-const arg_util = require('./arg_util.js')
-const keystore = require('./src/keystore.js')
+const arg_util = require('arg_util.js')
+const keystore = require('keystore.js')
 const heap = require('heap')
 
 /** 
@@ -45,8 +45,9 @@ Examples:   ${progName} --action=listJobs    --keystore=0xsomePublicAddress --al
 Where:      --action      desired action
                           available actions:
                             - listJobs       list attributes of the jobs belonging to the given private key.
-                            - countTasks     list all tasks belonging to the specified job.
-                            - elapsedTime    list all slices belonging to the specified job.
+                            - countTasks     count all tasks of each type belonging to the specified job.
+                            - elapsedTime    display amount of time each slice belonging to the specified 
+                                             job has been running.
                             - deleteJob      delete the specified job (terminate all tasks), will never ask
                                              for this job again, frees up remaining resources.
 
@@ -80,8 +81,8 @@ async function start () {
 
   var paramObj = { '--action':'string', '--job':'string', '--keystore':'string', '--all':false }
   var cliArgs = arg_util(paramObj)
-
-  if (!cliArgs['--action'] && !cliArgs['--job'] && !cliArgs['--keystore']) {
+  
+  if (!cliArgs['--action'] && /*!cliArgs['--job'] &&*/ !cliArgs['--keystore']) {
     // console.log('You must provide a configuation for action, job, and keystore')
     usage()
     return
@@ -89,16 +90,21 @@ async function start () {
 
   // let action = argv.action
   let action = cliArgs['--action']
-  let url = `${dcpConfig.scheduler.protocol}//${dcpConfig.scheduler.hostname}/generator/`
+  // let url = `${dcpConfig.scheduler.protocol}//${dcpConfig.scheduler.hostname}/generator/`
+  let url = dcpConfig.scheduler.resolve('/generator')
+  // let url = `${dcpConfig.scheduler.protocol}//scheduler.karen.office.kingsds.network/generator/`
   // let job = argv.job || null
   let job = cliArgs['--job'] || null
   // let keystore = argv.keystore || protocol.createWallet().getPrivateKeyString()
-  let keystore = cliArgs['--keystore'] || keystore.generateWallet()
+  let keystore = cliArgs['--keystore'] //|| keystore.generateWallet()
 
   let all = cliArgs['--all']
 
   await loadCompute(keystore)
-  sendRequest(action, url, job, keystore, all)
+
+  let privateKey = protocol.keychain.keys[Object.keys(protocol.keychain.keys)[0]].privateKey
+  console.log('job-utility.js line 104; before calling sendRequest')
+  sendRequest(action, url, job, privateKey, all)
 }
 
 /**
@@ -113,22 +119,28 @@ async function sendRequest (action, url, job, key, all) {
   let result
   let getListUrl = url + 'listJobs'
   let actionUrl = url + action
+  console.log('job-utility.js line 120; before try-catch statement')
   try {
     // if all, check that the keystore is whitelisted
     // if everything checks out, then return all jobs on the heap
-    let list
+    // let list
 
     // if (all) {
     //   list = await protocol.send(getListUrl, {job}, /*scheduler address*/)
     // }
+    console.log('getListUrl', getListUrl)
+    console.log('key', key)
     let list = await protocol.send(getListUrl, {job}, key)
 
+    console.log('job-utility.js line 131; before switch statement')
     switch (action) {
       case 'listJobs':
+        console.log('job-utility.js line 134; "listJobs" switch case')
         result = list
         break
 
       case 'countTasks':
+        console.log('job-utility.js line 139; "countTasks" switch case')
         if (job === null) {
           // if no job specified, list all slices of all jobs
           result = []
@@ -145,11 +157,13 @@ async function sendRequest (action, url, job, key, all) {
 
       case 'elapsedTime':
       case 'deleteJob':
+        console.log('job-utility.js line 156; "elapsedTime/deleteJob" switch case')
         // either elapsedTime or deleteJob
         result = await protocol.send(actionUrl, {job}, key)
         break
       
       default:
+        console.log('job-utility.js line 162; "default" switch case')
         // if there was an invalid action specified, display help
         console.log('Invalid action specified, please try again.')
         usage()
