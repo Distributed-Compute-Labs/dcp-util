@@ -68,6 +68,9 @@ function safeSubset(label) {
 
 /** This object becomes the web config JSON that is loaded by SCRIPT tag in apps */
 var webConfig = {
+  needs: {
+    urlPatchup: true  /* tells protocol.js to call dcp-url/patchup */
+  },
   scheduler: safeSubset('scheduler'),
   packageManager: safeSubset('packageManager'),
   storage: safeSubset('storage'),
