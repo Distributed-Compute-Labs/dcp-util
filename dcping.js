@@ -173,7 +173,8 @@ async function loadCompute () {
 
   // Load the keystore:
   const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
-  const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide'})
+  const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide', required: false })
+
   protocol.keychain.addKeystore(keystore, keystorePassword, true)
 
   console.log(protocol)
