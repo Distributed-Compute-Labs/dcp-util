@@ -88,15 +88,10 @@ async function start () {
     return
   }
 
-  // let action = argv.action
   let action = cliArgs['--action']
-  // let url = `${dcpConfig.scheduler.protocol}//${dcpConfig.scheduler.hostname}/generator/`
-  let url = dcpConfig.scheduler.resolve('/generator')
-  // let url = `${dcpConfig.scheduler.protocol}//scheduler.karen.office.kingsds.network/generator/`
-  // let job = argv.job || null
+  let url = dcpConfig.scheduler.location.resolve('/generator/')
   let job = cliArgs['--job'] || null
-  // let keystore = argv.keystore || protocol.createWallet().getPrivateKeyString()
-  let keystore = cliArgs['--keystore'] //|| keystore.generateWallet()
+  let keystore = cliArgs['--keystore']
 
   let all = cliArgs['--all']
 
