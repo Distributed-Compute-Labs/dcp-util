@@ -74,11 +74,7 @@ var argv = require('yargs').argv
  * Parses arguments, sends the request 
  */
 async function start () {
-  // if (!argv.action && !argv.job && !argv.keystore) {
-  //   usage()
-  //   return
-  // }
-
+  
   var paramObj = { '--action':'string', '--job':'string', '--keystore':'string', '--all':false }
   var cliArgs = arg_util(paramObj)
   
