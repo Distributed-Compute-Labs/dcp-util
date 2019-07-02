@@ -71,6 +71,7 @@ var webConfig = {
   needs: {
     urlPatchup: true  /* tells protocol.js to call dcp-url/patchup */
   },
+  worker: dcpConfig.worker,
   scheduler: safeSubset('scheduler'),
   packageManager: safeSubset('packageManager'),
   storage: safeSubset('storage'),

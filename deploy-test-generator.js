@@ -15,7 +15,7 @@ require('config').load() // eslint-disable-line
 // polyfill
 global.window = global
 global.window.location = { protocol: (dcpConfig.build.indexOf('release') >= 0) ? 'https:' : 'http:' }
-global.XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest
+global.XMLHttpRequest = require('dcp-xhr').XMLHttpRequest
 global.performance = require('perf_hooks').performance
 global.navigator = { hardwareConcurrency: 1 }
 global.URL = require('url').URL
