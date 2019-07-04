@@ -30,12 +30,12 @@ function help () {
   console.log(`
 ${progName} - Send messages to the scheduler and workers
 
-Usage:   ${progName} --type '' --body '' --persistent t/f
-Example: ${progName} --type broadcast --body 'Hello World!' --persistent
+Usage:   ${progName} --type '' --payload '' --persistent t/f
+Example: ${progName} --type broadcast --payload 'Hello World!' --persistent
 
 Where:
-  --type          type of message being send (broadcast)
-  --body          the message to sign and send
+  --type          type of message being send (broadcast, command)
+  --payload       the message to sign and send
   --persistent    whether the message should be persistent (default: false)
   --keystore      specify the location of keystore to be used
 `)
@@ -80,15 +80,15 @@ async function sendMessage (msg) {
 async function start () {
   //the message sent to the scheduler will be configuired by the caller of this program using CLI arguements
   //arg_util takes a configureation object to know what arguements to look for, and returns another object describing the arguments given
-  const paramObj = {'--type':'string', '--body':'string', '--keystore':'string', '--persistent':false}
+  const paramObj = {'--type':'string', '--payload':'string', '--keystore':'string', '--persistent':false}
   const cliArgs = arg_util(paramObj)
 
   //XXXXX
   // console.log(cliArgs)
 
   //checks that all the needed information in msg was provided by the caller, displays a help function if not
-  if (!cliArgs['--type'] && !cliArgs['--body']) {
-    console.log('You must provide a configuration for type and body')
+  if (!cliArgs['--type'] && !cliArgs['--payload']) {
+    console.log('You must provide a configuration for type and payload')
     help()
     //exits the program with error flag raised. help() should have already done so, but if somebody edits it and messes that up
     //this line will prevent the error from propegating
@@ -100,11 +100,43 @@ async function start () {
   const msg = {}
 
   msg.type = cliArgs['--type']
-  msg.body = cliArgs['--body']
   msg.persistent = cliArgs['--persistent']
 
+  switch (msg.type) {
+    case 'command':
+      let payload = cliArgs['--payload']
+      let a = payload.split(',')
+      switch (a[0]){
+      case 'popupMessage':
+        msg.payload = {
+          command: 'openPopup',
+          href: a[1]
+        }
+        break
+      case 'reload':
+        msg.payload = {
+          command: 'reload',
+          perform: true
+        }
+        break
+      }
+      msg.persistent = false
+      break
+
+    case 'broadcast':
+      msg.payload = cliArgs['--payload']
+      break
+
+    case 'delete':
+      msg.payload = 'delete'
+      break
+      
+  }
+
+  
+
   //XXXXX
-  // console.log(msg)
+  //console.log('msg is: ', msg)
 
   const result = await sendMessage(msg)
   

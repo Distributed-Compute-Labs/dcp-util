@@ -264,18 +264,12 @@ async function loadCompute () {
   }
   
   // Load the keystore:
-  let keystore;
-  try {
-    keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
-  } catch (error) {
-    // catches the error thrown if a valid keystore is not supplied, and tells the user how to supply one
-    console.log('must supply a valid keystore, use the -i option to give a filepath to your keystore, or put your keystore in '+expandTilde('~')+'/.dcp/default.keystore. -h will print a help message options');
-    console.log(error);
-    // ends program with an error if a valid keystore is not supplied
-    endProgram(1);
-  }
-  const keystorePassword = await pprompt('Enter keystore password:', { method: 'hide' })
+  const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
+  const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide', required: false })
+
   protocol.keychain.addKeystore(keystore, keystorePassword, true)
+
+  console.log(protocol)
 }
 
 /** called when a job is accepted by the scheduler
