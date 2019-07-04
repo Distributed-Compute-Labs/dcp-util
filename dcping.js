@@ -268,8 +268,6 @@ async function loadCompute () {
   const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide', required: false })
 
   protocol.keychain.addKeystore(keystore, keystorePassword, true)
-
-  console.log(protocol)
 }
 
 /** called when a job is accepted by the scheduler
