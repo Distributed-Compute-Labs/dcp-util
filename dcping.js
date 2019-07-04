@@ -245,15 +245,22 @@ async function loadCompute () {
 
   // Note: Don't do const compute = require(...), since the file already
   // injects compute and protocol into the global namespace. :(
-  let computeHref = dcpConfig.portal.location.href.replace(/\/$/,'') + '/' + computeBundlePath.replace(/^\//,'')
-  if (debug)
-    console.log(` * Fetching ${computeHref}`)
-  try {
-    let response = await rpn({uri: computeHref, resolveWithFullResponse: true, simple: true})
-    eval(response.body)
-  } catch(e) {
-    console.log(rpnPrettyReject(e))
-    process.exit(1)
+  if (process.env.DCPING_LOCAL_BUNDLE) {
+    let computeBundleFilename = process.env.DCPING_LOCAL_BUNDLE
+    if (debug)
+      console.log(` * Loading ${computeBundleFilename}`)
+    eval(require('fs').readFileSync(computeBundleFilename, 'utf-8'))
+  } else {
+    let computeHref = dcpConfig.portal.location.href.replace(/\/$/,'') + '/' + computeBundlePath.replace(/^\//,'')
+    if (debug)
+      console.log(` * Fetching ${computeHref}`)
+    try {
+      let response = await rpn({uri: computeHref, resolveWithFullResponse: true, simple: true})
+      eval(response.body)
+    } catch(e) {
+      console.log(rpnPrettyReject(e))
+      process.exit(1)
+    }
   }
   
   // Load the keystore:
