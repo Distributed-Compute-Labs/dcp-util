@@ -169,7 +169,7 @@ async function loadCompute () {
 
   require('../src/node/dcp-url.js').patchup(dcpConfig)
 
-  require('../../dcp-minimal-node-client/node_modules/dcp-client/dist/compute.min')
+  require('../node_modules/dcp-client/dist/compute.min')
 
   // Load the keystore:
   const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
