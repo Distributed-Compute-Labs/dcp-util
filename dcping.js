@@ -1,14 +1,25 @@
 #! /usr/bin/node
+/** @file       dcping.js       DCPing uses the Compute API to send a job with a 
+ *                              trivial work function and one or more points in 
+ *                              the input dataset accross a distributed computer
+ *                              built with DCP. It will then report on the time 
+ *                              consumed to compute the job, and how many workers 
+ *                              returned their slices, which can be used to assess 
+ *                              the health of the system.
+ *
+ * @author       Duncan Mays, duncan@kingsds.network
+ * @date         May 2019
+ */
 
-/*
-Written by Duncan Mays in May of 2019
-
-DCPing uses the Compute API to send a job with a trivial work function and one or more points in the input dataset accross a distributed computer
-built with DCP. It will then report on the time consumed to compute the job, and how many workers returned their slices, which can be used to
-assess the health of the system.
-
-All functions are in alphabetical order, except main which is down at the bottom.
-*/
+var dcpConfig
+var debug = process.env.DEBUG && !!process.env.DEBUG.match(/\bdcping\b/)
+URL.prototype.resolve = function dcping$$URL$resolve(path) {
+  path = path.replace(/(^|\/)[.](\/[.])*(\/|$)/g, '/').replace(/[^/]+\/\.\.(\/|$)/g, '')  /* handle . and .. */
+  return this.protocol + '//' +
+    this.hostname +
+    (this.port ? ':' + this.port : '') + '/' +
+    (this.pathname.replace(/\/[^/]*$/,'/') + path).replace(/\/\//g,'/').replace(/^\//,'')
+}
 
 //gets the location of the program for reference purposes
 let location = ''
@@ -27,7 +38,8 @@ const pprompt = require('password-prompt')
 const expandTilde = require('expand-tilde')
 let keyStorePath = expandTilde('~')+'/.dcp/default.keystore'
 // address of the scheduler, can be configured with the --scheduler option
-let scheduler = 'https://portal.distributed.computer/etc/dcp-config.js'
+let scheduler = new URL('https://scheduler.distributed.computer/')
+let computeBundlePath = '/node_modules/dcp-client/dist/compute.min.js'
 // number of ping jobs the program will send to scheduler
 let numJobs = 3
 // this is set to 1 when there is a limited number of pings the user wishes to execute, ie, when they use the -c option
@@ -71,7 +83,7 @@ for (let j = 0; j < args.length; j++) {
   switch (args[j]) {
     case '--scheduler':
       // changes scheduler
-      scheduler = args[j + 1]
+      scheduler = new URL(args[j + 1])
       j++
       break
     case '-c':
@@ -134,8 +146,8 @@ for (let j = 0; j < args.length; j++) {
     displays results of pings and shows an error if any jobs did not return
  */
 function endProgram (errorCode) {
-  // adds a line after previose output to make output more attractive
-  console.log('----------------------------------------------------------------------')
+  // adds a line after previous output to make output more attractive
+  console.log('--------------------------------------------------------------------------------')
 
   console.log(jobsSent + ' jobs submitted, ' + jobsCompleted + ' jobs completed, %' + Math.round(10000 * (jobsSent - jobsCompleted) / jobsSent) / 100 + ' jobs failed')
   console.log(totalSlicesSent + ' slices submitted, ' + totalSlicesReturned + ' slices returned, %' + Math.round(10000 * (totalSlicesSent - totalSlicesReturned) / totalSlicesSent) / 100 + ' slices lost')
@@ -158,26 +170,104 @@ function erase (num) {
   process.stdout.write(backspaceCharacters)
 }
 
+/** Handle an error (rejection) from the rpn() "fetch" function.
+ *
+ *  @param      {object}        error   The rejection from rpn.  The call to rpn() /must/ use
+ *                              the (default) simple module and the `resolveWithFullResponse: true`
+ *                              option.
+ *  @returns    {string}        An error message, formatted with ANSI color when the output
+ *                              is a terminal, suitable for writing directly to stdout. If
+ *                              the response included html content (eg a 404 page), it is 
+ *                              rendered to text in this string.
+ *  @throws     when error is not a type we can pretty-print (DNS failure, bad HTTP status, etc). 
+ *              If the error was an instance of Error, we append extra information to the stack property 
+ *              to include the calling location rather than bottoming out at the Promise.
+ *  @see        require('request-promise-native')
+ *
+ *  @example    <code>
+ *  try { 
+ *    await rpn({uri: confHref, resolveWithFullResponse: true, simple: true}) 
+ *  } catch (e) {
+ *    console.log(rpnPrettyReject(e))
+ *  }
+ *  </code>
+ */
+function rpnPrettyReject(error) {
+  let response, message
+  const chalk = new require('chalk').constructor({enabled: require('tty').isatty(0)})
+
+  if (error.name === 'RequestError' && error.cause.errno === 'ENOTFOUND')
+    return chalk.bold('Unable to connect') + `: DNS cannot resolve '${error.error.hostname}'`
+  
+  if (!error.statusCode) {
+    if (error instanceof Error)
+      error.stack += '\n-------------------\n' + new Error().stack.split('\n').slice(2).join('\n')
+    throw error
+  }
+
+  response = error.response
+  message = `HTTP Status: ${response.statusCode} accessing ${response.request.href}`
+  
+  switch(response.headers['content-type'].replace(/;.*$/, '')) {
+  case 'text/plain':
+    message += '\n' + chalk.grey(response.body)
+    break;
+  case 'text/html':
+    message += '\n' + chalk.grey(require('html-to-text').fromString(response.body, {
+      wordwrap: parseInt(process.env.COLUMNS, 10) || 80,
+      format: {
+        heading: function (elem, fn, options) {
+          var h = fn(elem.children, options);
+          return '====\n' + chalk.yellow(chalk.bold(h.toUpperCase())) + '\n====';
+        }
+      }}))
+    break;
+  }
+  console.log(response.headers['content-type'])
+  return message
+}    
+
 /** loads the compute and protocol modules of DCP into the namespace
  */
 async function loadCompute () {
-  let window = {}
+  let confHref = scheduler.resolve('/etc/dcp-config.js')
+  if (debug)
+    console.log(` * Fetching ${confHref}`)
+                
+  try {
+    let response = await rpn({uri: confHref, resolveWithFullResponse: true, simple: true})
+    let sandbox = { window: global, URL: URL }
+    dcpConfig = require('vm').runInNewContext(response.body, sandbox, {filename: confHref, lineOffset: 0})
+  } catch (error) {
+    console.log(rpnPrettyReject(error))
+    process.exit(1)
+  }
 
-  eval(await rpn(scheduler))
-
-  global.dcpConfig = window.dcpConfig
-
-  require('../src/node/dcp-url.js').patchup(dcpConfig)
-
-  require('../node_modules/dcp-client/dist/compute.min')
-
+  // Note: Don't do const compute = require(...), since the file already
+  // injects compute and protocol into the global namespace. :(
+  if (process.env.DCPING_LOCAL_BUNDLE) {
+    let computeBundleFilename = process.env.DCPING_LOCAL_BUNDLE
+    if (debug)
+      console.log(` * Loading ${computeBundleFilename}`)
+    eval(require('fs').readFileSync(computeBundleFilename, 'utf-8'))
+  } else {
+    let computeHref = dcpConfig.portal.location.href.replace(/\/$/,'') + '/' + computeBundlePath.replace(/^\//,'')
+    if (debug)
+      console.log(` * Fetching ${computeHref}`)
+    try {
+      let response = await rpn({uri: computeHref, resolveWithFullResponse: true, simple: true})
+      eval(response.body)
+    } catch(e) {
+      console.log(rpnPrettyReject(e))
+      process.exit(1)
+    }
+  }
+  
   // Load the keystore:
   const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
   const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide', required: false })
 
   protocol.keychain.addKeystore(keystore, keystorePassword, true)
-
-  console.log(protocol)
 }
 
 /** called when a job is accepted by the scheduler
@@ -270,7 +360,7 @@ function trivialWork (input) {
   return input
 }
 
-/** Information on slices thathave been sent and recieved are displayed with this function
+/** Information on slices thathave been sent and received are displayed with this function
  */
 function updateSliceCount () {
   // only updates the slice count if mode isnt flood
@@ -304,12 +394,12 @@ Usage:    ${name} -c stop sending jobs after a certain number of jobs have been 
 
           ${name} -s configure the number of slices DCPing send to the scheduler per job, the default is 3 slices
 
-          ${name} --shceduler configure the URL of the scheduler, default is https://portal.distributed.computer/etc/dcp-config.js.
+          ${name} --scheduler configure the URL of the scheduler, default is ${scheduler}
 
           ${name} -h display this help message
 
 NOTE TO THE USER
-This is by no means a complete utility, certain libraries are missing that would otherwise have been used here, namely some API for keystore access, and a safeMarketValue function, where the market value of a slice is recieved from the scheduler and used as the cost per slice.
+This is by no means a complete utility, certain libraries are missing that would otherwise have been used here, namely some API for keystore access, and a safeMarketValue function, where the market value of a slice is received from the scheduler and used as the cost per slice.
   `)
 }
 
