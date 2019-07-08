@@ -57,7 +57,7 @@ let mode = 'normal'
 // the interval, in seconds, that the program pings the given scheduler continuously.
 let interval = 120
 // amount of DCC per slice to pay
-let costProfile = 0.0005
+let costProfile = 0.0015
 
 // when ctrl C is pressed, call endProgram
 process.on('SIGINT', () => endProgram())
@@ -169,7 +169,7 @@ async function loadCompute () {
 
   require('../src/node/dcp-url.js').patchup(dcpConfig)
 
-  require('../../dcp-minimal-node-client/node_modules/dcp-client/dist/compute.min')
+  require('../node_modules/dcp-client/dist/compute.min')
 
   // Load the keystore:
   const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
@@ -227,6 +227,10 @@ async function ping (numSlices) {
   job.on('accepted', () => onAccepted(job.id))
   job.on('result', resultFn)
   job.on('complete', () => onJobComplete())
+
+  job._generator.public = {
+    name: 'DCPing'
+  }
 
   // resets number of slices returned
   slicesReturned = 0
