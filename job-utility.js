@@ -79,22 +79,34 @@ async function start () {
   var cliArgs = arg_util(paramObj)
   
   if (!cliArgs['--action'] && /*!cliArgs['--job'] &&*/ !cliArgs['--keystore']) {
-    // console.log('You must provide a configuation for action, job, and keystore')
+    console.log('You must provide a configuation for action, and keystore')
     usage()
     return
   }
 
-  let action = cliArgs['--action']
-  let url = dcpConfig.scheduler.location.resolve('/generator/')
-  let job = cliArgs['--job'] || null
-  let keystore = cliArgs['--keystore']
-
-  let all = cliArgs['--all']
+  let url           = dcpConfig.scheduler.location.resolve('/generator/')
+  let action        = cliArgs['--action']
+  let job           = cliArgs['--job'] || null
+  let keystore      = cliArgs['--keystore']
+  let all           = cliArgs['--all']
 
   await loadCompute(keystore)
-
   let privateKey = protocol.keychain.keys[Object.keys(protocol.keychain.keys)[0]].privateKey
-  console.log('job-utility.js line 104; before calling sendRequest')
+
+  // DEBUGGING STUFF
+  // console.log('job-utility.js line 104; before calling sendRequest')
+  // console.log('\naction:', action, '\nurl:', url, '\njob:', job, '\nall:', all, '\n')
+  // END DEBUGGING STUFF
+  
+  if (!dcpConfig.scheduler.whitelistManagerAddresses.includes(protocol.keychain.currentAddress)) {
+    console.log('\nATTENTION: You do not have administrative permissions. "--all" will have no effect\n')
+    all = false
+  }
+
+  // DEBUGGING STUFF
+  // console.log('job-utility.js line 104; before calling sendRequest')
+  // END DEBUGGING STUFF
+
   sendRequest(action, url, job, privateKey, all)
 }
 
@@ -104,34 +116,41 @@ async function start () {
  * @param {string} action   Action to perform: listJobs, countTasks, elapsedTime, deleteJob
  * @param {string} url      Base URL with trailing slash; action will be appended
  * @param {string} job      Address of a job to operate on; optional for countTasks
- * @param {string} key      Private key (string) to sign requests with; must be job owner
+ * @param {string} key      Private key (string) to sign requests with; must be job owner or whitelisted address
+ * @param {boolean} all     Flag for getting all jobs on heap back
  */
-async function sendRequest (action, url, job, key, all) {
+async function sendRequest (action, url, job, key, all = false) {
+
   let result
   let getListUrl = url + 'listJobs'
   let actionUrl = url + action
-  console.log('job-utility.js line 120; before try-catch statement')
+
+  // DEBUGGING STUFF
+  // console.log('job-utility.js line 127; before try-catch statement')
+  // END DEBUGGING STUFF
+
   try {
-    // if all, check that the keystore is whitelisted
-    // if everything checks out, then return all jobs on the heap
-    // let list
+    
+    let list = await protocol.send(getListUrl, {job, all}, key)
 
-    // if (all) {
-    //   list = await protocol.send(getListUrl, {job}, /*scheduler address*/)
-    // }
-    console.log('getListUrl', getListUrl)
-    console.log('key', key)
-    let list = await protocol.send(getListUrl, {job}, key)
+    // DEBUGGING STUFF
+    // console.log('job-utility.js line 137; before switch statement')
+    // END DEBUGGING STUFF
 
-    console.log('job-utility.js line 131; before switch statement')
     switch (action) {
       case 'listJobs':
-        console.log('job-utility.js line 134; "listJobs" switch case')
+        // DEBUGGING STUFF
+        // console.log('job-utility.js line 143; "listJobs" switch case')
+        // END DEBUGGING STUFF
+
         result = list
         break
 
       case 'countTasks':
-        console.log('job-utility.js line 139; "countTasks" switch case')
+        // DEBUGGING STUFF
+        // console.log('job-utility.js line 151; "countTasks" switch case')
+        // END DEBUGGING STUFF
+
         if (job === null) {
           // if no job specified, list all slices of all jobs
           result = []
@@ -148,13 +167,19 @@ async function sendRequest (action, url, job, key, all) {
 
       case 'elapsedTime':
       case 'deleteJob':
-        console.log('job-utility.js line 156; "elapsedTime/deleteJob" switch case')
+        // DEBUGGING STUFF
+        // console.log('job-utility.js line 171; "elapsedTime/deleteJob" switch case')
+        // END DEBUGGING STUFF
+
         // either elapsedTime or deleteJob
         result = await protocol.send(actionUrl, {job}, key)
         break
       
       default:
-        console.log('job-utility.js line 162; "default" switch case')
+        // DEBUGGING STUFF
+        // console.log('job-utility.js line 180; "default" switch case')
+        // END DEBUGGING STUFF
+
         // if there was an invalid action specified, display help
         console.log('Invalid action specified, please try again.')
         usage()
