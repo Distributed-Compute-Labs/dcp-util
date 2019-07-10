@@ -120,6 +120,12 @@ async function start () {
         }
         break
       }
+      case 'restart':
+        msg.payload = {
+          command: 'restart',
+          perform: true
+        }
+        break
       msg.persistent = false
       break
 
