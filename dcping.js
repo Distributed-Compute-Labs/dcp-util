@@ -265,8 +265,18 @@ async function loadCompute () {
   
   // Load the keystore:
   const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
+<<<<<<< HEAD
   const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide', required: false })
 
+=======
+<<<<<<< HEAD
+  const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide'})
+  
+=======
+  const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide', required: false })
+
+>>>>>>> origin/master
+>>>>>>> dcp-452
   protocol.keychain.addKeystore(keystore, keystorePassword, true)
 }
 
