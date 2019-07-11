@@ -48,17 +48,6 @@ const options = {
     database: dcpConfig.portal.database.name,
     port:     dcpConfig.portal.database.port
   },
-  storage: {
-    board: 'N',
-    bank: 'N',
-    user: 'N',
-    storage: 'Y',
-    hostname: dcpConfig.storage.database.hostname,
-    username: dcpConfig.storage.database.username,
-    password: dcpConfig.storage.database.password,
-    database: dcpConfig.storage.database.name,
-    port:     dcpConfig.storage.database.port
-  }
 }
 
 function usage () {
@@ -68,7 +57,7 @@ function usage () {
 ${progName} - Updates the database(s) because its important
 Copyright (c) 2018 Kings Distributed Systems Ltd., All Rights Reserved.
 
-Usage:   ${progName} [all, scheduler, bank, portal, storage]
+Usage:   ${progName} [all, scheduler, bank, portal]
          
 Example: ${progName} scheduler bank
 `)
