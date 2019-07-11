@@ -21,13 +21,6 @@ URL.prototype.resolve = function dcping$$URL$resolve(path) {
     (this.pathname.replace(/\/[^/]*$/,'/') + path).replace(/\/\//g,'/').replace(/^\//,'')
 }
 
-//gets the location of the program for reference purposes
-let location = ''
-for (let i=0; i<process.argv[1].split('/').length-1; i++) {
-  location = location + '/' + process.argv[1].split('/')[i]
-}
-location = location.slice(1)
-
 // rpn is a HTTP request client with promise support
 const rpn = require('request-promise-native')
 // needed to read keystore from file
