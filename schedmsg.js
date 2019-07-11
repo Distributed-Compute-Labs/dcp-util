@@ -34,10 +34,17 @@ Usage:   ${progName} --type '' --payload '' --persistent t/f
 Example: ${progName} --type broadcast --payload 'Hello World!' --persistent
 
 Where:
-  --type          type of message being send (broadcast, command)
+  --type          type of message being send (broadcast, command, delete)
   --payload       the message to sign and send
   --persistent    whether the message should be persistent (default: false)
   --keystore      specify the location of keystore to be used
+
+  type command:
+  --payload 'popupMessage, [url]'     opens a new tab with given url
+            'reload'                  reloads the page, requires login 
+            'restart'                 kills and refreshes workers without reloading
+            'remove,[generator id]'   removes any active tasks that contain a given generator id
+
 `)
   //exits the program with error flag raised
   process.exit(1)
@@ -128,7 +135,6 @@ async function start () {
           }
           break
         case 'remove':
-          console.log('remove case')
           msg.payload = {
             command: 'remove',
             perform: true,
