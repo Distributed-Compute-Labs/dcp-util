@@ -101,6 +101,7 @@ async function start () {
 
   msg.type = cliArgs['--type']
   msg.persistent = cliArgs['--persistent']
+  //mimic worker objects will be true so that they can skip steps
   msg.mimic = false
 
   switch (msg.type) {
