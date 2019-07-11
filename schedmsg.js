@@ -101,31 +101,41 @@ async function start () {
 
   msg.type = cliArgs['--type']
   msg.persistent = cliArgs['--persistent']
+  //mimic worker objects will be true so that they can skip steps
+  msg.mimic = false
 
   switch (msg.type) {
     case 'command':
       let payload = cliArgs['--payload']
       let a = payload.split(',')
       switch (a[0]){
-      case 'popupMessage':
-        msg.payload = {
-          command: 'openPopup',
-          href: a[1]
-        }
-        break
-      case 'reload':
-        msg.payload = {
-          command: 'reload',
-          perform: true
-        }
-        break
+        case 'popupMessage':
+          msg.payload = {
+            command: 'openPopup',
+            href: a[1]
+          }
+          break
+        case 'reload':
+          msg.payload = {
+            command: 'reload',
+            perform: true
+          }
+          break
+        case 'restart':
+          msg.payload = {
+            command: 'restart',
+            perform: true
+          }
+          break
+        case 'remove':
+          console.log('remove case')
+          msg.payload = {
+            command: 'remove',
+            perform: true,
+            genId : a[1]
+          }
+          break
       }
-      case 'restart':
-        msg.payload = {
-          command: 'restart',
-          perform: true
-        }
-        break
       msg.persistent = false
       break
 
