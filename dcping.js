@@ -185,6 +185,7 @@ function erase (num) {
  *  }
  *  </code>
  */
+
 function rpnPrettyReject(error) {
   let response, message
   const chalk = new require('chalk').constructor({enabled: require('tty').isatty(0)})
