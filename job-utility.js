@@ -17,7 +17,6 @@ const path = require('path')
 const process = require('process')
 const arg_util = require('arg_util.js')
 const keystore = require('keystore.js')
-const heap = require('heap')
 
 /** 
  * Shows the help for this utility
@@ -34,30 +33,30 @@ USAGE:      ${progName} --action method --jobID 0xJobAddress --keystore pathToKe
 
 WHERE:      --action      desired action
                     
-                    AVAILABLE ACTIONS:
-                      
-                      - listJobs       list attributes of the jobs belonging to the given private key.
-                                       MODIFIERS:
-                                          -a           (administrative) List all jobs on the scheduler
-                                          -ownedBy     (administrative) List all jobs belonging to specified owner.
+              AVAILABLE ACTIONS:
+                
+                - listJobs       list attributes of the jobs belonging to the given private key.
+                                 MODIFIERS:
+                                    -a           (administrative) List all jobs on the scheduler
+                                    -ownedBy     (administrative) List all jobs belonging to specified owner.
 
-                      - countJobs      count all jobs based on modifier.
-                                       MODIFIERS:
-                                          -a           (administrative) Count all jobs on the scheduler.
-                                          -ownedBy     (administrative) Count all the jobs belonging to the specified owner.
-                      
-                      - countTasks     count all tasks of each type belonging to the specified job.
-                      
-                      - elapsedTime    display amount of time each slice belonging to the specified 
-                                       job has been running.
-                      
-                      - deleteJob      delete the specified job (terminate all tasks), will never ask
-                                       for this job again, frees up remaining resources.
-                                       MODIFIERS:
-                                          -a        (administrative) Spedifies all jobs are target of deletion
-                                                    **** MUST BE COMBINED WITH -ownedBy FLAG
-                                          -ownedBy  (administrative) Will delete all the jobs on the scheduler with specified owner.
-                                                    **** MUST BE COMBINED WITH -a FLAG
+                - countJobs      count all jobs based on modifier.
+                                 MODIFIERS:
+                                    -a           (administrative) Count all jobs on the scheduler.
+                                    -ownedBy     (administrative) Count all the jobs belonging to the specified owner.
+                
+                - countTasks     count all tasks of each type belonging to the specified job.
+                
+                - elapsedTime    display amount of time each slice belonging to the specified 
+                                 job has been running.
+                
+                - deleteJob      delete the specified job (terminate all tasks), will never ask
+                                 for this job again, frees up remaining resources.
+                                 MODIFIERS:
+                                    -a        (administrative) Spedifies all jobs are target of deletion
+                                              **** MUST BE COMBINED WITH -ownedBy FLAG
+                                    -ownedBy  (administrative) Will delete all the jobs on the scheduler with specified owner.
+                                              **** MUST BE COMBINED WITH -a FLAG
 
             --jobID       the address of the job to inspect
                           (omit from COUNTTASKS action to return results for all jobs)
@@ -79,6 +78,8 @@ EXAMPLES:   ${progName} --action listJobs --keystore pathToKeystoreFile
             ${progName} --action elapsedTime --jobID 0xsomeJobAddress --keystore pathToKeystoreFile
 
             ${progName} --action deleteJob --jobID 0xsomeJobAddress --keystore pathToKeystoreFile
+            ${progName} --action deleteJob --keystore pathToKeystoreFile -a
+                ** this will delete ALL jobs belonging to you
             ${progName} --action deleteJob --keystore pathToAdminKeystoreFile -a -ownedBy 0xPrivateKey
                 ** this last example will delete ALL jobs belonging to the specified owner
 `)
@@ -98,7 +99,7 @@ async function start () {
   var paramObj = { '--action':'string', '--jobID':'string', '--keystore':'string', '-a':false, '-ownedBy':'string' }
   var cliArgs = arg_util(paramObj)
   
-  if (!cliArgs['--action'] && !cliArgs['--keystore']) {
+  if (!cliArgs['--keystore']) {
     console.log('\nOOPS! You must provide a configuation for action and keystore. See below.\n')
     usage()
     return
@@ -114,12 +115,16 @@ async function start () {
   await loadCompute(keystore)
   let privateKey = protocol.keychain.keys[Object.keys(protocol.keychain.keys)[0]].privateKey
 
+  let isWhitelisted = dcpConfig.scheduler.whitelistManagerAddresses.includes(protocol.keychain.currentAddress)
+
   // CHECK ARGUMENT COMBINATIONS
-  if (all && (!dcpConfig.scheduler.whitelistManagerAddresses.includes(protocol.keychain.currentAddress))) {
-    console.log('\nATTENTION: You do not have administrative permissions. "-a" will have no effect\n')
-    all = false
+  if (all && !isWhitelisted) {
+    if (action !== 'deleteJob') {
+      console.log('\nATTENTION: You do not have administrative permissions. "-a" will have no effect\n')
+      all = false
+    }
   }
-  if (ownerPK && (!dcpConfig.scheduler.whitelistManagerAddresses.includes(protocol.keychain.currentAddress))) {
+  if (ownerPK && !isWhitelisted) {
     console.log('\nATTENTION: You do not have administrative permissions. "-ownedBy" will have no effect\n')
     ownerPK = false
   }
@@ -189,7 +194,15 @@ async function sendRequest (action, url, jobID, privateKey, all = false, ownerPr
           result = []
           for (let job of list) {
             jobID = job.address
-            res = await protocol.send(actionUrl)
+            res = await protocol.send(actionUrl, {jobID}, ownerPrivateKey)
+            result.push({address: jobID, result: res})
+          }
+        } else if ((!ownerPrivateKey) && all) {
+          let list = await protocol.send(url + 'listJobs', {jobID, all}, privateKey)
+          result = []
+          for (let job of list) {
+            jobID = job.address
+            res = await protocol.send(actionUrl, {jobID}, privateKey)
             result.push({address: jobID, result: res})
           }
         } else {
