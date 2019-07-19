@@ -262,22 +262,19 @@ async function loadCompute () {
       process.exit(1)
     }
   }
-  
-  // Load the keystore:
-  const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
-<<<<<<< HEAD
-  const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide', required: false })
+  try {
+    // Load the keystore:
+    const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
+    const keystorePassword = await pprompt('Enter keystore password:', {
+      method: 'hide',
+      required: false
+    })
+    protocol.keychain.addKeystore(keystore, keystorePassword, true)
+  } catch (error) {
+    console.error('Unable to unlock keystore:', error.message)
+    process.exit(1)
+  }
 
-=======
-<<<<<<< HEAD
-  const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide'})
-  
-=======
-  const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide', required: false })
-
->>>>>>> origin/master
->>>>>>> dcp-452
-  protocol.keychain.addKeystore(keystore, keystorePassword, true)
 }
 
 /** called when a job is accepted by the scheduler
