@@ -21,13 +21,6 @@ URL.prototype.resolve = function dcping$$URL$resolve(path) {
     (this.pathname.replace(/\/[^/]*$/,'/') + path).replace(/\/\//g,'/').replace(/^\//,'')
 }
 
-//gets the location of the program for reference purposes
-let location = ''
-for (let i=0; i<process.argv[1].split('/').length-1; i++) {
-  location = location + '/' + process.argv[1].split('/')[i]
-}
-location = location.slice(1)
-
 // rpn is a HTTP request client with promise support
 const rpn = require('request-promise-native')
 // needed to read keystore from file
@@ -192,6 +185,7 @@ function erase (num) {
  *  }
  *  </code>
  */
+
 function rpnPrettyReject(error) {
   let response, message
   const chalk = new require('chalk').constructor({enabled: require('tty').isatty(0)})
@@ -265,18 +259,8 @@ async function loadCompute () {
   
   // Load the keystore:
   const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
-<<<<<<< HEAD
   const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide', required: false })
 
-=======
-<<<<<<< HEAD
-  const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide'})
-  
-=======
-  const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide', required: false })
-
->>>>>>> origin/master
->>>>>>> dcp-452
   protocol.keychain.addKeystore(keystore, keystorePassword, true)
 }
 
