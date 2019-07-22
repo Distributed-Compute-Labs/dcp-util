@@ -19,11 +19,7 @@ global.Promise = Promise = require('promiseDebug').init(Promise)
 const fs = require('fs')
 const process = require('process')
 const path = require('path')
-const readline = require('readline')
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-})
+const prompts = require('prompts')
 
 // const protocol = require('protocol-node.js')
 require('dcp-client/dist/protocol.min.js')
@@ -79,17 +75,6 @@ Environment:
   process.exit(1)
 }
 
-var ask = function (question, defaultAnswer, optionKey) {
-  return new Promise((resolve, reject) => {
-    if (typeof options[optionKey] !== 'undefined') return resolve(options[optionKey])
-    if (options.silent) return resolve('')
-    rl.question(question, answer => {
-      if (!answer.length) answer = defaultAnswer
-      resolve(answer)
-    })
-  })
-}
-
 var getFiles = (packageJSON) => {
   let filenames = Object.keys(packageJSON.files)
   let deployPaths = Object.values(packageJSON.files)
@@ -120,21 +105,44 @@ var getFiles = (packageJSON) => {
 var main = async () => {
   console.log(`${argvZero} - Utility to deploy a new/updated DCP package
 Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
-  
-  let packageLocation = options['--package'] || await ask('Location of package file (package.dcp):', 'package.dcp', 'package')
+
+  let packageLocation
+  if (options['--package']) {
+    packageLocation = options['--package']
+  } else {
+    const prompt = {
+      type: 'text',
+      name: 'packageLocation',
+      message: 'Location of package file (package.dcp):',
+      initial: 'package.dcp'
+    }
+    const response = await prompts(prompt)
+    packageLocation = response.packageLocation
+  }
 
   let status
   try {
     status = fs.statSync(packageLocation)
   } catch (error) {
-    console.log('Can not locate package description file. Please run: initDCPPackage.js')
+    console.log('Could not locate package description file. Please run: initDCPPackage.js')
     process.exit(2)
   }
 
   let packageJSON = JSON.parse(fs.readFileSync(packageLocation))
   getFiles(packageJSON)
 
-  let keystoreLocation = options['--keystore'] || await ask('Location of keystore file (myDCPKey.keystore):', 'myDCPKey.keystore', 'keystore')
+  let keystoreLocation
+  if (options['--keystore']) {
+    keystoreLocation = options['--keystore']
+  } else {
+    const response = await prompts({
+      type: 'text',
+      name: 'keystoreLocation',
+      message: 'Location of keystore file (myDCPKey.keystore):',
+      initial: 'myDCPKey.keystore'
+    })
+    keystoreLocation = response.keystoreLocation
+  }
 
   let keystoreFile
   try {
@@ -145,13 +153,27 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
     process.exit(2)
   }
 
-  let password = process.env.DCP_KEYSTORE_PASSWORD || await ask('Keystore password:', '', 'keypass')
+  let password
+  if (process.env.DCP_KEYSTORE_PASSWORD) {
+    password = process.env.DCP_KEYSTORE_PASSWORD
+  } else {
+    const prompt = {
+      type: 'invisible',
+      name: 'password',
+      message: 'Keystore password:',
+      initial: ''
+    }
+    const response = await prompts(prompt)
+    password = response.password
+  }
+
   let wallet
   try {
     wallet = protocol.unlock(keystoreFile, password)
     protocol.keychain.addWallet(wallet, true)
   } catch (error) {
     console.error('Could not unlock keystore; please check your password and try again')
+    process.exit(1)
   }
 
   var result = null
@@ -193,7 +215,7 @@ async function deployNetwork (packageJSON, wallet) {
         console.error('Remote Error:', error.remote)
       }
     } else {
-      console.error('Cannot send module to server;', error)
+      console.error('Could not send module to server;', error)
     }
     throw error
   }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- *  @file       init.js
+ *  @file       initDCPPackage.js
  *              Copyright (c) 2018, Kings Distributed Systems, Ltd.  All Rights Reserved.
  *
  *              Utility for creating a package.dcp module descriptor
