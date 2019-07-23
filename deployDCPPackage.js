@@ -69,9 +69,9 @@ Environment:
   DCP_KEYSTORE_PASSWORD
                 If present, use its value as the keystore password (default: prompt for password)
 `)
-  
+
   // console.log('CLI options:', options)
-  
+
   process.exit(1)
 }
 
@@ -179,7 +179,7 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
   var result = null
   try {
     let r
-    
+
     if (options['--local']) {
       r = await deployLocal(packageJSON, wallet)
     } else {
@@ -234,7 +234,7 @@ async function deployNetwork (packageJSON, wallet) {
 async function deployLocal (packageJSON, wallet) {
   let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}`
   let URL = baseURL + '/deploy/module'
-  
+
   const database = require('database.js')
   database.init(dcpConfig.packageManager.database)
 
