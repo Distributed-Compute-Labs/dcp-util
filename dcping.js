@@ -185,6 +185,7 @@ function erase (num) {
  *  }
  *  </code>
  */
+
 function rpnPrettyReject(error) {
   let response, message
   const chalk = new require('chalk').constructor({enabled: require('tty').isatty(0)})
@@ -255,12 +256,19 @@ async function loadCompute () {
       process.exit(1)
     }
   }
-  
-  // Load the keystore:
-  const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
-  const keystorePassword = await pprompt("Enter keystore password:", {method: 'hide', required: false })
 
-  protocol.keychain.addKeystore(keystore, keystorePassword, true)
+  try {
+    // Load the keystore:
+    const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
+    const keystorePassword = await pprompt('Enter keystore password:', {
+      method: 'hide',
+      required: false
+    })
+    protocol.keychain.addKeystore(keystore, keystorePassword, true)
+  } catch (error) {
+    console.error('Unable to unlock keystore:', error.message)
+    process.exit(1)
+  }
 }
 
 /** called when a job is accepted by the scheduler
