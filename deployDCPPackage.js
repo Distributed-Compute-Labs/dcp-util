@@ -22,7 +22,7 @@ const path = require('path')
 const prompts = require('prompts')
 
 // const protocol = require('protocol-node.js')
-require('dcp-client/dist/protocol.min.js')
+require('dcp-client/dist/compute.min.js')
 var debug = process.env.DCPDP_DEBUG || process.env.DEBUG || ''
 
 const argvZero = require('path').basename(__filename)
