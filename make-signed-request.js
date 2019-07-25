@@ -13,7 +13,7 @@ const path = require('path')
 const process = require('process')
 global.window = global
 global.navigator = { hardwareConcurrency: require('os').cpus().length }
-require('dcp-client/dist/protocol.min.js')
+require('dcp-client/dist/compute.min.js')
 
 function usage () {
   var progName = path.basename(process.argv[1])

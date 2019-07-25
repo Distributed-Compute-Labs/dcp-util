@@ -217,7 +217,7 @@ function rpnPrettyReject(error) {
       }}))
     break;
   }
-  console.log(response.headers['content-type'])
+
   return message
 }    
 
