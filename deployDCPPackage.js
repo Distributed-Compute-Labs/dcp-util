@@ -55,7 +55,7 @@ Usage:  ${argvZero} OPTIONS
 Where:
   --help        Display this usage screen
 
-  --network     Deploy package to package server at ${dcpConfig.packageManager.hostname} (default)
+  --network     Deploy package to package server at ${dcpConfig.packageManager.location} (default)
   --local       Deploy package directly to local filesystem
 
   --keystore=/path/to/your.keystore
@@ -232,8 +232,8 @@ async function deployNetwork (packageJSON, wallet) {
 
 /// Directly deploy the package to the local filesystem
 async function deployLocal (packageJSON, wallet) {
-  let baseURL = `${dcpConfig.packageManager.protocol || 'http:'}//${dcpConfig.packageManager.hostname}`
-  let URL = baseURL + '/deploy/module'
+  let baseURL = dcpConfig.packageManager.location
+  let URL = baseURL.resolve('/deploy/module')
 
   const database = require('database.js')
   database.init(dcpConfig.packageManager.database)
