@@ -106,7 +106,19 @@ var main = async () => {
   console.log(`${argvZero} - Utility to deploy a new/updated DCP package
 Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
 
-  let packageLocation = options['--package'] || await ask('Location of package file (package.dcp):', 'package.dcp', 'package')
+  let packageLocation
+  if (options['--package']) {
+    packageLocation = options['--package']
+  } else {
+    const prompt = {
+      type: 'text',
+      name: 'packageLocation',
+      message: 'Location of package file (package.dcp):',
+      initial: 'package.dcp'
+    }
+    const response = await prompts(prompt)
+    packageLocation = response.packageLocation
+  }
 
   let status
   try {
