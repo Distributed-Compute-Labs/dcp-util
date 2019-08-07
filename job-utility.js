@@ -53,7 +53,7 @@ WHERE:      --action      desired action
                 - deleteJob      delete the specified job (terminate all tasks), will never ask
                                  for this job again, frees up remaining resources.
                                  MODIFIERS:
-                                    -a        (administrative) Spedifies all jobs are target of deletion
+                                    -a        (administrative) Specifies all jobs are target of deletion
                                               **** MUST BE COMBINED WITH -ownedBy FLAG
                                     -ownedBy  (administrative) Will delete all the jobs on the scheduler with specified owner.
                                               **** MUST BE COMBINED WITH -a FLAG
@@ -96,7 +96,14 @@ async function loadCompute(keystorePath) {
  */
 async function start () {
   
-  var paramObj = { '--action':'string', '--jobID':'string', '--keystore':'string', '-a':false, '-ownedBy':'string' }
+  var paramObj = { 
+    '--scheduler': 'string',
+    '--action':'string',
+    '--jobID':'string',
+    '--keystore':'string',
+    '-a':false,
+    '-ownedBy':'string'
+  }
   var cliArgs = arg_util(paramObj)
   
   if (!cliArgs['--keystore']) {
@@ -104,10 +111,15 @@ async function start () {
     usage()
     return
   }
+  
+  if (cliArgs['--scheduler']) {
+    const href = new (require('dcp-url').URL)(cliArgs['--scheduler'])
+    dcpConfig.scheduler.location = href
+  }
 
   let url           = dcpConfig.scheduler.location.resolve('/generator/')
   let action        = cliArgs['--action']
-  let jobID         = cliArgs['--jobID'] || null
+  let jobID         = String(cliArgs['--jobID']).toLowerCase() || null
   let keystore      = cliArgs['--keystore']
   let all           = cliArgs['-a']
   let ownerPK       = cliArgs['-ownedBy'] || false
