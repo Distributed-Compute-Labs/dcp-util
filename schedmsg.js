@@ -141,6 +141,10 @@ async function start () {
             genId : a[1]
           }
           break
+        default:
+          console.log(`Error: ${a[0]} is not a valid message payload`)
+          help()
+          process.exit(1)
       }
       msg.persistent = false
       break
@@ -152,6 +156,10 @@ async function start () {
     case 'delete':
       msg.payload = 'delete'
       break
+    default:
+      console.log(`Error: ${msg.type} is not a valid message type`)
+      help()
+      process.exit(1)
       
   }
 
