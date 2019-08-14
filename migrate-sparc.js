@@ -179,7 +179,7 @@ async function doImports(transferDCCs = false) {
     const user = u[0]
     const userid = user.id
     
-    let [keystores] = await database.call('viewDefaultKeystore', [userid])
+    let [keystores] = await database.call('viewLastActiveKeystore', [userid])
     let address = '0x0000'
     
     if (keystores.length) {
@@ -197,7 +197,7 @@ async function doImports(transferDCCs = false) {
         true,
         false
       ]);
-      [keystores] = await database.call('viewDefaultKeystore', [userid])
+      [keystores] = await database.call('viewLastActiveKeystore', [userid])
       address = '0x' + keystores[0].address.toString('hex')
       console.log('    Made keystore', address)
     }
