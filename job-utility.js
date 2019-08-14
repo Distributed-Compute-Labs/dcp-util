@@ -235,6 +235,7 @@ async function sendRequest (action, url, jobID, privateKey, all = false, ownerPr
 
   console.log(result)
   protocol.disconnect()
+  process.exit(0)
 }
 
 start()
