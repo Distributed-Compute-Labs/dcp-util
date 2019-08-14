@@ -30,8 +30,10 @@ function help () {
   console.log(`
 ${progName} - Send messages to the scheduler and workers
 
-Usage:   ${progName} --type '' --payload '' --persistent t/f
-Example: ${progName} --type broadcast --payload 'Hello World!' --persistent
+Usage:    ${progName} --type '' --payload '' --persistent t/f
+Examples: ${progName} --type 'broadcast' --payload 'Hello World!' --persistent
+          ${progName} --type 'command' --payload 'reload'
+          ${progName} --type 'command' --payload 'remove,0x12345'
 
 Where:
   --type          type of message being send (broadcast, command, delete)
@@ -39,10 +41,10 @@ Where:
   --persistent    whether the message should be persistent (default: false)
   --keystore      specify the location of keystore to be used
 
-  type command:
+Options for --type 'command':
   --payload 'popupMessage, [url]'     opens a new tab with given url
-            'reload'                  reloads the page, requires login 
-            'restart'                 kills and refreshes workers without reloading
+            'reload'                  kills and reloads workers 
+            'restart'                 [browser] - kills and refreshes workers without reloading webpage
             'remove,[generator id]'   removes any active tasks that contain a given generator id
 
 `)
