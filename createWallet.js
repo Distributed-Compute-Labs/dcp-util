@@ -19,7 +19,7 @@ const rl = readline.createInterface({
 })
 
 global.crypto = { getRandomValues: require('polyfill-crypto.getrandomvalues') }
-require('dcp-client/dist/protocol.min')
+require('dcp-client/dist/compute.min')
 
 rl.question('Privatekey (leave blank to generate a new privatekey): ', privatekey => {
   rl.question('Keystore password: ', password => {
