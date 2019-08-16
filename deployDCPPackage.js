@@ -198,7 +198,19 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
 /// Send the package over the DCP network to deploy via the package-manager server
 async function deployNetwork (packageJSON, wallet) {
   let baseURL = dcpConfig.packageManager.location
+
+  // baseURL = {
+  //   hostname: 'packages.distributed.computer',
+  //   port: 443,
+  //   protocol: 'https:',
+  //   pathname: '/',
+  //   href: 'https://packages.distributed.computer/'
+  // }
+
   let URL = baseURL.resolve('/deploy/module')
+
+  // TODO: take as cli parameter instead of hard coding.
+  URL = 'https://packages.distributed.computer:443/deploy/module'
 
   console.log(` * Deploying via network to ${URL}...`)
 
