@@ -127,6 +127,8 @@ function perfectNumbersWithIndeterminateProgress (min, step = 10000) {
   const perfects = []
   const max = min + step
 
+  progress(0.10)
+
   function factors (n) {
     const f = [1]
     for (let i = 2; i <= n / 2; i++) {
