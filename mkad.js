@@ -33,52 +33,52 @@ function usage() {
     var progName = path.basename(process.argv[1])
 
     console.log(`
-                ${progName} - Manipulate Key/Address Data.
-                Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
+${progName} - Manipulate Key/Address Data.
+Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
   
-                Usage:      ${progName} new  <keystore | address | key> [ --f=filename ] [ --p=passphrase] [--force]
-                            ${progName} show <keystore | address | key> [[ --f=filename ] | <data>] [ --p=passphrase ]
-                            ${progName} info [[ -f "input filename" ] | <data>]
+Usage:      ${progName} new  <keystore | address | key> [ --f=filename ] [ --p=passphrase] [--force]
+            ${progName} show <keystore | address | key> [[ --f=filename ] | <data>] [ --p=passphrase ]
+            ${progName} info [[ -f "input filename" ] | <data>]
   
 
-                Examples:   ${progName} new keystore --f=someFilename --passphrase=somePassphrase --force
-                            ${progName} new keystore --f=someFilename --passphrase=somePassphrase
-                            ${progName} new keystore --f=someFilename --force
-                            ${progName} new keystore --f=someFilename
+Examples:   ${progName} new keystore -f=someFilename --passphrase=somePassphrase --force
+            ${progName} new keystore -f=someFilename --passphrase=somePassphrase
+            ${progName} new keystore -f=someFilename --force
+            ${progName} new keystore -f=someFilename
 
-                            ${progName} new address --f=someFilename --force
-                            ${progName} new address --f=someFilename
+            ${progName} new address -f=someFilename --force
+            ${progName} new address -f=someFilename
 
-                            ${progName} new key --f=someFilename --force
-                            ${progName} new key --f=someFilename
-
-
-                            ${progName} show keystore --f=someFilename --passphrase=somePassphrase
-                            ${progName} show keystore 0xSomeHexadecimalKey --passphrase=somePassphrase
-                            ${progName} show keystore --f=someFilename
-                            ${progName} show keystore 0xSomeHexadecimalKey
-
-                            ${progName} show address --f=someFilename
-                            ${progName} show address 0xSomeHexadecimalKey
-
-                            ${progName} show key --f=someFilename
-                            ${progName} show key 0xSomeHexadecimalKey
-
-                            ${progName} info --f=inputFilename
-                            ${progName} info 0xSomeHexadecimalKey   
+            ${progName} new key -f=someFilename --force
+            ${progName} new key -f=someFilename
 
 
-                Where:      new         creates a new keystore, address, or key.
-                            info        describes a given keystore, address, or key
-                            data        is an address or a key in hexadecimal, with or without the leading 0x
-                            filename    is the name of a file, which may contain a key store, address, or key.  
-                            dash (-)    means stdin or stdout.
-                            -p          specifies a keystore passphrase.  The empty string is an acceptable passphrase.
-                            --force     allows an existing keystore file to be overwritten   
+            ${progName} show keystore -f=someFilename --passphrase=somePassphrase
+            ${progName} show keystore 0xSomeHexadecimalKey --passphrase=somePassphrase
+            ${progName} show keystore -f=someFilename
+            ${progName} show keystore 0xSomeHexadecimalKey
+
+            ${progName} show address -f=someFilename
+            ${progName} show address 0xSomeHexadecimalKey
+
+            ${progName} show key -f=someFilename
+            ${progName} show key 0xSomeHexadecimalKey
+
+            ${progName} info -f=inputFilename
+            ${progName} info 0xSomeHexadecimalKey   
 
 
-                Global Options:
-                            --help          view this help                            
+Where:      new         creates a new keystore, address, or key.
+            info        describes a given keystore, address, or key
+            data        is an address or a key in hexadecimal, with or without the leading 0x
+            filename    is the name of a file, which may contain a key store, address, or key.  
+            dash (-)    means stdin or stdout.
+            -p          specifies a keystore passphrase.  The empty string is an acceptable passphrase.
+            --force     allows an existing keystore file to be overwritten   
+
+
+Global Options:
+            --help          view this help                            
     `)
     process.exit(1)
 }
@@ -97,13 +97,18 @@ function usage() {
 function parseOptions(args, array, options, forceAll) {
     if (!options) options = {}
     for (let i = 0; i < args.length; i++) {
-        if (args[i][0] !== '-' || args[i][1] !== '-') continue
+        if ((args[i][0] !== '-' && args[i][1] !== '-') || (args[i][0] !== '-' && args[i][1] !== 'f')) continue
+        if(args[i].startsWith("--f=")) continue
         let equalPosition = args[i].indexOf('=')
         if (equalPosition === -1) {
             options[args[i].slice(2)] = true
             continue
         }
-        let key = args[i].slice(2, equalPosition)
+        let key
+        if (args[i][1] === 'f')
+            key = args[i].slice(1, equalPosition)
+        else
+            key = args[i].slice(2, equalPosition)
         let value = args[i].slice(equalPosition + 1)
         if (array.indexOf(key) === -1) {
             if (forceAll) {
