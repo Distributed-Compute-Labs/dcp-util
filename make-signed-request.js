@@ -36,7 +36,7 @@ Where:
 
 var argv = require('yargs').argv
 
-async function start () {
+function start () {
   if (!argv.host && !argv.body && !argv.key) {
     usage()
     return
@@ -44,7 +44,7 @@ async function start () {
   let host = argv.host
   let body = JSON.parse(argv.body || '{}')
   let key = argv.key || '0x'+require('crypto').randomBytes(32).toString('hex')
-  sendRequest(host, body, key)
+  return sendRequest(host, body, key)
 }
 
 async function sendRequest (host, body, key) {
@@ -60,6 +60,13 @@ async function sendRequest (host, body, key) {
   }
   console.log(result)
   protocol.disconnect()
+  
+  return result
 }
 
-start()
+start().then(r => {
+  process.exit(0)
+}).catch(error => {
+  console.error('Unexpected error:', error)
+  process.exit(1)
+})
