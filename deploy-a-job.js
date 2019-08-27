@@ -1,3 +1,12 @@
+/**
+ * @file    deploy-a-job.js
+ *          Creates a job that executes a function and deploys it after
+ *          dcp-minimal-env is loaded in a node environment.
+ *          One of the jobs emits indeterminate progress updates.
+ * @author  Christopher Roy
+ * @date    August 2019
+ */
+
 function primes_bruteforce (input, step = 10000) {
   function isPrime (n) {
     for (let i = 2; i <= (n / 2); i++) {
@@ -23,7 +32,7 @@ function primes_bruteforce (input, step = 10000) {
 function lucasPrimes (start, step) {
   function isPrime (n) {
     for (let i = 2; i <= (n / 2); i++) {
-      if ((n / i) == Math.floor(n / i)) { return false }
+      if ((n / i) === Math.floor(n / i)) { return false }
     }
     return true
   }
@@ -31,7 +40,9 @@ function lucasPrimes (start, step) {
     return a + b
   }
   function isLucas (n) {
-    let a = 2, b = 1, c = nextLucas(a, b)
+    let a = 2
+    let b = 1
+    let c = nextLucas(a, b)
     if ([2, 1].indexOf(n) !== -1) return true
 
     while (c <= n) {
@@ -105,7 +116,10 @@ function perfectNumbers (min, step = 10000) {
     if (n === 1) return false
 
     const f = factors(n)
-    const sum = f.reduce((ax, cx) => { return ax += cx }, 0)
+    const sum = f.reduce((ax, cx) => {
+      ax += cx
+      return ax
+    }, 0)
     // console.log(n, sum, sum === n, f)
     return sum === n
   }
@@ -114,7 +128,7 @@ function perfectNumbers (min, step = 10000) {
     if (isPerfect(i)) {
       perfects.push(i)
     }
-    prg = ((i - min) / (max - min)) * 100
+    const prg = ((i - min) / (max - min)) * 100
     if ((Math.floor(prg) === prg) && (prg % 10) === 0) { progress(prg / 100) }
   }
 
@@ -145,7 +159,10 @@ function perfectNumbersWithIndeterminateProgress (min, step = 10000) {
     if (n === 1) return false
 
     const f = factors(n)
-    const sum = f.reduce((ax, cx) => { return ax += cx }, 0)
+    const sum = f.reduce((ax, cx) => {
+      ax += cx
+      return ax
+    }, 0)
     // console.log(n, sum, sum === n, f)
     return sum === n
   }
@@ -154,8 +171,10 @@ function perfectNumbersWithIndeterminateProgress (min, step = 10000) {
     if (isPerfect(i)) {
       perfects.push(i)
     }
-    prg = ((i - min) / (max - min)) * 100
-    if ((Math.floor(prg) === prg) && (prg % 10) === 0) { progress('indeterminate') }
+    const prg = ((i - min) / (max - min)) * 100
+    if ((Math.floor(prg) === prg) && (prg % 10) === 0) {
+      progress('indeterminate')
+    }
   }
 
   return progress(1) && {
@@ -166,7 +185,7 @@ function perfectNumbersWithIndeterminateProgress (min, step = 10000) {
 function productOfPrimes (start, len = 10000) {
   function isPrime (n) {
     for (let i = 2; i <= (n / 2); i++) {
-      if ((n / i) == Math.floor(n / i)) { return false }
+      if ((n / i) === Math.floor(n / i)) { return false }
     }
     return true
   }
@@ -208,14 +227,12 @@ function productOfPrimes (start, len = 10000) {
 }
 
 // ro = new RangeObject(0, 1999999, 5000)
-if (typeof ro === 'undefined') {
-  ro = new RangeObject({ start: 2e6, end: 3e6, step: 3000, group: 1 })
-  console.log('New rangeobject ro =', ro)
-}
+const ro = new RangeObject({ start: 2e6, end: 3e6, step: 3000, group: 1 })
+console.log('New rangeobject ro =', ro)
 
 // g = compute.for(ro, primes_bruteforce, [ro.step]); g._generator.public = { name: 'Bruteforce Primes ' + ro.step }
 // g = compute.for(ro, erastothenes, [ro.step]); g._generator.public = { name: 'Sieve of Erastothenes ' + ro.step }
-//g = compute.for(ro, perfectNumbers, [ro.step]); g._generator.public = { name: 'Perfect Numbers ' + ro.step }
+// g = compute.for(ro, perfectNumbers, [ro.step]); g._generator.public = { name: 'Perfect Numbers ' + ro.step }
 g = compute.for(ro, perfectNumbersWithIndeterminateProgress, [ro.step]); g._generator.public = { name: 'Perfect Numbers ' + ro.step }
 // g = compute.for(ro, lucasPrimes, [ro.step]); g._generator.public = { name: 'Lucas Primes ' + ro.step }
 // g = compute.for(ro, productOfPrimes, [ro.step]); g._generator.public = { name: 'Product of Primes ' + ro.step }
@@ -233,4 +250,6 @@ g.on('complete', () => console.log('Complete!'))
 
 g.setPaymentWallet(paymentWallet)
 
-'Worker is ready on global variable g'
+console.log('Worker is ready on global variable g')
+
+g.exec(0.01 * ro.length)
