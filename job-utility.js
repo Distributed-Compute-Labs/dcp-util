@@ -18,6 +18,8 @@ const process = require('process')
 const arg_util = require('arg_util.js')
 const keystore = require('keystore.js')
 
+global.Promise = Promise = require('promiseDebug').init(Promise)
+
 /** 
  * Shows the help for this utility
  */
@@ -127,21 +129,27 @@ async function start () {
   await loadCompute(keystore)
   let privateKey = protocol.keychain.keys[Object.keys(protocol.keychain.keys)[0]].privateKey
 
-  let isWhitelisted = dcpConfig.scheduler.whitelistManagerAddresses.includes(protocol.keychain.currentAddress)
+  let isWhitelisted = dcpConfig.scheduler.whitelistManagerAddresses.includes('0x'+protocol.keychain.currentAddress)
 
   // CHECK ARGUMENT COMBINATIONS
   if (all && !isWhitelisted) {
     if (action !== 'deleteJob') {
       console.log('\nATTENTION: You do not have administrative permissions. "-a" will have no effect\n')
+
+      console.log(' * list:', dcpConfig.scheduler.whitelistManagerAddresses)
+      console.log(' * you:', protocol.keychain.currentAddress)
       all = false
     }
   }
   if (ownerPK && !isWhitelisted) {
     console.log('\nATTENTION: You do not have administrative permissions. "-ownedBy" will have no effect\n')
+
+    console.log(' * list:', dcpConfig.scheduler.whitelistManagerAddresses)
+    console.log(' * you:', protocol.keychain.currentAddress)
     ownerPK = false
   }
 
-  sendRequest(action, url, jobID, privateKey, all, ownerPK)
+  return sendRequest(action, url, jobID, privateKey, all, ownerPK)
 }
 
 /**
@@ -239,3 +247,22 @@ async function sendRequest (action, url, jobID, privateKey, all = false, ownerPr
 }
 
 start()
+  .then(result => {
+    console.log('Success!', result)
+  })
+  .catch(error => {
+    console.log('Something broke!')
+    console.error(error)
+
+    console.log(Date.now(), '255 Disconnecting...')
+    protocol.disconnect()
+    console.log(Date.now(), '257 - Disconnected')
+    process.exit(1)
+  })
+  .finally(() => {
+    console.log(Date.now(), '261 Disconnecting...')
+    protocol.disconnect()
+    console.log(Date.now(), '263  - Disconnected')
+    process.exit(0)
+  })
+  
