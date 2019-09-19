@@ -154,7 +154,7 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
   }
 
   let password
-  if (process.env.DCP_KEYSTORE_PASSWORD) {
+  if (typeof process.env.DCP_KEYSTORE_PASSWORD !== '') {
     password = process.env.DCP_KEYSTORE_PASSWORD
   } else {
     const prompt = {
