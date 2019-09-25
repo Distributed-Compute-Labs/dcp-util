@@ -13,11 +13,11 @@ require('dcp-rtlink/rtLink').link(module.paths)
 require('config').load() // eslint-disable-line
 
 // polyfill
-global.window = global
-global.window.location = { protocol: (dcpConfig.build.indexOf('release') >= 0) ? 'https:' : 'http:' }
+// global.window = global
+// global.window.location = { protocol: (dcpConfig.build.indexOf('release') >= 0) ? 'https:' : 'http:' }
 global.XMLHttpRequest = require('dcp-xhr').XMLHttpRequest
 global.performance = require('perf_hooks').performance
-global.navigator = { hardwareConcurrency: 1 }
+// global.navigator = { hardwareConcurrency: 1 }
 global.URL = require('url').URL
 
 require('dcp-client/dist/compute.min.js')
@@ -108,20 +108,24 @@ async function start () {
  * @param {Generator} generator - the generator to deploy
  */
 async function deployGenerator (generator) {
-  let result
+  let resultP
   try {
     generator.on('accepted', ev => {
       ev.generator.worker = 'worker...'
-      console.log(`Generator '${generator._generator.address}' Deployed`, ev)
+      console.log(`Generator '${generator._generator.address}' Deployed`)
       if (!argv.wait) {
         process.exit(1)
       }
     })
-    result = await generator.exec()
+    // generator.setPaymentWallet(protocol.keychain.keys[protocol.keychain.currentAddress].wallet)
+    resultP = generator.exec(undefined, protocol.keychain.keys[protocol.keychain.currentAddress].wallet)
   } catch (error) {
-    result = error
+    resultP = error
   }
+  
+  const result = await resultP
   console.log(result)
+  return result
 }
 
 start()
