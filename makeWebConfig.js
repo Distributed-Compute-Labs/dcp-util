@@ -74,7 +74,6 @@ var webConfig = {
   worker: dcpConfig.worker,
   scheduler: safeSubset('scheduler'),
   packageManager: safeSubset('packageManager'),
-  storage: safeSubset('storage'),
   global: safeSubset('global'),
   bank: safeSubset('bank'),
   portal: safeSubset('portal'),
