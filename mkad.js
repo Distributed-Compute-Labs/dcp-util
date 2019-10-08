@@ -266,7 +266,7 @@ var createKey = async (args, options) => {
     args = args.slice(1)
     if (!options.f) usage()
     if (keyType == 'keystore' || keyType == 'address' || keyType == 'key') {
-        return await newEtherFile(keyType, args, options)
+        return newEtherFile(keyType, args, options)
     } else {
         console.error('Invalid mode: ' + mode)
         process.exit(1)
@@ -289,7 +289,7 @@ var showKey = async (args, options) => {
     } else {
         args = args.slice(1)
         if (keyType == 'keystore' || keyType == 'address' || keyType == 'key') {
-            return await showEtherFile(keyType, args, options, keystoreFromPrivkey)
+            return showEtherFile(keyType, args, options, keystoreFromPrivkey)
         } else {
             console.error('Invalid mode: ' + mode)
             usage()
