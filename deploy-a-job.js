@@ -248,7 +248,7 @@ g.on('complete', () => console.log('Complete!'))
 //   console.log(`Slice ${ev.sliceNumber}: Found match`, ev.result.perfects)
 // })
 
-g.setPaymentWallet(paymentWallet)
+g.setPaymentAccount(paymentWallet)
 
 console.log('Worker is ready on global variable g')
 
