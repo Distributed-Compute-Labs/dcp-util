@@ -11,8 +11,8 @@ CAC Deployment Notes
    - DCP-Core:			fbd399e9083b2c52ba99426722af61d9e2470935
 
  - dcp-miner-standalone installed in
-	~/dcp-root/opt/dcp/bin/dcp-miner-v8
-	~/dcp-root/opt/dcp/bin/dcp-miner-control.js
+	~/dcp-root/opt/dcp/bin/sa-worker-v8
+	~/dcp-root/opt/dcp/bin/sa-worker-control.js
 
  - v8 support blobs installed in
 	~/dcp-root/opt/dcp/libexec/snapshot_blob.bin

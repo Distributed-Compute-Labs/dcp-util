@@ -99,7 +99,7 @@ wait_for_workers()
   wait="$1"
   while [ "`date +%s`" -lt $[$now + $wait] ]
   do
-    remain="`pgrep 'dcp-miner-v8|dcp-miner-jsapi' | grep -c .`"
+    remain="`pgrep 'sa-worker-v8|sa-worker-jsapi' | grep -c .`"
     [ "$remain" = "0" ] && break
     $echo "`date` - Waiting for $remain processes to finish"
     sleep 2
