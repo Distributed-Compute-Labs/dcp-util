@@ -241,14 +241,14 @@ async function sendRequest (action, url, jobID, privateKey, all = false, ownerPr
     result = error
   }
 
-  console.log(result)
   protocol.disconnect()
-  process.exit(0)
+  
+  return result;
 }
 
 start()
   .then(result => {
-    console.log('Success!', result)
+    console.log('Success!', result.message)
   })
   .catch(error => {
     console.log('Something broke!')
