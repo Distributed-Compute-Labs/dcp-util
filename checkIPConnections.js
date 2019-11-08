@@ -1,8 +1,8 @@
 let fs = require('fs')
 let path = require('path')
-let taskEx = new RegExp('/fetch/task')
-let returnEx = new RegExp('/return/task')
-let resultsEx = new RegExp('/submit/results')
+let taskEx = new RegExp('/work/fetch')
+let returnEx = new RegExp('/work/return')
+let resultsEx = new RegExp('/work/submit')
 
 let receiptEx = new RegExp('/receipt')
 

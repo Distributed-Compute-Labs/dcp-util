@@ -21,7 +21,7 @@ const params = {
   '--requests': 100,
   '--duration': 1,
   '--batch': 1, // protocol batch size
-  '--url': 'fetch/task',
+  '--url': 'work/fetch',
   '--signed': true,
   '--help': 'boolean',
   '--body': '{}',
@@ -53,7 +53,7 @@ Where:
                   min of 1 (default: 1)
   --url           the endpoint to send the requests to, by default if it doesn't start
                   with "http" it resolve the url with this scheduler: ${dcpConfig.scheduler.location.href}
-                  (default: fetch/task)
+                  (default: work/fetch)
   --signed        whether or not to sign the requests that are being sent (default: true)
   --body          the content which to sign (or not) and send to the endpoint
   --sameKey       if set, use a single privatekey to sign all messages, otherwise use:

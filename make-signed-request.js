@@ -23,7 +23,7 @@ ${progName} - Make signed requests on the command line
 Copyright (c) 2018 Kings Distributed Systems Ltd., All Rights Reserved.
 
 Usage:   ${progName} --host=hostname/method --body='{}' --key=0xPrivateKey --useSocket=true
-Example: ${progName} --host=http://scheduler.devserver.office.kingsds.network/fetch/task --body='{"minValue": 100}'
+Example: ${progName} --host=http://scheduler.devserver.office.kingsds.network/work/fetch --body='{"minValue": 100}'
 
 Where:
   --host        location of the request

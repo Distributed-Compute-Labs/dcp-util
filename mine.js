@@ -47,7 +47,7 @@ console.log('DCP Miner running')
 
 miner.start().then(message => {
   logger.log('Fetching Task')
-  protocol.send('http://' + options.board + ':' + options.port + '/fetch/task', {}, options.privatekey)
+  protocol.send('http://' + options.board + ':' + options.port + '/work/fetch', {}, options.privatekey)
     .then(signedResponse => {
       signedResponse = JSON.parse(signedResponse)
       let task = signedResponse.message
