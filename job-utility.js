@@ -248,7 +248,7 @@ async function sendRequest (action, url, jobID, privateKey, all = false, ownerPr
 
 start()
   .then(result => {
-    console.log('Success!', result.message)
+    console.log('Success!', result.message || result)
   })
   .catch(error => {
     console.log('Something broke!')
