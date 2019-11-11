@@ -18,8 +18,8 @@ function usage() {
 ${progName} - Query values from dcpConfig
 Copyright (c) 2018-2019 Kings Distributed Systems Ltd., All Rights Reserved.
 
-Usage:   ${progName} [--showfiles] path.to.config.variable [path.to.config.variable...]
-Example: ${progName} scheduler.hostname
+Usage:   ${progName} [--showfiles] [--keys] <--all | path.to.config.variable [path.to.config.variable...]>
+Example: ${progName} scheduler.location.href
 `)
   process.exit(1)
 }
@@ -29,17 +29,39 @@ if (process.argv.length < 3 || process.argv[2] === '--help') {
 }
 
 const dcpConfig = require('config').load()
-
-if (process.argv[2] === '--showfiles') {
-  console.log('Files loaded:\n - ' + require('config').loadedFiles.join('\n - ') + '\n')
-  process.argv.splice(2,1)
-}
+let outFn = console.log;
+let allMode = false;
 
 for (let i=2; i < process.argv.length; i++) {
-  let entries = process.argv[i].split('.')
-  let entry
-  for (entry = dcpConfig; entries.length; entry = entry[entries.shift()]){
-    debugger
+  while (process.argv[i].match(/^--/)) {
+    switch(process.argv[i]) {
+    case '--showfiles':
+      console.log('Files loaded:\n - ' + require('config').loadedFiles.join('\n - ') + '\n');
+      break;
+    case '--all':
+      outFn(dcpConfig);
+      allMode = true
+      break;
+    case '--keys':
+      outFn = function(arg) { console.log(Object.keys(arg)) };
+      break;
+    }
+    process.argv.splice(i--, 1);
   }
-  console.log(entry)
+}
+
+if (allMode) {
+  outFn(dcpConfig)
+} else {
+  for (let i=2; i < process.argv.length; i++) {
+    let entries = process.argv[i].split('.');
+    let entry;
+    for (entry = dcpConfig; entries.length; entry = entry[entries.shift()]){
+      if (!entry) {
+        entry = undefined;
+        break;
+      }
+    }
+    outFn(entry);
+  }
 }
