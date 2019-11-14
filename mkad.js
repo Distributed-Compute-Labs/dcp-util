@@ -36,7 +36,7 @@ function usage() {
 ${progName} - Manipulate Key/Address Data.
 Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
   
-Usage:      ${progName} new  <keystore | address | key> [ --f=filename ] [ --p=passphrase] [--force]
+Usage:      ${progName} new  <keystore | address | key> [ --f=filename ] [ --p=passphrase] [ --privkey=privateKey ] [--force]
             ${progName} show <keystore | address | key> [[ --f=filename ] | <data>] [ --p=passphrase ]
             ${progName} info [[ -f "input filename" ] | <data>]
   
@@ -202,11 +202,6 @@ var createEtherFile = (fileType, filePath, passphrase, force = false, hexPrivkey
                 usage();
         }
 
-        if (hexPrivkey) {
-            // storedObj.address = stripHexPrefix(hexPrivkey);
-            resolve(storedObj)
-        }
-
         fs.stat(filePath, (error, status) => {
             if (error) {
                 fs.writeFileSync(filePath, JSON.stringify(storedObj, null, 2))
@@ -324,7 +319,7 @@ var main = async argv => {
     var mode = argv[1]
     var options, privateKey
     argv = argv.slice(1)
-    options = parseOptions(argv, ['f', 'passphrase'])
+    options = parseOptions(argv, ['f', 'passphrase', 'privkey'])
 
     if (!mode || options.help) { usage() }
 
