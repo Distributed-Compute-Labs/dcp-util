@@ -264,7 +264,7 @@ async function loadCompute () {
       method: 'hide',
       required: false
     })
-    protocol.keychain.addKeystore(keystore, keystorePassword, true)
+    protocol.keychain.addPrivateKey_fromEthV3Keystore(keystore, keystorePassword, true)
   } catch (error) {
     console.error('Unable to unlock keystore:', error.message)
     process.exit(1)

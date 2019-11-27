@@ -1,12 +1,14 @@
 #! /usr/bin/env node
 /**
- *  @file       wallet.js
+ *  @file       createWallet.js
  *              Copyright (c) 2018, Kings Distributed Systems, Ltd.  All Rights Reserved.
  *
  *              Utility for creating a ethereum-enabled keystore files
  *
  *  @author     Greg Agnew, gagnew@sparc.network
  *  @date       May 2018
+ *
+ *  @deprecated - use mkad.js for new work /wg oct 2019
  */
 
 require('dcp-rtlink/rtLink').link(module.paths)

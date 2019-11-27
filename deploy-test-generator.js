@@ -117,8 +117,7 @@ async function deployGenerator (generator) {
         process.exit(1)
       }
     })
-    // generator.setPaymentWallet(protocol.keychain.keys[protocol.keychain.currentAddress].wallet)
-    resultP = generator.exec(undefined, protocol.keychain.keys[protocol.keychain.currentAddress].wallet)
+    resultP = generator.exec()
   } catch (error) {
     resultP = error
   }
