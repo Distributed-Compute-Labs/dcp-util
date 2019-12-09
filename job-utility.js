@@ -36,12 +36,12 @@ WHERE:      --action      desired action
                 - listJobs       list attributes of the jobs belonging to the given private key.
                                  MODIFIERS:
                                     -a           (administrative) List all jobs on the scheduler
-                                    -ownedBy     (administrative) List all jobs belonging to specified owner.
+                                    --ownedBy    (administrative) List all jobs belonging to specified owner.
 
                 - countJobs      count all jobs based on modifier.
                                  MODIFIERS:
                                     -a           (administrative) Count all jobs on the scheduler.
-                                    -ownedBy     (administrative) Count all the jobs belonging to the specified owner.
+                                    --ownedBy    (administrative) Count all the jobs belonging to the specified owner.
                 
                 - countTasks     count all tasks of each type belonging to the specified job.
                 
@@ -52,8 +52,8 @@ WHERE:      --action      desired action
                                  for this job again, frees up remaining resources.
                                  MODIFIERS:
                                     -a        (administrative) Specifies all jobs are target of deletion
-                                              **** MUST BE COMBINED WITH -ownedBy FLAG
-                                    -ownedBy  (administrative) Will delete all the jobs on the scheduler with specified owner.
+                                              **** MUST BE COMBINED WITH --ownedByFLAG
+                                    --ownedBy (administrative) Will delete all the jobs on the scheduler with specified owner.
                                               **** MUST BE COMBINED WITH -a FLAG
 
             --jobID       the address of the job to inspect
@@ -65,11 +65,11 @@ WHERE:      --action      desired action
 
 EXAMPLES:   ${progName} --action listJobs --keystore pathToKeystoreFile
             ${progName} --action listJobs --keystore pathToAdminKeystoreFile -a
-            ${progName} --action listJobs --keystore pathToAdminKeystoreFile -ownedBy 0xPrivateKey
+            ${progName} --action listJobs --keystore pathToAdminKeystoreFile --ownedBy 0xPrivateKey
 
             ${progName} --action countJobs --keystore pathToKeystoreFile
             ${progName} --action countJobs --keystore pathToAdminKeystoreFile -a
-            ${progName} --action countJobs --keystore pathToAdminKeystoreFile -ownedBy 0xPrivateKey
+            ${progName} --action countJobs --keystore pathToAdminKeystoreFile --ownedBy 0xPrivateKey
             
             ${progName} --action countTasks --jobID 0xsomeJobAddress --keystore pathToKeystoreFile
             
@@ -78,33 +78,16 @@ EXAMPLES:   ${progName} --action listJobs --keystore pathToKeystoreFile
             ${progName} --action deleteJob --jobID 0xsomeJobAddress --keystore pathToKeystoreFile
             ${progName} --action deleteJob --keystore pathToKeystoreFile -a
                 ** this will delete ALL jobs belonging to you
-            ${progName} --action deleteJob --keystore pathToAdminKeystoreFile -a -ownedBy 0xPrivateKey
+            ${progName} --action deleteJob --keystore pathToAdminKeystoreFile -a --ownedBy 0xPrivateKey
                 ** this last example will delete ALL jobs belonging to the specified owner
 `)
   process.exit(1)
-}
-
-async function loadCompute(entryPoint) {
-  console.log('092: Loading compute from', entryPoint)
-  return require('dcp-client').init(entryPoint).then(ev => {
-    console.log('Loaded compute bundle from ' + require('dcp/dcp-config').scheduler.location);
-    return ev;
-  });
 }
 
 /** 
  * Parses arguments, sends the request 
  */
 async function start () {
-  
-  var paramObj = { 
-    '--scheduler': 'string',
-    '--action':'string',
-    '--jobID':'string',
-    '--keystore':'string',
-    '-a':false,
-    '--ownedBy':'string'
-  }
   var cliArgs = require('yargs').argv;
   
   if (!cliArgs['action']) {
@@ -113,11 +96,7 @@ async function start () {
     return
   }
   
-  // if (cliArgs['scheduler']) {
-  //   const href = new (require('dcp-url').URL)(cliArgs['scheduler'])
-  //   dcpConfig.scheduler.location = href
-  // }
-  await loadCompute(cliArgs['scheduler'])
+  await require('dcp-client').init(cliArgs['scheduler']);
   
   let url           = require('dcp/dcp-config').scheduler.location.resolve('/generator/')
   let action        = cliArgs['action']
@@ -229,21 +208,12 @@ async function sendRequest (action, url, jobID, privateKey, all = false, ownerPr
 
 start()
   .then(result => {
-    console.log('Success!', result.message || result)
+    console.log(result.message || result);
+    process.exit(0);
   })
   .catch(error => {
-    console.log('Something broke!')
-    console.error(error)
+    console.log('Something broke!');
+    console.error(error);
 
-    console.log(Date.now(), '255 Disconnecting...')
-    require('dcp/protocol').disconnect()
-    console.log(Date.now(), '257 - Disconnected')
-    process.exit(1)
+    process.exit(1);
   })
-  .finally(() => {
-    console.log(Date.now(), '261 Disconnecting...')
-    require('dcp/protocol').disconnect()
-    console.log(Date.now(), '263  - Disconnected')
-    process.exit(0)
-  })
-  
