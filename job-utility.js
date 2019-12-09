@@ -9,16 +9,12 @@
  *  @date       April 2019
  */
 
-require('dcp-rtlink/rtLink').link(module.paths)
-require('config').load() // eslint-disable-line
-require('dcp-client/dist/compute.min.js') /* side effect: global protocol now defined :( */
+require('dcp-rtlink/rtLink').init();
 
 const path = require('path')
 const process = require('process')
-const arg_util = require('arg_util.js')
-const keystore = require('keystore.js')
 
-global.Promise = Promise = require('promiseDebug').init(Promise)
+// global.Promise = Promise = require('promiseDebug').init(Promise)
 
 /** 
  * Shows the help for this utility
@@ -88,9 +84,12 @@ EXAMPLES:   ${progName} --action listJobs --keystore pathToKeystoreFile
   process.exit(1)
 }
 
-async function loadCompute(keystorePath) {
-  const wallet = await keystore.getWallet(keystorePath)
-  protocol.keychain.addWallet(wallet, true)
+async function loadCompute(entryPoint) {
+  console.log('092: Loading compute from', entryPoint)
+  return require('dcp-client').init(entryPoint).then(ev => {
+    console.log('Loaded compute bundle from ' + require('dcp/dcp-config').scheduler.location);
+    return ev;
+  });
 }
 
 /** 
@@ -104,52 +103,33 @@ async function start () {
     '--jobID':'string',
     '--keystore':'string',
     '-a':false,
-    '-ownedBy':'string'
+    '--ownedBy':'string'
   }
-  var cliArgs = arg_util(paramObj)
+  var cliArgs = require('yargs').argv;
   
-  if (!cliArgs['--keystore']) {
-    console.log('\nOOPS! You must provide a configuation for action and keystore. See below.\n')
+  if (!cliArgs['action']) {
+    console.error('\nOOPS! You must provide a configuation for action. See below.\n')
     usage()
     return
   }
   
-  if (cliArgs['--scheduler']) {
-    const href = new (require('dcp-url').URL)(cliArgs['--scheduler'])
-    dcpConfig.scheduler.location = href
-  }
+  // if (cliArgs['scheduler']) {
+  //   const href = new (require('dcp-url').URL)(cliArgs['scheduler'])
+  //   dcpConfig.scheduler.location = href
+  // }
+  await loadCompute(cliArgs['scheduler'])
+  
+  let url           = require('dcp/dcp-config').scheduler.location.resolve('/generator/')
+  let action        = cliArgs['action']
+  let jobID         = String(cliArgs['jobID']).toLowerCase() || null
+  let keystoreFile  = cliArgs['keystore']
+  let all           = cliArgs['a']
+  let ownerPK       = cliArgs['ownedBy'] || false
 
-  let url           = dcpConfig.scheduler.location.resolve('/generator/')
-  let action        = cliArgs['--action']
-  let jobID         = String(cliArgs['--jobID']).toLowerCase() || null
-  let keystore      = cliArgs['--keystore']
-  let all           = cliArgs['-a']
-  let ownerPK       = cliArgs['-ownedBy'] || false
-
-  await loadCompute(keystore)
-  let privateKey = protocol.keychain.keys[Object.keys(protocol.keychain.keys)[0]].privateKey
-
-  let isWhitelisted = dcpConfig.scheduler.whitelistManagerAddresses.includes('0x'+protocol.keychain.currentAddress)
-
-  // CHECK ARGUMENT COMBINATIONS
-  if (all && !isWhitelisted) {
-    if (action !== 'deleteJob') {
-      console.log('\nATTENTION: You do not have administrative permissions. "-a" will have no effect\n')
-
-      console.log(' * list:', dcpConfig.scheduler.whitelistManagerAddresses)
-      console.log(' * you:', protocol.keychain.currentAddress)
-      all = false
-    }
-  }
-  if (ownerPK && !isWhitelisted) {
-    console.log('\nATTENTION: You do not have administrative permissions. "-ownedBy" will have no effect\n')
-
-    console.log(' * list:', dcpConfig.scheduler.whitelistManagerAddresses)
-    console.log(' * you:', protocol.keychain.currentAddress)
-    ownerPK = false
-  }
-
-  return sendRequest(action, url, jobID, privateKey, all, ownerPK)
+  const myKeystore  = await require('dcp/wallet').get(keystoreFile);
+  const privateKey  = await myKeystore.getPrivateKey();
+  
+  return sendRequest(action, url, jobID, myKeystore, all, ownerPK)
 }
 
 /**
@@ -163,7 +143,8 @@ async function start () {
  * @param {string} ownerPrivateKey  Passed by admin user to manipulate jobs belonging to that private key
  */
 async function sendRequest (action, url, jobID, privateKey, all = false, ownerPrivateKey = false) {
-  
+  const protocol = require('dcp/protocol');
+
   let result
   //let getListUrl = url + 'listJobs'
   let actionUrl = url + action
@@ -255,13 +236,13 @@ start()
     console.error(error)
 
     console.log(Date.now(), '255 Disconnecting...')
-    protocol.disconnect()
+    require('dcp/protocol').disconnect()
     console.log(Date.now(), '257 - Disconnected')
     process.exit(1)
   })
   .finally(() => {
     console.log(Date.now(), '261 Disconnecting...')
-    protocol.disconnect()
+    require('dcp/protocol').disconnect()
     console.log(Date.now(), '263  - Disconnected')
     process.exit(0)
   })
