@@ -7,7 +7,7 @@
  *  @author             Wes Garland, wgarland@kingsds.network
  *  @date               Nov 2018
  */
-require('dcp-rtlink/rtLink').link(module.paths)
+require('dcp-rtlink').init()
 const path = require('path')
 const process = require('process')
 
@@ -28,7 +28,7 @@ if (process.argv.length < 3 || process.argv[2] === '--help') {
   usage()
 }
 
-const dcpConfig = require('config').load()
+const dcpConfig = require('dcp/config').load()
 let outFn = console.log;
 let allMode = false;
 
