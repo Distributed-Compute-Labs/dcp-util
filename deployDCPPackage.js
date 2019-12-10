@@ -11,19 +11,17 @@
  *  @date       May 2018
  */
 
-/* global dcpConfig */
+require('dcp-rtlink/rtLink').init()
+// global.Promise = Promise = require('promiseDebug').init(Promise)
 
-require('dcp-rtlink/rtLink').link(module.paths)
-require('config').load()
-global.Promise = Promise = require('promiseDebug').init(Promise)
 const fs = require('fs')
 const process = require('process')
 const path = require('path')
 const prompts = require('prompts')
 
 // const protocol = require('protocol-node.js')
-require('dcp-client/dist/compute.min.js')
-var debug = process.env.DCPDP_DEBUG || process.env.DEBUG || ''
+// require('dcp-client/dist/compute.min.js')
+var debug = process.env.DCP_DEBUG || process.env.DEBUG || ''
 
 const argvZero = require('path').basename(__filename)
 
@@ -35,15 +33,37 @@ const argvZero = require('path').basename(__filename)
  * EG: npm start dev port=3000
  */
 
-var options = {}
-for (let i = 0; i < process.argv.length; i++) {
-  let values = process.argv[i].split('=')
-  if (values.length === 1) {
-    options[values[0]] = true
-  } else {
-    options[values[0]] = values[1] === 'true' ? true : values[1] === 'false' ? false : values[1]
-  }
-}
+// Process CLI
+const options = require('yargs')
+  .usage(`
+$0 - Utility to deploy a new/updated DCP package
+Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
+
+$0 [options]`)
+  .alias('help', 'h')
+  .hide('version')
+  .boolean('network')
+  .describe('network', 'Deploy the package to a remote module server')
+  .describe('scheduler', 'Scheduler address of the remote DCP system')
+  .boolean('local')
+  .describe('local', 'Deploy package directly to your local filesystem')
+  .describe('deployPath', 'Local path to deploy package')
+  // .conflicts('network', 'local')
+  .describe('keystore', 'Path to deploying keystore')
+  .describe('package', 'Path to package description')
+  .default({
+    // package: './package.dcp',
+    network: true,
+    scheduler: 'https://scheduler.distributed.computer',
+    local: false,
+    deployPath: '/var/dcp/db/packages/',
+  })
+  .argv;
+const entryPoint = options.scheduler;
+
+console.log('Parsed options:')
+console.log(options);
+process.exit(0);
 
 const usage = () => {
   console.log(`
@@ -55,8 +75,8 @@ Usage:  ${argvZero} OPTIONS
 Where:
   --help        Display this usage screen
 
-  --network     Deploy package to package server at ${dcpConfig.packageManager.location} (default)
-  --local       Deploy package directly to local filesystem
+  --network     Deploy package to package server at ${require('dcp/config').packageManager.location} (default)
+  --local       Deploy package directly to local filesystem at 
 
   --keystore=/path/to/your.keystore
                 Path to keystore file (default: ask, look for ./myDCPKey.keystore)
@@ -66,8 +86,6 @@ Where:
 Environment:
   DEBUG         If truthy, enable debug mode. If a string, treat as a list of extended debug flags
                 (eg. DEBUG="verbose protocol" to enable DEBUG mode, with the "verbose" and "protocol" flags)
-  DCP_KEYSTORE_PASSWORD
-                If present, use its value as the keystore password (default: prompt for password)
 `)
 
   // console.log('CLI options:', options)
@@ -107,8 +125,8 @@ var main = async () => {
 Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
 
   let packageLocation
-  if (options['--package']) {
-    packageLocation = options['--package']
+  if (options['package']) {
+    packageLocation = options['package']
   } else {
     const prompt = {
       type: 'text',
@@ -131,56 +149,15 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
   let packageJSON = JSON.parse(fs.readFileSync(packageLocation))
   getFiles(packageJSON)
 
-  let keystoreLocation
-  if (options['--keystore']) {
-    keystoreLocation = options['--keystore']
-  } else {
-    const response = await prompts({
-      type: 'text',
-      name: 'keystoreLocation',
-      message: 'Location of keystore file (myDCPKey.keystore):',
-      initial: 'myDCPKey.keystore'
-    })
-    keystoreLocation = response.keystoreLocation
-  }
+  let keystoreLocation = options['keystore'] || undefined;
 
-  let keystoreFile
-  try {
-    keystoreFile = fs.readFileSync(keystoreLocation).toString()
-  } catch (error) {
-    console.log('Could not open keystore file' + (error.code === 'ENOENT' ? ' - use ' + path.resolve(path.dirname(process.argv[1]) + '/createWallet.js') + ' to create' : ''))
-    console.log(error)
-    process.exit(2)
-  }
-
-  let password
-  if (typeof process.env.DCP_KEYSTORE_PASSWORD === 'string') {
-    password = process.env.DCP_KEYSTORE_PASSWORD
-  } else {
-    const prompt = {
-      type: 'invisible',
-      name: 'password',
-      message: 'Keystore password:',
-      initial: ''
-    }
-    const response = await prompts(prompt)
-    password = response.password
-  }
-
-  let wallet
-  try {
-    wallet = protocol.unlock(keystoreFile, password)
-    protocol.keychain.addWallet(wallet, true)
-  } catch (error) {
-    console.error('Could not unlock keystore; please check your password and try again')
-    process.exit(1)
-  }
+  const wallet = await require('dcp/wallet').get(keystoreLocation);
 
   var result = null
   try {
     let r
 
-    if (options['--local']) {
+    if (options['local']) {
       r = await deployLocal(packageJSON, wallet)
     } else {
       r = await deployNetwork(packageJSON, wallet)
@@ -197,27 +174,19 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
 
 /// Send the package over the DCP network to deploy via the package-manager server
 async function deployNetwork (packageJSON, wallet) {
-  let baseURL = dcpConfig.packageManager.location
-
-  // baseURL = {
-  //   hostname: 'packages.distributed.computer',
-  //   port: 443,
-  //   protocol: 'https:',
-  //   pathname: '/',
-  //   href: 'https://packages.distributed.computer/'
-  // }
+  let baseURL = options.packageManager || require('dcp/dcp-config').packageManager.location
 
   let URL = baseURL.resolve('/deploy/module')
 
   // TODO: take as cli parameter instead of hard coding.
-  URL = 'https://packages.distributed.computer:443/deploy/module'
+  // URL = 'https://packages.distributed.computer:443/deploy/module'
 
   console.log(` * Deploying via network to ${URL}...`)
 
   let result
   try {
     console.log('Sending module to server:', baseURL)
-    result = await protocol.send(URL, packageJSON, wallet.getPrivateKeyString())
+    result = await require('dcp/protocol').send(URL, packageJSON, wallet);
   } catch (error) {
     if (error.hasOwnProperty('remote')) {
       if (error.remote.status === 'error') {
@@ -244,17 +213,17 @@ async function deployNetwork (packageJSON, wallet) {
 
 /// Directly deploy the package to the local filesystem
 async function deployLocal (packageJSON, wallet) {
-  let baseURL = dcpConfig.packageManager.location
+  let baseURL = require('dcp/dcp-config').packageManager.location
   let URL = baseURL.resolve('/deploy/module')
 
-  const database = require('database.js')
-  database.init(dcpConfig.packageManager.database)
+  const database = require('../lib/database');
+  database.init(require('dcp/dcp-config').packageManager.database)
 
   const libDeployPackage = require('../lib/deploy-package')
 
   console.log(` * Deploying locally to ${database.getFilePath()}/packages/${packageJSON.name}...`)
 
-  const signedMessage = protocol.sign(packageJSON, wallet.privateKey)
+  const signedMessage = await require('dcp/protocol').sign(packageJSON, wallet);
 
   const result = await libDeployPackage.deployPackage(signedMessage)
 
@@ -270,8 +239,16 @@ process.on('unhandledRejection', (reason, p) => {
   process.exit(1)
 })
 
-if (options['--help']) {
-  return usage()
-} else {
-  return main()
-}
+require('dcp-client').init(entryPoint)
+.then(() => {
+  if (options.help) {
+    return usage();
+  }
+  else {
+    return main();
+  }
+})
+.catch(error => {
+  console.error('Unexpected failure:', error);
+  process.exit(1);
+})
