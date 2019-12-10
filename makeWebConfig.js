@@ -77,7 +77,7 @@ var webConfig = {
   global: safeSubset('global'),
   bank: safeSubset('bank'),
   portal: safeSubset('portal'),
-  terminal: safeSubset('terminal'),
+  job: dcpConfig.job,
   build: dcpConfig.build
 }
 
