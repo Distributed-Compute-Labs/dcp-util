@@ -185,7 +185,9 @@ Where:
 
   require('fs').writeFileSync(outputFilename,
 `/* Generated ${Date()} by ${process.env.USER} on ${process.env.HOSTNAME} */
-window.dcpConfig = ${stringify(webConfig)}
+window.dcpConfig = ${stringify(webConfig)};
+if (typeof module === 'object' && typeof module.declare === 'function') /* cjs2 */
+  module.declare(function(require, exports, module) {});
 `, 'utf-8')
 }
 main(process.argv.slice(1))
