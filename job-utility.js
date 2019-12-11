@@ -9,16 +9,12 @@
  *  @date       April 2019
  */
 
-require('dcp-rtlink/rtLink').link(module.paths)
-require('config').load() // eslint-disable-line
-require('dcp-client/dist/compute.min.js') /* side effect: global protocol now defined :( */
+require('dcp-rtlink/rtLink').init();
 
 const path = require('path')
 const process = require('process')
-const arg_util = require('arg_util.js')
-const keystore = require('keystore.js')
 
-global.Promise = Promise = require('promiseDebug').init(Promise)
+// global.Promise = Promise = require('promiseDebug').init(Promise)
 
 /** 
  * Shows the help for this utility
@@ -40,12 +36,12 @@ WHERE:      --action      desired action
                 - listJobs       list attributes of the jobs belonging to the given private key.
                                  MODIFIERS:
                                     -a           (administrative) List all jobs on the scheduler
-                                    -ownedBy     (administrative) List all jobs belonging to specified owner.
+                                    --ownedBy    (administrative) List all jobs belonging to specified owner.
 
                 - countJobs      count all jobs based on modifier.
                                  MODIFIERS:
                                     -a           (administrative) Count all jobs on the scheduler.
-                                    -ownedBy     (administrative) Count all the jobs belonging to the specified owner.
+                                    --ownedBy    (administrative) Count all the jobs belonging to the specified owner.
                 
                 - countTasks     count all tasks of each type belonging to the specified job.
                 
@@ -56,8 +52,8 @@ WHERE:      --action      desired action
                                  for this job again, frees up remaining resources.
                                  MODIFIERS:
                                     -a        (administrative) Specifies all jobs are target of deletion
-                                              **** MUST BE COMBINED WITH -ownedBy FLAG
-                                    -ownedBy  (administrative) Will delete all the jobs on the scheduler with specified owner.
+                                              **** MUST BE COMBINED WITH --ownedByFLAG
+                                    --ownedBy (administrative) Will delete all the jobs on the scheduler with specified owner.
                                               **** MUST BE COMBINED WITH -a FLAG
 
             --jobID       the address of the job to inspect
@@ -69,11 +65,11 @@ WHERE:      --action      desired action
 
 EXAMPLES:   ${progName} --action listJobs --keystore pathToKeystoreFile
             ${progName} --action listJobs --keystore pathToAdminKeystoreFile -a
-            ${progName} --action listJobs --keystore pathToAdminKeystoreFile -ownedBy 0xPrivateKey
+            ${progName} --action listJobs --keystore pathToAdminKeystoreFile --ownedBy 0xPrivateKey
 
             ${progName} --action countJobs --keystore pathToKeystoreFile
             ${progName} --action countJobs --keystore pathToAdminKeystoreFile -a
-            ${progName} --action countJobs --keystore pathToAdminKeystoreFile -ownedBy 0xPrivateKey
+            ${progName} --action countJobs --keystore pathToAdminKeystoreFile --ownedBy 0xPrivateKey
             
             ${progName} --action countTasks --jobID 0xsomeJobAddress --keystore pathToKeystoreFile
             
@@ -82,74 +78,37 @@ EXAMPLES:   ${progName} --action listJobs --keystore pathToKeystoreFile
             ${progName} --action deleteJob --jobID 0xsomeJobAddress --keystore pathToKeystoreFile
             ${progName} --action deleteJob --keystore pathToKeystoreFile -a
                 ** this will delete ALL jobs belonging to you
-            ${progName} --action deleteJob --keystore pathToAdminKeystoreFile -a -ownedBy 0xPrivateKey
+            ${progName} --action deleteJob --keystore pathToAdminKeystoreFile -a --ownedBy 0xPrivateKey
                 ** this last example will delete ALL jobs belonging to the specified owner
 `)
   process.exit(1)
-}
-
-async function loadCompute(keystorePath) {
-  const wallet = await keystore.getWallet(keystorePath)
-  protocol.keychain.addWallet(wallet, true)
 }
 
 /** 
  * Parses arguments, sends the request 
  */
 async function start () {
+  var cliArgs = require('yargs').argv;
   
-  var paramObj = { 
-    '--scheduler': 'string',
-    '--action':'string',
-    '--jobID':'string',
-    '--keystore':'string',
-    '-a':false,
-    '-ownedBy':'string'
-  }
-  var cliArgs = arg_util(paramObj)
-  
-  if (!cliArgs['--keystore']) {
-    console.log('\nOOPS! You must provide a configuation for action and keystore. See below.\n')
+  if (!cliArgs['action']) {
+    console.error('\nOOPS! You must provide a configuation for action. See below.\n')
     usage()
     return
   }
   
-  if (cliArgs['--scheduler']) {
-    const href = new (require('dcp-url').URL)(cliArgs['--scheduler'])
-    dcpConfig.scheduler.location = href
-  }
+  await require('dcp-client').init(cliArgs['scheduler']);
+  
+  let url           = require('dcp/dcp-config').scheduler.location.resolve('/generator/')
+  let action        = cliArgs['action']
+  let jobID         = String(cliArgs['jobID']).toLowerCase() || null
+  let keystoreFile  = cliArgs['keystore']
+  let all           = cliArgs['a']
+  let ownerPK       = cliArgs['ownedBy'] || false
 
-  let url           = dcpConfig.scheduler.location.resolve('/generator/')
-  let action        = cliArgs['--action']
-  let jobID         = String(cliArgs['--jobID']).toLowerCase() || null
-  let keystore      = cliArgs['--keystore']
-  let all           = cliArgs['-a']
-  let ownerPK       = cliArgs['-ownedBy'] || false
-
-  await loadCompute(keystore)
-  let privateKey = protocol.keychain.keys[Object.keys(protocol.keychain.keys)[0]].privateKey
-
-  let isWhitelisted = dcpConfig.scheduler.whitelistManagerAddresses.includes('0x'+protocol.keychain.currentAddress)
-
-  // CHECK ARGUMENT COMBINATIONS
-  if (all && !isWhitelisted) {
-    if (action !== 'deleteJob') {
-      console.log('\nATTENTION: You do not have administrative permissions. "-a" will have no effect\n')
-
-      console.log(' * list:', dcpConfig.scheduler.whitelistManagerAddresses)
-      console.log(' * you:', protocol.keychain.currentAddress)
-      all = false
-    }
-  }
-  if (ownerPK && !isWhitelisted) {
-    console.log('\nATTENTION: You do not have administrative permissions. "-ownedBy" will have no effect\n')
-
-    console.log(' * list:', dcpConfig.scheduler.whitelistManagerAddresses)
-    console.log(' * you:', protocol.keychain.currentAddress)
-    ownerPK = false
-  }
-
-  return sendRequest(action, url, jobID, privateKey, all, ownerPK)
+  const myKeystore  = await require('dcp/wallet').get(keystoreFile);
+  const privateKey  = await myKeystore.getPrivateKey();
+  
+  return sendRequest(action, url, jobID, myKeystore, all, ownerPK)
 }
 
 /**
@@ -163,7 +122,8 @@ async function start () {
  * @param {string} ownerPrivateKey  Passed by admin user to manipulate jobs belonging to that private key
  */
 async function sendRequest (action, url, jobID, privateKey, all = false, ownerPrivateKey = false) {
-  
+  const protocol = require('dcp/protocol');
+
   let result
   //let getListUrl = url + 'listJobs'
   let actionUrl = url + action
@@ -248,21 +208,12 @@ async function sendRequest (action, url, jobID, privateKey, all = false, ownerPr
 
 start()
   .then(result => {
-    console.log('Success!', result.message || result)
+    console.log(result.message || result);
+    process.exit(0);
   })
   .catch(error => {
-    console.log('Something broke!')
-    console.error(error)
+    console.log('Something broke!');
+    console.error(error);
 
-    console.log(Date.now(), '255 Disconnecting...')
-    protocol.disconnect()
-    console.log(Date.now(), '257 - Disconnected')
-    process.exit(1)
+    process.exit(1);
   })
-  .finally(() => {
-    console.log(Date.now(), '261 Disconnecting...')
-    protocol.disconnect()
-    console.log(Date.now(), '263  - Disconnected')
-    process.exit(0)
-  })
-  
