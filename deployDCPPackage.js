@@ -21,16 +21,6 @@ const prompts = require('prompts')
 
 var debug = process.env.DCP_DEBUG || process.env.DEBUG || ''
 
-const argvZero = require('path').basename(__filename)
-
-/**
- * Command line options
- *
- * npm start arg1 arg2=val2 arg3 ..
- *
- * EG: npm start dev port=3000
- */
-
 // Process CLI
 const options = require('yargs')
   .usage(`
@@ -62,38 +52,7 @@ $0 [options]`)
   })
   .argv;
 const entryPoint = options.scheduler;
-
-// console.log('Parsed options:')
-// console.log(options);
-// process.exit(0);
-
-const usage = () => {
-  console.log(`
-${argvZero} - Utility to deploy a new/updated DCP package
-Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
-
-Usage:  ${argvZero} OPTIONS
-
-Where:
-  --help        Display this usage screen
-
-  --network     Deploy package to package server at ${require('dcp/config').packageManager.location} (default)
-  --local       Deploy package directly to local filesystem at 
-
-  --keystore=/path/to/your.keystore
-                Path to keystore file (default: ask, look for ./myDCPKey.keystore)
-  --package=/path/to/package.dcp
-                Path to DCP Package definition (default: ask, look for ./package.dcp)
-
-Environment:
-  DEBUG         If truthy, enable debug mode. If a string, treat as a list of extended debug flags
-                (eg. DEBUG="verbose protocol" to enable DEBUG mode, with the "verbose" and "protocol" flags)
-`)
-
-  // console.log('CLI options:', options)
-
-  process.exit(1)
-}
+const argvZero = require('path').basename(options['$0']);
 
 var getFiles = (packageJSON) => {
   let filenames = Object.keys(packageJSON.files)
@@ -153,6 +112,7 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
 
   let keystoreLocation = options['keystore'] || undefined;
 
+  // @todo: this would be more correct using the Wallet.load() API
   const wallet = await require('dcp/wallet').get(keystoreLocation);
 
   var result = null
