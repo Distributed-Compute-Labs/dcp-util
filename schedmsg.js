@@ -12,55 +12,59 @@
  * @date May 2019
  */
 
-require('dcp-rtlink/rtLink').link(module.paths)
+require('dcp-rtlink/rtLink').init();
+
 const rpn = require('request-promise-native');
-const dcpConfig = require('config').load()
-require('dcp-client/dist/compute.min.js')
+// const dcpConfig = require('config').load()
+// require('dcp-client/dist/compute.min.js')
 const path = require('path')
 const process = require('process')
-const arg_util = require('arg_util.js')
+// const arg_util = require('arg_util.js')
 //clobbers a faulty random number generator with a better one
-protocol.eth.Wallet = require('ethereumjs-wallet')
-const keystore = require('keystore.js')
+// protocol.eth.Wallet = require('ethereumjs-wallet')
+// const keystore = require('keystore.js')
 
 
-function help () {
-  var progName = path.basename(process.argv[1])
+  const cliArgs = require('yargs')
+  .usage(`$0 - Send control messages to a DCP service
+Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
 
-  console.log(`
-${progName} - Send messages to the scheduler and workers
+$0 --type [message type] --payload [message content]
 
-Usage:    ${progName} --type '' --payload '' --persistent t/f
-Examples: ${progName} --type 'broadcast' --payload 'Hello World!' --persistent
-          ${progName} --type 'command' --payload 'reload'
-          ${progName} --type 'command' --payload 'remove,0x12345'
-
-Where:
-  --type          type of message being send (broadcast, command, delete)
-  --payload       the message to sign and send
-  --persistent    whether the message should be persistent (default: false)
-  --keystore      specify the location of keystore to be used
-
+Examples: $0 --type 'broadcast' --payload 'Hello World!' --persistent
+          $0 --type 'command' --payload 'reload'
+          $0 --type 'command' --payload 'remove,0x12345'`)
+  .describe('type', 'type of message being send (broadcast, command, delete)')
+  .describe('payload', 'message payload to send (eg. broadcast content)')
+  .describe('persistent', 'whether the message should be persistent')
+  .boolean('persistent')
+  .default('persistent', false)
+  .describe('keystore', 'path to the keystore to use')
+  .describe('scheduler', 'Specify an alternate scheduler')
+  .default('scheduler', 'https://scheduler.distributed.computer/')
+  .demandOption(['type','payload'])
+  .hide('version')
+  .epilogue(`
 Options for --type 'command':
   --payload 'popupMessage, [url]'     opens a new tab with given url
             'reload'                  kills and reloads workers 
-            'restart'                 [browser] - kills and refreshes workers without reloading webpage
-            'remove,[generator id]'   removes any active tasks that contain a given generator id
+            'restart'                 stop and refreshes workers without reloading the entire worker
+            'remove,[generator id]'   removes any active tasks that contain a given generator id`)
+  .argv;
 
-`)
-  //exits the program with error flag raised
-  process.exit(1)
+
+function help () {
+  require('yargs').showHelp();
+  
+  process.exit(1);
 }
 
 //loads the compute and protocol APIs, and attaches a key to protocol so that the message can be verified
-async function loadCompute(keystorePath) {
-  // gets neccessary configuration info from scheduler
-//  eval(await rpn("http://portal.cantor.office.kingsds.network/etc/dcp-config.js"));
-//  global.dcpConfig = dcpConfig;
-  // injects compute and protocol into the global namespace.
-//  require('dcp-client/dist/compute.min');
+async function loadCompute(entryPoint) {
+  await require('dcp-client').init(entryPoint);
+  
   // Load the keystore:
-  const wallet = await keystore.getWallet(keystorePath)
+  const wallet = await require('dcp/wallet').load(cliArgs.keystore);
   protocol.keychain.addWallet(wallet, true);
 }
 
@@ -88,34 +92,23 @@ async function sendMessage (msg) {
 
 async function start () {
   //the message sent to the scheduler will be configuired by the caller of this program using CLI arguements
-  //arg_util takes a configureation object to know what arguements to look for, and returns another object describing the arguments given
-  const paramObj = {'--type':'string', '--payload':'string', '--keystore':'string', '--persistent':false}
-  const cliArgs = arg_util(paramObj)
-
-  //XXXXX
-  // console.log(cliArgs)
 
   //checks that all the needed information in msg was provided by the caller, displays a help function if not
-  if (!cliArgs['--type'] && !cliArgs['--payload']) {
+  if (!cliArgs['type'] && !cliArgs['payload']) {
     console.log('You must provide a configuration for type and payload')
     help()
-    //exits the program with error flag raised. help() should have already done so, but if somebody edits it and messes that up
-    //this line will prevent the error from propegating
-    process.exit(1)
   }
-
-  await loadCompute(cliArgs['--keystore'])
 
   const msg = {}
 
-  msg.type = cliArgs['--type']
-  msg.persistent = cliArgs['--persistent']
+  msg.type = cliArgs['type']
+  msg.persistent = cliArgs['persistent']
   //mimic worker objects will be true so that they can skip steps
   msg.mimic = false
 
   switch (msg.type) {
     case 'command':
-      let payload = cliArgs['--payload']
+      let payload = cliArgs['payload']
       let a = payload.split(',')
       switch (a[0]){
         case 'popupMessage':
@@ -152,7 +145,7 @@ async function start () {
       break
 
     case 'broadcast':
-      msg.payload = cliArgs['--payload']
+      msg.payload = cliArgs['payload']
       break
 
     case 'delete':
@@ -178,4 +171,5 @@ async function start () {
   process.exit(0)
 }
 
-start()
+loadCompute(options.scheduler || undefined)
+.then(() => start());
