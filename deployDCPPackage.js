@@ -19,8 +19,6 @@ const process = require('process')
 const path = require('path')
 const prompts = require('prompts')
 
-// const protocol = require('protocol-node.js')
-// require('dcp-client/dist/compute.min.js')
 var debug = process.env.DCP_DEBUG || process.env.DEBUG || ''
 
 const argvZero = require('path').basename(__filename)
@@ -42,14 +40,18 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
 $0 [options]`)
   .alias('help', 'h')
   .hide('version')
+  .hide('network')    // network deploy is implicit, local doesn't work now
   .boolean('network')
   .describe('network', 'Deploy the package to a remote module server')
   .describe('scheduler', 'Scheduler address of the remote DCP system')
+  .hide('local')      // --local and --deployPath are currently hidden, they don't work 
+                      // with the dcp-client APIs (nor should they, it's not client work)
   .boolean('local')
   .describe('local', 'Deploy package directly to your local filesystem')
+  .hide('deployPath')
   .describe('deployPath', 'Local path to deploy package')
   // .conflicts('network', 'local')
-  .describe('keystore', 'Path to deploying keystore')
+  .describe('keystore', 'Name of keystore to deploy with')
   .describe('package', 'Path to package description')
   .default({
     // package: './package.dcp',
@@ -61,9 +63,9 @@ $0 [options]`)
   .argv;
 const entryPoint = options.scheduler;
 
-console.log('Parsed options:')
-console.log(options);
-process.exit(0);
+// console.log('Parsed options:')
+// console.log(options);
+// process.exit(0);
 
 const usage = () => {
   console.log(`
@@ -161,6 +163,17 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
       r = await deployLocal(packageJSON, wallet)
     } else {
       r = await deployNetwork(packageJSON, wallet)
+        .catch(error => {
+          return Promise.reject({
+            success: false,
+            status: error.status,
+            error: {
+              message: error.error.message,
+              code: error.error.code,
+              stack: error.error.stack,
+            },          
+          });
+        });
     }
 
     result = r.result
@@ -174,32 +187,13 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
 
 /// Send the package over the DCP network to deploy via the package-manager server
 async function deployNetwork (packageJSON, wallet) {
-  let baseURL = options.packageManager || require('dcp/dcp-config').packageManager.location
+  let baseURL = /*options.packageManager || */require('dcp/dcp-config').packageManager.location;
 
   let URL = baseURL.resolve('/deploy/module')
 
-  // TODO: take as cli parameter instead of hard coding.
-  // URL = 'https://packages.distributed.computer:443/deploy/module'
+  console.log(` * Deploying via network to ${baseURL.href}...`)
 
-  console.log(` * Deploying via network to ${URL}...`)
-
-  let result
-  try {
-    console.log('Sending module to server:', baseURL)
-    result = await require('dcp/protocol').send(URL, packageJSON, wallet);
-  } catch (error) {
-    if (error.hasOwnProperty('remote')) {
-      if (error.remote.status === 'error') {
-        console.error('Remote Error:', error.remote.error)
-        if (debug) { console.log(error.remote) }
-      } else {
-        console.error('Remote Error:', error.remote)
-      }
-    } else {
-      console.error('Could not send module to server;', error)
-    }
-    throw error
-  }
+  const result = await require('dcp/protocol').send(URL, packageJSON, wallet);
 
   // estimate credits cost to deploy
   // ask user for credits etc, note credits loaded etc
