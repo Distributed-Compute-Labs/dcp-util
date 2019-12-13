@@ -46,19 +46,11 @@ Options for --type 'command':
   .argv;
 
 
-function help () {
-  require('yargs').showHelp();
-  
-  process.exit(1);
-}
-
-//loads the compute and protocol APIs, and attaches a key to protocol so that the message can be verified
-async function loadCompute(entryPoint) {
-  await require('dcp-client').init(entryPoint);
-  
-  // Load the keystore:
-}
-
+/** Send the message to the scheduler
+ *  @param      msg             Message to send
+ *              .type           Message type: command, broadcast, etc.
+ *              .payload        Content is specific to message type
+ */
 async function sendMessage (msg) {
   //adds a timestamp to the msg, all the other information and formatting is already complete
   msg.timestamp = Date.now()
@@ -157,5 +149,5 @@ async function start () {
   process.exit(0)
 }
 
-loadCompute(options.scheduler || undefined)
+require('dcp-client').init(options.scheduler || undefined)
 .then(() => start());
