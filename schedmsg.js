@@ -15,17 +15,10 @@
 require('dcp-rtlink/rtLink').init();
 
 const rpn = require('request-promise-native');
-// const dcpConfig = require('config').load()
-// require('dcp-client/dist/compute.min.js')
 const path = require('path')
 const process = require('process')
-// const arg_util = require('arg_util.js')
-//clobbers a faulty random number generator with a better one
-// protocol.eth.Wallet = require('ethereumjs-wallet')
-// const keystore = require('keystore.js')
 
-
-  const cliArgs = require('yargs')
+const options = require('yargs')
   .usage(`$0 - Send control messages to a DCP service
 Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
 
@@ -64,8 +57,6 @@ async function loadCompute(entryPoint) {
   await require('dcp-client').init(entryPoint);
   
   // Load the keystore:
-  const wallet = await require('dcp/wallet').load(cliArgs.keystore);
-  protocol.keychain.addWallet(wallet, true);
 }
 
 async function sendMessage (msg) {
@@ -75,16 +66,22 @@ async function sendMessage (msg) {
   let result
 
   try {
+    const wallet = await require('dcp/wallet').get(options.keystore);
+    
+    const scheduler = options.scheduler 
+      ? new (require('dcp/dcp-url').URL)(options.scheduler) 
+      : require('dcp/dcp-config').scheduler.location;
+
     //calls the needed route
-    console.log('x1: sending...', dcpConfig.scheduler.location.href, msg)
-    result = await protocol.send('msg/send', msg)
+    console.log('x1: sending...', scheduler.toString(), msg);
+    result = await require('dcp/protocol').send(scheduler.resolve('msg/send'), msg, wallet);
   } catch (error) {
     //logs the error
     console.error('send failed', error)
     result = error
   }
   //disconnects from protocol
-  protocol.disconnect()
+  require('dcp/protocol').disconnect()
 
   //returns the error for analysis, returns null if no error occured
   return result
@@ -93,22 +90,16 @@ async function sendMessage (msg) {
 async function start () {
   //the message sent to the scheduler will be configuired by the caller of this program using CLI arguements
 
-  //checks that all the needed information in msg was provided by the caller, displays a help function if not
-  if (!cliArgs['type'] && !cliArgs['payload']) {
-    console.log('You must provide a configuration for type and payload')
-    help()
-  }
-
   const msg = {}
 
-  msg.type = cliArgs['type']
-  msg.persistent = cliArgs['persistent']
+  msg.type = options['type']
+  msg.persistent = options['persistent']
   //mimic worker objects will be true so that they can skip steps
   msg.mimic = false
 
   switch (msg.type) {
     case 'command':
-      let payload = cliArgs['payload']
+      let payload = options['payload']
       let a = payload.split(',')
       switch (a[0]){
         case 'popupMessage':
@@ -145,7 +136,7 @@ async function start () {
       break
 
     case 'broadcast':
-      msg.payload = cliArgs['payload']
+      msg.payload = options['payload']
       break
 
     case 'delete':
@@ -157,11 +148,6 @@ async function start () {
       process.exit(1)
       
   }
-
-  
-
-  //XXXXX
-  //console.log('msg is: ', msg)
 
   const result = await sendMessage(msg)
   
