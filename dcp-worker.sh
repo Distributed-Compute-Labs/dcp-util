@@ -39,7 +39,7 @@ fi
 
 # Configuration options
 [ "$LOGDIR" ]           || LOGDIR="$DCP/log/dcp-worker"
-[ "$WORKER" ]           || WORKER="$DCP/bin/dcpmine.js"
+[ "$WORKER" ]           || WORKER="$DCP/bin/dcp-worker.js"
 [ "$PID_PDIR" ]         || PID_PDIR="$DCP/run"
 [ "$ID_LABEL" ]         || ID_LABEL="dcp-worker"
 [ "$PIDDIR" ]           || PIDDIR="$PID_PDIR/${ID_LABEL}"
@@ -283,6 +283,6 @@ case "$oper" in
   ;;
   *)
     echo "OPER: $oper"
-    echo "Usage: $argvZero <--|foreground|start|stop|restart> [extra dcpmine.js options]"
+    echo "Usage: $argvZero <--|foreground|start|stop|restart> [extra dcp-worker.js options]"
   ;;
 esac
