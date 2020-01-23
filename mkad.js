@@ -9,8 +9,8 @@
  *  @date       July 2019
  */
 
-require('dcp-rtlink/rtLink').link(module.paths)
-const dcpConfig = require('config').load() // eslint-disable-line
+require('dcp-rtlink/rtLink').init();
+const dcpConfig = require('dcp/config').load() // eslint-disable-line
 require('dcp-client/dist/compute.min.js') /* side effect: global protocol now defined :( */
 
 const path = require('path')
@@ -32,8 +32,7 @@ const keyPassphrase = ''
 function usage() {
     var progName = path.basename(process.argv[1])
 
-    console.log(`
-${progName} - Manipulate Key/Address Data.
+    console.log(`${progName} - Manipulate Key/Address Data.
 Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
   
 Usage:      ${progName} new  <keystore | address | key> [ --f=filename ] [ --p=passphrase] [--label=label] [ --privkey=privateKey ] [--force] [--allowEmpty]
