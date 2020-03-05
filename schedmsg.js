@@ -42,7 +42,7 @@ Options for --type 'command':
   --payload 'popupMessage, [url]'     opens a new tab with given url
             'reload'                  kills and reloads workers 
             'restart'                 stop and refreshes workers without reloading the entire worker
-            'remove,[generator id]'   removes any active tasks that contain a given generator id`)
+            'remove,[job id]'   removes any active tasks that contain a given job id`)
   .argv;
 
 
