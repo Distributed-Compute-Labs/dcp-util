@@ -116,7 +116,7 @@ async function start () {
           msg.payload = {
             command: 'remove',
             perform: true,
-            genId : a[1]
+            jobId : a[1]
           }
           break
         default:
