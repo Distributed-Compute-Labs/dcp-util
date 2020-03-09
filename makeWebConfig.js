@@ -74,6 +74,7 @@ var webConfig = {
   worker: dcpConfig.worker,
   dcp: dcpConfig.dcp,
   scheduler: safeSubset('scheduler'),
+  eventRouter: safeSubset('eventRouter'),
   packageManager: safeSubset('packageManager'),
   global: safeSubset('global'),
   bank: safeSubset('bank'),
