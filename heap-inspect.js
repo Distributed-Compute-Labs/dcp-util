@@ -75,7 +75,7 @@ const main = async (schedulerStrURL, schedulerKey) => {
   const snapshot = await requestFromScheduler(schedulerURL, schedulerKey, adminEndpoint);
   const stats = await requestFromScheduler(schedulerURL, schedulerKey, statsEndpoint);
 
-  debugger; // in case you want to inspect the snapshot or stats
+  debugger; // in case you want to inspect the snapshot or stats. allow-debugger
   process.exit(1); // Don't wait for any promises that are left hanging around
 }
 
