@@ -29,7 +29,7 @@ if (process.argv.length < 3 || process.argv[2] === '--help') {
 }
 
 const dcpConfig = require('dcp/config').load()
-let outFn = console.log;
+let outFn = el => console.log(JSON.stringify(el, null, 2));
 let allMode = false;
 
 for (let i=2; i < process.argv.length; i++) {

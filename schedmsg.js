@@ -32,6 +32,9 @@ Examples: $0 --type 'broadcast' --payload 'Hello World!' --persistent
   .describe('persistent', 'whether the message should be persistent')
   .boolean('persistent')
   .default('persistent', false)
+  .describe('global', 'whether the message should be sent to all recipients, or just the address this message was signed with')
+  .boolean('global')
+  .default('global', true)
   .describe('keystore', 'path to the keystore to use')
   .describe('scheduler', 'Specify an alternate scheduler')
   .default('scheduler', 'https://scheduler.distributed.computer/')
@@ -86,6 +89,7 @@ async function start () {
 
   msg.type = options['type']
   msg.persistent = options['persistent']
+  msg.global = options['global']
   //mimic worker objects will be true so that they can skip steps
   msg.mimic = false
 
