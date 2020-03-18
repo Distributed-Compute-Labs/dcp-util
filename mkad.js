@@ -9,8 +9,8 @@
  *  @date       July 2019
  */
 
-require('dcp-rtlink/rtLink').link(module.paths)
-const dcpConfig = require('config').load() // eslint-disable-line
+require('dcp-rtlink/rtLink').init();
+const dcpConfig = require('dcp/config').load() // eslint-disable-line
 require('dcp-client/dist/compute.min.js') /* side effect: global protocol now defined :( */
 
 const path = require('path')
@@ -32,17 +32,17 @@ const keyPassphrase = ''
 function usage() {
     var progName = path.basename(process.argv[1])
 
-    console.log(`
-${progName} - Manipulate Key/Address Data.
+    console.log(`${progName} - Manipulate Key/Address Data.
 Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
   
-Usage:      ${progName} new  <keystore | address | key> [ --f=filename ] [ --p=passphrase] [ --privkey=privateKey ] [--force]
+Usage:      ${progName} new  <keystore | address | key> [ --f=filename ] [ --p=passphrase] [--label=label] [ --privkey=privateKey ] [--force] [--allowEmpty]
             ${progName} show <keystore | address | key> [[ --f=filename ] | <data>] [ --p=passphrase ]
             ${progName} info [[ -f "input filename" ] | <data>]
   
 
 Examples:   ${progName} new keystore -f=someFilename --passphrase=somePassphrase --force
             ${progName} new keystore -f=someFilename --passphrase=somePassphrase
+            ${progName} new keystore -f=someFilename --allowEmpty
             ${progName} new keystore -f=someFilename --force
             ${progName} new keystore -f=someFilename
 
@@ -169,8 +169,9 @@ var showEtherFile = (keyType, args, options, keystoreFromPrivkey = null) => new 
  *  @param      passphrase      The passphrase for the generated keystore
  *  @param      force           Argument overwrite data file forcefully
  *  @param      hexPrivkey      A hexadecimal private key. 
+ *  @param      label           Optional label to assign instead of "default"
  */
-var createEtherFile = (fileType, filePath, passphrase, force = false, hexPrivkey = false) => new Promise((resolve, reject) => {
+var createEtherFile = (fileType, filePath, passphrase, force = false, hexPrivkey = false, label = false) => new Promise((resolve, reject) => {
     let wallet
     let keystore
     let address
@@ -184,7 +185,10 @@ var createEtherFile = (fileType, filePath, passphrase, force = false, hexPrivkey
     try {
         switch (fileType) {
             case 'keystore':
-                keystore = wallet.toV3(passphrase, { n: 1024 })
+                keystore = wallet.toV3(passphrase || '', { n: 1024 })
+                if (label) {
+                    keystore.label = label
+                }
                 storedObj = keystore
                 break
             case 'address':
@@ -230,19 +234,19 @@ var newEtherFile = (fileType, args, options) => new Promise((resolve, reject) =>
     let passphrase = options.passphrase
     let filePath = options.f ? options.f : ''
     if (filePath.length === 0) filePath = `myDCP${fileType}.keystore`
-    if (!passphrase && fileType == 'keystore') {
+    if (!passphrase && fileType == 'keystore' && !options.allowEmpty) {
         rl.setPrompt(`Create ${fileType} with empty passphrase <yes or no>? `)
         rl.prompt()
         rl.on('line', answer => {
             if (answer.trim() == 'yes') {
                 passphrase = ''
-                resolve(createEtherFile(fileType, filePath, passphrase, options.force, options.privkey))
+                resolve(createEtherFile(fileType, filePath, passphrase, options.force, options.privkey, options.label))
             } else if (answer == 'no') {
                 rl.question('Enter Passphrase: ', pass => {
                     passphrase = pass
                     //assign the passphrase to this global const because show keystore 0xsomeHex does not pass the passphrase with the options object
                     this.keyPassphrase = pass
-                    resolve(createEtherFile(fileType, filePath, passphrase, options.force, options.privkey))
+                    resolve(createEtherFile(fileType, filePath, passphrase, options.force, options.privkey, options.label))
                 })
             } else {
                 rl.setPrompt(`Create ${fileType} with empty passphrase <yes or no>? `)
@@ -250,7 +254,7 @@ var newEtherFile = (fileType, args, options) => new Promise((resolve, reject) =>
             }
         })
     } else {
-        resolve(createEtherFile(fileType, filePath, passphrase, options.force, options.privkey))
+        resolve(createEtherFile(fileType, filePath, passphrase, options.force, options.privkey, options.label))
     }
 }).catch(error => { console.log(error) })
 
@@ -319,7 +323,7 @@ var main = async argv => {
     var mode = argv[1]
     var options, privateKey
     argv = argv.slice(1)
-    options = parseOptions(argv, ['f', 'passphrase', 'privkey'])
+    options = parseOptions(argv, ['f', 'passphrase', 'privkey', 'label'])
 
     if (!mode || options.help) { usage() }
 
