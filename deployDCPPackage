@@ -18,38 +18,18 @@ const fs = require('fs')
 const process = require('process')
 const path = require('path')
 const prompts = require('prompts')
+const cli = require('dcp/dcp-cli');
 
 var debug = process.env.DCP_DEBUG || process.env.DEBUG || ''
 
+cli.name = 'Deploy a package to a DCP module server';
 // Process CLI
-const options = require('yargs')
-  .usage(`
-$0 - Utility to deploy a new/updated DCP package
-Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.
-
-$0 [options]`)
-  .alias('help', 'h')
-  .hide('version')
-  .hide('network')    // network deploy is implicit, local doesn't work now
-  .boolean('network')
-  .describe('network', 'Deploy the package to a remote module server')
-  .describe('scheduler', 'Scheduler address of the remote DCP system')
-  .hide('local')      // --local and --deployPath are currently hidden, they don't work 
-                      // with the dcp-client APIs (nor should they, it's not client work)
-  .boolean('local')
-  .describe('local', 'Deploy package directly to your local filesystem')
-  .hide('deployPath')
-  .describe('deployPath', 'Local path to deploy package')
-  // .conflicts('network', 'local')
-  .describe('keystore', 'Name of keystore to deploy with')
-  .describe('package', 'Path to package description')
-  .default({
-    // package: './package.dcp',
-    network: true,
-    scheduler: 'https://scheduler.distributed.computer',
-    local: false,
-    deployPath: '/var/dcp/db/packages/',
+const options = cli.base()
+  .option('package', {
+    description: 'Path to package description',
   })
+  .hide('identity')       // identity is not really used here, so hide it to avoid confusion
+  .hide('identity-file')
   .argv;
 const entryPoint = options.scheduler;
 const argvZero = require('path').basename(options['$0']);
@@ -110,31 +90,22 @@ Copyright (c) 2019 Kings Distributed Systems Ltd., All Rights Reserved.\n`)
   let packageJSON = JSON.parse(fs.readFileSync(packageLocation))
   getFiles(packageJSON)
 
-  let keystoreLocation = options['keystore'] || undefined;
-
-  // @todo: this would be more correct using the Wallet.load() API
-  const wallet = await require('dcp/wallet').get(keystoreLocation);
+  const wallet = await require('dcp/dcp-cli').getAccountKeystore();
 
   var result = null
   try {
-    let r
-
-    if (options['local']) {
-      r = await deployLocal(packageJSON, wallet)
-    } else {
-      r = await deployNetwork(packageJSON, wallet)
-        .catch(error => {
-          return Promise.reject({
-            success: false,
-            status: error.status,
-            error: {
-              message: error.error.message,
-              code: error.error.code,
-              stack: error.error.stack,
-            },          
-          });
+    const r = await deployNetwork(packageJSON, wallet)
+      .catch(error => {
+        return Promise.reject({
+          success: false,
+          status: error.status,
+          error: {
+            message: error.error.message,
+            code: error.error.code,
+            stack: error.error.stack,
+          },          
         });
-    }
+      });
 
     result = r.result
   } catch (error) {
@@ -157,29 +128,6 @@ async function deployNetwork (packageJSON, wallet) {
 
   // estimate credits cost to deploy
   // ask user for credits etc, note credits loaded etc
-
-  console.log('Response: ')
-  console.log(JSON.stringify(result, null, 2))
-  console.log(`Module ${packageJSON.name} deployed to ${URL}/${packageJSON.name}`)
-
-  return { status: 'ok', result }
-}
-
-/// Directly deploy the package to the local filesystem
-async function deployLocal (packageJSON, wallet) {
-  let baseURL = require('dcp/dcp-config').packageManager.location
-  let URL = baseURL.resolve('/deploy/module')
-
-  const database = require('../lib/database');
-  database.init(require('dcp/dcp-config').packageManager.database)
-
-  const libDeployPackage = require('../lib/deploy-package')
-
-  console.log(` * Deploying locally to ${database.getFilePath()}/packages/${packageJSON.name}...`)
-
-  const signedMessage = await require('dcp/protocol').sign(packageJSON, wallet);
-
-  const result = await libDeployPackage.deployPackage(signedMessage)
 
   console.log('Response: ')
   console.log(JSON.stringify(result, null, 2))
