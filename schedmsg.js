@@ -27,15 +27,15 @@ Copyright (c) 2020 Kings Distributed Systems Ltd., All Rights Reserved.`)
 .command('openPopup <href>',
   'Opens a new tab on browser workers', {},
   (options) => sendMessage(options, 'openPopup', { href: options.href }))
-.command('kill [permanent]',
+.command('kill [temporary]',
   'Immediately stops workers', (yargs) => {
-    yargs.positional('permanent', {
-      describe: 'if true the worker will be disabled, requiring manual intervention to be restarted',
+    yargs.positional('temporary', {
+      describe: 'if false the worker will be permanently disabled, requiring manual intervention to be restarted',
       default: false,
       type: 'boolean',
     });
   },
-  (options) => sendMessage(options, 'kill', { permanent: options.permanent }))
+  (options) => sendMessage(options, 'kill', { temporary: options.temporary }))
 .command('reload',
   'Forces a reload of the worker', {},
   (options) => sendMessage(options, 'reload'))
