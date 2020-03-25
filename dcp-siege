@@ -9,28 +9,13 @@
  * @date October 2019
  */
 
-require('dcp-rtlink/rtLink').link(module.paths)
-const dcpConfig = require('config').load()
+require('dcp-rtlink/rtLink').init();
+const dcpConfig = require('dcp/config').load()
 require('dcp-client/dist/compute.min.js')
-const arg_util = require('arg_util.js')
-const keystore = require('keystore.js')
 const crypto = require('crypto')
 const path = require('path')
 
-const params = {
-  '--requests': 100,
-  '--duration': 1,
-  '--batch': 1, // protocol batch size
-  '--url': 'work/fetch',
-  '--signed': true,
-  '--help': 'boolean',
-  '--body': '{}',
-  '--sameKey': false,
-  '--verbose': false
-}
-
 const protocols = []
-let args
 
 function help() {
   const progName = path.basename(process.argv[1])
@@ -65,16 +50,43 @@ Where:
   process.exit(1)
 }
 
+const args = require('dcp/dcp-cli').base()
+  .option('requests', {
+    description: 'the number of requests to send to the endpoint',
+    default: 100,
+  })
+  .option('duration', {
+    description: 'the time (in seconds) in which to spread the number of requests over i.e. if requests is 100 and duration is 2, it will spread 100 requests evenly over 2 seconds (not exactly percise as it uses setTimeout) special 0 means send all the requests as fast as possible',
+    default: 1,
+  })
+  .option('batch', {
+    description: 'the number of requests to allow the protocol to bundle together',
+    default: 1,
+  })
+  .option('url', {
+    description: 'the endpoint to send the requests to, by default if it doesn\'t start with "http" it resolve the url with the specified scheduler',
+    default: 'work/fetch',
+  })
+  .option('signed', {
+    description: 'whether or not to sign the requests that are being sent',
+    default: true,
+  })
+  .option('body', {
+    description: 'The payload body to send',
+    default: '{}',
+  })
+  .option('sameKey', {
+    description: 'Use the same key for every request; false to generate a new key each time',
+    default: true,
+  })
+  .option('verbose', {
+    alias: 'v',
+    description: 'true to send all successes and failures to stdout, if false only send number of successes (NIP) and log first failure',
+    default: false,
+  })
+  .argv;
+
 async function main() {
-  args = arg_util(params)
-  for (let key in args) {
-    if (key.startsWith('--') && typeof params[key.slice(2)] === 'undefined')
-      args[key.slice(2)] = args[key]
-  }
-
-  if (args.help)
-    help()
-
   if (args.batch < 1)
     args.batch = 1
 
@@ -97,7 +109,7 @@ async function main() {
 
   for (let i = 0; i < numProtocols; i++) {
     protocols.push(new Protocol())
-    protocols[i].eth.Wallet = require('ethereumjs-wallet')
+    // protocols[i].eth.Wallet = require('ethereumjs-wallet')
     protocols[i].maxMessagesToFlush = args.batch
     protocols[i].messageFlushDelayTime = 1000
     protocols[i]._siegePrivateKey = args.sameKey ? sameKey : '0x' + crypto.randomBytes(32).toString('hex') // because the identity key kept generating the same key
