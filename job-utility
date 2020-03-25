@@ -88,7 +88,50 @@ EXAMPLES:   ${progName} --action listJobs --keystore pathToKeystoreFile
  * Parses arguments, sends the request 
  */
 async function start () {
-  var cliArgs = require('yargs').argv;
+  var cliArgs = require('dcp/dcp-cli').base()
+    .hide('default-bank-account')
+    .hide('default-bank-account-file')
+    .option('action', {
+      description: 'Action to perform',
+      choices: ['listJobs','countJobs','countTasks','elapsedTime','deleteJob'],
+    })
+    .option('jobID', {
+      description: 'ID of the job to operate on',
+    })
+    .option('all', {
+      alias: 'a',
+      description: 'Operate on all jobs/all owned by --ownedBy'
+    })
+    .option('ownedBy', {
+      description: 'Job owner\'s private key (@todo: Fix this)',
+    })
+    .epilogue(`
+AVAILABLE ACTIONS:
+  
+  - listJobs       list attributes of the jobs belonging to the given private key.
+                   MODIFIERS:
+                      -a           (administrative) List all jobs on the scheduler
+                      --ownedBy    (administrative) List all jobs belonging to specified owner.
+
+  - countJobs      count all jobs based on modifier.
+                   MODIFIERS:
+                      -a           (administrative) Count all jobs on the scheduler.
+                      --ownedBy    (administrative) Count all the jobs belonging to the specified owner.
+  
+  - countTasks     count all tasks of each type belonging to the specified job.
+  
+  - elapsedTime    display amount of time each slice belonging to the specified 
+                   job has been running.
+  
+  - deleteJob      delete the specified job (terminate all tasks), will never ask
+                   for this job again, frees up remaining resources.
+                   MODIFIERS:
+                      -a        (administrative) Specifies all jobs are target of deletion
+                                **** MUST BE COMBINED WITH --ownedByFLAG
+                      --ownedBy (administrative) Will delete all the jobs on the scheduler with specified owner.
+                                **** MUST BE COMBINED WITH -a FLAG
+`)
+    .argv;
   
   if (!cliArgs['action']) {
     console.error('\nOOPS! You must provide a configuation for action. See below.\n')
@@ -101,11 +144,11 @@ async function start () {
   let url           = require('dcp/dcp-config').scheduler.location.resolve('/generator/')
   let action        = cliArgs['action']
   let jobID         = String(cliArgs['jobID']).toLowerCase() || null
-  let keystoreFile  = cliArgs['keystore']
+  // let keystoreFile  = cliArgs['keystore']
   let all           = cliArgs['a']
   let ownerPK       = cliArgs['ownedBy'] || false
 
-  const myKeystore  = await require('dcp/wallet').get(keystoreFile);
+  const myKeystore  = await require('dcp/dcp-cli').getIdentityKeystore();
   const privateKey  = await myKeystore.getPrivateKey();
   
   return sendRequest(action, url, jobID, myKeystore, all, ownerPK)
