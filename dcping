@@ -23,13 +23,6 @@ var debug = process.env.DEBUG && !!process.env.DEBUG.match(/\bdcping\b/)
 // rpn is a HTTP request client with promise support
 const rpn = require('request-promise-native')
 
-// number of ping jobs the program will send to scheduler
-let numJobs = 3
-
-// this is set to 1 when there is a limited number of pings the user wishes to execute, ie, when they use the -c option
-// by default this program will continuosly ping the scheduler
-let notContinuous = 0
-
 // number of jobs (pings) sent to scheduler
 let jobsSent = 0
 
@@ -52,9 +45,6 @@ let slicesReturned = 0
 // mode controls how the program behaves, see main at the bottom for all the modes and how they behave, can be configuresd with the -f and --interval options
 let mode = 'normal'
 
-// the interval, in seconds, that the program pings the given scheduler continuously.
-let interval = 120
-
 // Keystore which will be used to pay for jobs
 var keystore = false;
 
@@ -70,33 +60,42 @@ const options = require('dcp/dcp-cli').base()
     description: 'Number of times to ping the scheduler',
     defaultDescription: 'Ping continuously until program is terminated',
     default: 0,
+    type: 'number',
   })
   .option('slices', {
     alias: 's',
     description: 'Slices per job',
     default: 3,
+    type: 'number',
   })
   .option('wait', {
     alias: 'W',
     description: 'Timeout for each job, in seconds',
     default: 120,
+    type: 'number',
   })
   .option('verbose', {
     alias: 'v',
-    description: 'Additional output'
+    description: 'Additional output',
+    default: false,
+    type: 'boolean',
   })
   .option('flood', {
     alias: 'f',
     description: 'Flood the scheduler with pings as fast as possible',
     default: false,
+    type: 'boolean',
   })
   .option('interval', {
-    description: 'Interval mode; if set, emit a job every [interval] seconds. Must be > [timeout]',
+    description: 'Interval mode; if set, emit a job every [interval] seconds. Must be >= [timeout]',
+    default: 120,
+    type: 'number',
   })
   .option('cost', {
     alias: 'C',
     description: 'Offered cost per slice, in DCC',
-    default: '0.0015',
+    default: 0.0015,
+    type: 'number',   // my kingdom for `type: 'BigNumber',`!
   })
   .epilogue(`
 By the number of slices that return, and how fast they return, the health of the network can be assessed.
@@ -105,25 +104,46 @@ NOTE TO THE USER:
 This is by no means a complete utility, certain libraries are missing that would otherwise have been used here, namely some API for keystore access, and a safeMarketValue function, where the market value of a slice is received from the scheduler and used as the cost per slice.`)
   .argv;
 
-if (options.count) {
-  notContinuous = 1;
-  numJobs = parseInt(options.count);
-}
+/**
+ *  @hack The original logic here is... interesting.
+ *  - if `count` is specified on commandline, then `notContinuous` will be set to 1;
+ *    a later loop uses that as the decrementor, counting down from `numJobs`.
+ *  - if `count` is not specified, then we are in 'continuous' mode. The same for
+ *    loop is used, but it counts down from (any nonzero, we used 3) in steps of 0,
+ *    effectively a while(true){};
+ */
+const numJobs = options.count || 3;
+const notContinuous = options.count ? 1 : 0;
 
-const numSlicesPerJob = parseInt(options.slices) || 3;
-const timeLimit = parseFloat(options.wait) || 120;
+const numSlicesPerJob = options.slices;
 
-const verbose = !!options.verbose;
+const interval = parseFloat(options.interval);
+let timeLimit = options.wait;     // this one might get changed, below
 
 if (options.flood) {
   mode = 'flood';
 }
-else if (options.interval) {
+else if ((options.count === 0) && (options.interval)) {
   mode = 'interval';
-  interval = parseFloat(options.interval);
 }
 
 const costProfile = parseFloat(options.cost) || 0.0015;
+
+const verbose = options.verbose;
+
+
+console.log('parsed options:', options);
+console.log('consequent operating environment:', {
+  mode,
+  numJobs,
+  notContinuous,
+  numSlicesPerJob,
+  interval,
+  timeLimit,
+  costProfile,
+  verbose,
+})
+process.exit(123);
 
 
 /** main program exit point
