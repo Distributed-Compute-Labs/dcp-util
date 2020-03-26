@@ -9,7 +9,7 @@
  * @date October 2019
  */
 
-require('dcp-rtlink/rtLink').init();
+require('dcp-rtlink').init();
 const dcpConfig = require('dcp/config').load()
 require('dcp-client/dist/compute.min.js')
 const crypto = require('crypto')
