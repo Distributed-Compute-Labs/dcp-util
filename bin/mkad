@@ -113,6 +113,8 @@ async function createKeystore(argv) {
     return;
   }
 
+  label = label.match(/^(.*?)(\.keystore)?$/)[1]; // remove .keystore from label
+
   const { Keystore } = require('dcp/wallet');
   const ks = await new Keystore(privateKey, passphrase);
 
