@@ -106,7 +106,8 @@ main()
  * @param {string}  argv.dir
  */
 async function createKeystore(argv) {
-  const { label, passphrase, emptyPassphrase, privateKey, dir } = argv;
+  const { passphrase, emptyPassphrase, privateKey, dir } = argv;
+  let { label } = argv;
 
   if (!passphrase && !emptyPassphrase) {
     console.log('The --emptyPassphrase flag must be set to create a keystore with no passphrase.');
