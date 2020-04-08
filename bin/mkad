@@ -50,6 +50,7 @@ async function main() {
           default: '',
         },
         emptyPassphrase: {
+          alias: 'e',
           describe: 'This flag must be set to create a keystore without a passphrase',
           type: 'boolean',
           default: false,

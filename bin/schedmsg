@@ -46,6 +46,7 @@ async function main() {
     (argv) => sendMessage(argv, 'restart'))
   .options({
     broadcast: {
+      alias: 'b',
       describe: 'when true, command will be sent to all workers connected to the scheduler (provided keystore must be in the scheduler\'s schedMsgAdmins list). When false, command will be sent to workers that use the provided keystore as their identity',
       type: 'boolean',
       default: false,
