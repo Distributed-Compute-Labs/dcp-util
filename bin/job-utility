@@ -37,6 +37,8 @@ async function main () {
     'Display how long each slice belonging to the specified job has been running.')
   .command('cancelJob <jobID>',
     'Cancels the specified job, halting execution.')
+  .command('cancelAllJobs',
+    'Cancels all jobs')
   .demandCommand(1)
   .strict().argv;
 
