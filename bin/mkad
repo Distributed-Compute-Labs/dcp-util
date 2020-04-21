@@ -68,22 +68,28 @@ async function main() {
     },
     wrapHandler((argv) => createKeystore(argv)))
   .command(['show <keystore>', 'unlock'],
-    'Unlocks the keystore and displays its information', {
-      dir: {
-        alias: 'd',
-        describe: 'Directory to load the keystore from',
-        default: dotDcpDir,
-      },
-      passphrase: {
-        alias: 'p',
-        describe: 'Passphrase to unlock the keystore with',
-        default: '',
-      },
-      showPrivateKey: {
-        describe: 'Set this flag to include the private key in the output',
-        type: 'boolean',
-        default: false,
-      }
+    'Unlocks the keystore and displays its information', (yargs) => {
+      yargs
+      .positional('keystore', {
+        describe: 'A label, filepath, or private key',
+      })
+      .options({
+        dir: {
+          alias: 'd',
+          describe: 'Directory to load the keystore from, if a label was provided',
+          default: dotDcpDir,
+        },
+        passphrase: {
+          alias: 'p',
+          describe: 'Passphrase to unlock the keystore with, will prompt if not provided',
+          default: '',
+        },
+        showPrivateKey: {
+          describe: 'Set this flag to include the private key in the output',
+          type: 'boolean',
+          default: false,
+        }
+      })
     },
     wrapHandler((argv) => unlockKeystore(argv)))
   .demandCommand(1)
@@ -146,24 +152,20 @@ async function createKeystore(argv) {
  */
 async function unlockKeystore(argv) {
   const { keystore, dir, passphrase, showPrivateKey } = argv;
-  const { Keystore } = require('dcp/wallet');
+  const wallet = require('dcp/wallet');
 
-  let filename = keystore;
-  if (!filename.match(/\.keystore$/)) {
-    filename += '.keystore';
+  let ks;
+  if (wallet.isPrivateKey(keystore)) {
+    ks = await new wallet.Keystore(keystore, '');
+  } else {
+    const loadResult = await wallet.load({
+      name: keystore,
+      dir,
+    });
+    ks = loadResult.keystore;
   }
-
-  const fullpath = path.resolve(expandTilde(dir), filename);
-
-  if (!fs.existsSync(fullpath)) {
-    console.error(`Failed to locate keystore file at ${fullpath}`);
-    return;
-  }
-
-  const ks = await new Keystore(fs.readFileSync(fullpath, 'utf-8').trim(), passphrase);
   
-  const filenameNoExt = filename.replace('.keystore', '');
-  console.log(`Keystore "${filenameNoExt}":`);
+  console.log(`Keystore "${keystore}":`);
   console.group();
     console.log("Label:", ks.label);
     console.log("Address:", ks.address.toString());
