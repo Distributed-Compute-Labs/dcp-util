@@ -11,129 +11,140 @@
  * @date         May 2019
  */
 
+require('dcp-rtlink').init();
+const cli = require('dcp/dcp-cli');
+const { URL } = require('dcp/dcp-url');
+
+cli.name = 'Ping the DCP network';
+
 var dcpConfig
 var debug = process.env.DEBUG && !!process.env.DEBUG.match(/\bdcping\b/)
-URL.prototype.resolve = function dcping$$URL$resolve(path) {
-  path = path.replace(/(^|\/)[.](\/[.])*(\/|$)/g, '/').replace(/[^/]+\/\.\.(\/|$)/g, '')  /* handle . and .. */
-  return this.protocol + '//' +
-    this.hostname +
-    (this.port ? ':' + this.port : '') + '/' +
-    (this.pathname.replace(/\/[^/]*$/,'/') + path).replace(/\/\//g,'/').replace(/^\//,'')
-}
 
 // rpn is a HTTP request client with promise support
 const rpn = require('request-promise-native')
-// needed to read keystore from file
-const fs = require('fs')
-// needed to take password from keystore
-const pprompt = require('password-prompt')
-// path to the keystore, can be configured with -i
-const expandTilde = require('expand-tilde')
-let keyStorePath = expandTilde('~')+'/.dcp/default.keystore'
-// address of the scheduler, can be configured with the --scheduler option
-let scheduler = new URL('https://scheduler.distributed.computer/')
-let computeBundlePath = '/node_modules/dcp-client/dist/compute.min.js'
-// number of ping jobs the program will send to scheduler
-let numJobs = 3
-// this is set to 1 when there is a limited number of pings the user wishes to execute, ie, when they use the -c option
-// by default this program will continuosly ping the scheduler
-let notContinuous = 0
+
 // number of jobs (pings) sent to scheduler
 let jobsSent = 0
+
 // number of jobs completely returned by the scheduler
 let jobsCompleted = 0
+
 // the number of failed jobs isn't necessarily jobsSent-jobsCompleted, if SIGINT is broadcast while a job is pending, that job will neither
 // complete nor fail, but will have been sent.
 let jobsFailed = 0
+
 // total number of slices sent through the duration of the program, not just during one job
 let totalSlicesSent = 0
+
 // total number of slices returned through the duration of the program, not just during one job
 let totalSlicesReturned = 0
+
 // number of slices returned during one job, not during the duration of the program
 let slicesReturned = 0
-// number of slices per ping job, can be configure with -s but is set to 3 by default
-let numSlicesPerJob = 3
-// jobs will timeout after this many seconds, can be configured with -W, but is set to 120 by defualt
-let timeLimit = 120
-// controls how verbose the output is, configured with -v
-let verbose = false
+
 // mode controls how the program behaves, see main at the bottom for all the modes and how they behave, can be configuresd with the -f and --interval options
 let mode = 'normal'
-// the interval, in seconds, that the program pings the given scheduler continuously.
-let interval = 120
-// amount of DCC per slice to pay
-let costProfile = 0.0015
+
+// Keystore which will be used to pay for jobs
+var keystore = false;
 
 // when ctrl C is pressed, call endProgram
-process.on('SIGINT', () => endProgram())
+process.on('SIGINT', () => {
+  console.log('\n');
+  endProgram();
+})
 
-// holds the arguements given to the program from the command line
-// the fisrt two elements of process.argv are the location of node and the location of DCPing by default, so we must slice them off
-const args = process.argv.slice(2)
+const options = require('dcp/dcp-cli').base()
+  .option('count', {
+    alias: 'c',
+    description: 'Number of times to ping the scheduler',
+    defaultDescription: 'Ping continuously until program is terminated',
+    default: 0,
+    type: 'number',
+  })
+  .option('slices', {
+    alias: 's',
+    description: 'Slices per job',
+    default: 3,
+    type: 'number',
+  })
+  .option('wait', {
+    alias: 'W',
+    description: 'Timeout for each job, in seconds',
+    default: 120,
+    type: 'number',
+  })
+  .option('verbose', {
+    alias: 'v',
+    description: 'Additional output',
+    default: false,
+    type: 'boolean',
+  })
+  .option('flood', {
+    alias: 'f',
+    description: 'Flood the scheduler with pings as fast as possible',
+    default: false,
+    type: 'boolean',
+  })
+  .option('interval', {
+    description: 'Interval mode; if set, emit a job every [interval] seconds. Must be >= [timeout]',
+    default: 120,
+    type: 'number',
+  })
+  .option('cost', {
+    alias: 'C',
+    description: 'Offered cost per slice, in DCC',
+    default: 0.0015,
+    type: 'number',   // my kingdom for `type: 'BigNumber',`!
+  })
+  .epilogue(`
+By the number of slices that return, and how fast they return, the health of the network can be assessed.
 
-// scans over arguements adjusts variables accordingly
-for (let j = 0; j < args.length; j++) {
-  switch (args[j]) {
-    case '--scheduler':
-      // changes scheduler
-      scheduler = new URL(args[j + 1])
-      j++
-      break
-    case '-c':
-      // configures the number of times the scheduler is pinged
-      notContinuous = 1
-      numJobs = parseInt(args[j + 1])
-      j++
-      break
-    case '-s':
-      // configures the number of slices sent to the scheduler per job
-      numSlicesPerJob = parseInt(args[j + 1])
-      j++
-      break
-    case '-W':
-      // configures the timeout for each slice
-      timeLimit = parseFloat(args[j + 1])
-      j++
-      break
-    case '-v':
-      // something I plan on expanding on later, gives more verbose output, right now it only lists the full job ID
-      verbose = true
-      break
-    case '-i':
-      // configures the path to the keystore
-      keyStorePath = args[j + 1]
-      j++
-      break
-    case '-f':
-      mode = 'flood'
-      break
-    case '--interval':
-      mode = 'interval'
-      interval = parseFloat(args[j + 1])
-      j++
-      break
-    case '-C':
-      // configures the cost per slice
-      costProfile = parseFloat(args[j + 1])
-      j++
-      break
-    case '-h':
-      // displays help message and ends the program
-      Usage()
-      endProgram(0)
-      break;
-    case '--help':
-      // displays help message and ends the program
-      Usage()
-      endProgram(0)
-      break;
-    case '-?':
-      // displays help message and ends the program
-      Usage()
-      endProgram(0)
-      break;
-  }
+NOTE TO THE USER:
+This is by no means a complete utility, certain libraries are missing that would otherwise have been used here, namely some API for keystore access, and a safeMarketValue function, where the market value of a slice is received from the scheduler and used as the cost per slice.`)
+  .argv;
+
+/**
+ *  @hack The original logic here is... interesting.
+ *  - if `count` is specified on commandline, then `notContinuous` will be set to 1;
+ *    a later loop uses that as the decrementor, counting down from `numJobs`.
+ *  - if `count` is not specified, then we are in 'continuous' mode. The same for
+ *    loop is used, but it counts down from (any nonzero, we used 3) in steps of 0,
+ *    effectively a while(true){};
+ */
+const numJobs = options.count || 3;
+const notContinuous = options.count ? 1 : 0;
+
+const numSlicesPerJob = options.slices;
+
+const interval = parseFloat(options.interval);
+let timeLimit = options.wait;     // this one might get changed, below
+
+if (options.flood) {
+  mode = 'flood';
 }
+else if ((options.count === 0) && (options.interval)) {
+  mode = 'interval';
+}
+
+const costProfile = parseFloat(options.cost) || 0.0015;
+
+const verbose = options.verbose;
+
+
+console.log('parsed options:', options);
+console.log('consequent operating environment:', {
+  mode,
+  numJobs,
+  notContinuous,
+  numSlicesPerJob,
+  interval,
+  timeLimit,
+  costProfile,
+  verbose,
+})
+process.exit(123);
+
 
 /** main program exit point
     displays results of pings and shows an error if any jobs did not return
@@ -156,10 +167,7 @@ function endProgram (errorCode) {
 /** erases num characters from the current console line, cannot erase the line above
  */
 function erase (num) {
-  let backspaceCharacters = ''
-  for (let i = 0; i < num; i++) {
-    backspaceCharacters = backspaceCharacters + '\b'
-  }
+  let backspaceCharacters = '\b'.repeat(num);
   process.stdout.write(backspaceCharacters)
 }
 
@@ -223,52 +231,13 @@ function rpnPrettyReject(error) {
 
 /** loads the compute and protocol modules of DCP into the namespace
  */
-async function loadCompute () {
-  let confHref = scheduler.resolve('/etc/dcp-config.js')
-  if (debug)
-    console.log(` * Fetching ${confHref}`)
-                
-  try {
-    let response = await rpn({uri: confHref, resolveWithFullResponse: true, simple: true})
-    let sandbox = { window: global, URL: URL }
-    dcpConfig = require('vm').runInNewContext(response.body, sandbox, {filename: confHref, lineOffset: 0})
-  } catch (error) {
-    console.log(rpnPrettyReject(error))
-    process.exit(1)
-  }
-
-  // Note: Don't do const compute = require(...), since the file already
-  // injects compute and protocol into the global namespace. :(
-  if (process.env.DCPING_LOCAL_BUNDLE) {
-    let computeBundleFilename = process.env.DCPING_LOCAL_BUNDLE
-    if (debug)
-      console.log(` * Loading ${computeBundleFilename}`)
-    eval(require('fs').readFileSync(computeBundleFilename, 'utf-8'))
-  } else {
-    let computeHref = dcpConfig.portal.location.href.replace(/\/$/,'') + '/' + computeBundlePath.replace(/^\//,'')
-    if (debug)
-      console.log(` * Fetching ${computeHref}`)
-    try {
-      let response = await rpn({uri: computeHref, resolveWithFullResponse: true, simple: true})
-      eval(response.body)
-    } catch(e) {
-      console.log(rpnPrettyReject(e))
-      process.exit(1)
-    }
-  }
-
-  try {
-    // Load the keystore:
-    const keystore = JSON.parse(fs.readFileSync(keyStorePath, 'ascii'))
-    const keystorePassword = await pprompt('Enter keystore password:', {
-      method: 'hide',
-      required: false
+function loadCompute () {
+  return require('dcp-client').init(options.scheduler)
+    .then(() => {
+      require('dcp/config').load();
+      return cli.getAccountKeystore();
     })
-    protocol.keychain.addPrivateKey_fromEthV3Keystore(keystore, keystorePassword, true)
-  } catch (error) {
-    console.error('Unable to unlock keystore:', error.message)
-    process.exit(1)
-  }
+    .then(ks => keystore = ks );
 }
 
 /** called when a job is accepted by the scheduler
@@ -313,13 +282,13 @@ async function ping (numSlices) {
   }
 
   // sets up the job
-  const job = compute.for([input], trivialWork)
+  const job = require('dcp/compute').for([input], trivialWork)
   var resultFn = onResult.bind(job)
   job.on('accepted', () => onAccepted(job.id))
   job.on('result', resultFn)
   job.on('complete', () => onJobComplete())
 
-  job._generator.public = {
+  job.public = {
     name: 'DCPing'
   }
 
@@ -330,15 +299,24 @@ async function ping (numSlices) {
 
   try {
     await new Promise((resolve, reject) => {
-      job.exec(costProfile * numSlices).then((ev) => resolve(ev), (ev) => reject('error in job creation ' + ev))
+      let timeout = false;
+      
+      console.log('using keystore:', keystore);
+      job.exec(costProfile, keystore).then((ev) => resolve(ev), (ev) => reject('error in job creation ' + ev))
+        .finally(()=> {
+          if (timeout) {
+            clearTimeout(timeout);
+            timeout = false;
+          }
+        });
 
-      setTimeout(async () => {
+      timeout = setTimeout(async () => {
         // dm may 2019 - DCP-564 job.removeEventHandler('result', resultFn);
         job.cancelled = true
         await job.cancel()
         jobsFailed++
         reject(' : job timed out')
-      }, timeLimit * 1000)
+      }, timeLimit * 1000);
     })
   } catch (error) {
     process.stdout.write(error)
@@ -373,43 +351,12 @@ function updateSliceCount () {
   }
 }
 
-/** logs the help page
- */
-function Usage () {
-  const name = process.argv[1].split('\\').pop().split('/').pop()
-
-  console.log(`
-${name} - send a job with an arbitrary work function accross a distributed computer that uses DCP. By the number of slices that return, and how fast they return, the health of the network can be assessed.
-
-Usage:    ${name} -c stop sending jobs after a certain number of jobs have been sent, by default DCPing sends jobs until ctrl c is pressed
-
-          ${name} -C configure the amount of DCC being bid per slice, default is 0.0005
-
-          ${name} -i give the file path to the keystore to be used, default is ~/.dcp/default.keystore
-
-          ${name} -f send as many jobs to the scheduler as possible and do not track returned slices, be careful as this option burns through DCC
-
-          ${name} --interval configure DCPing to send a job to the scheduler every interval of a certain length, by default DCPing send the next job when the current job either completes or times out, units are seconds
-
-          ${name} -W set DCPing to cancel jobs if they haven't returned after a certain amount of time, you cannot configure DCPing to timout jobs after a longer amount of time than configured using --interval, units are seconds and the defualt is 120
-
-          ${name} -s configure the number of slices DCPing send to the scheduler per job, the default is 3 slices
-
-          ${name} --scheduler configure the URL of the scheduler, default is ${scheduler}
-
-          ${name} -h display this help message
-
-NOTE TO THE USER
-This is by no means a complete utility, certain libraries are missing that would otherwise have been used here, namely some API for keystore access, and a safeMarketValue function, where the market value of a slice is received from the scheduler and used as the cost per slice.
-  `)
-}
-
 /** main program entry point
  */
 async function main () {
   // loads compute
   await loadCompute()
-  console.log('DCPing scheduler: ' + scheduler)
+  console.log('DCPing scheduler: ' + options.scheduler)
 
   switch (mode) {
     case 'normal':
