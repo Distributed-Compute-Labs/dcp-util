@@ -9,7 +9,9 @@
 
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const process = require('process');
+const consts = require('constants');
 const expandTilde = require('expand-tilde');
 
 function wrapHandler(handler) {
@@ -92,6 +94,31 @@ async function main() {
       })
     },
     wrapHandler((argv) => unlockKeystore(argv)))
+    .command('change-passphrase <keystore>',
+    "Change a keystore's passphrase", (yargs) => {
+      yargs
+      .positional('keystore', {
+        describe: 'A label or filepath',
+      })
+      .options({
+        dir: {
+          alias: 'd',
+          describe: 'Directory to load the keystore from, if a label was provided',
+          default: dotDcpDir,
+        },
+        oldPassphrase: {
+          alias: 'o',
+          describe: 'Passphrase to unlock the original keystore with, will prompt if not provided',
+          default: null,
+        },
+        newPassphrase: {
+          alias: 'p',
+          describe: 'Passphrase to lock the new keystore with, will prompt if not provided',
+          default: null,
+        }
+      })
+    },
+    wrapHandler((argv) => changeKeystorePassphrase(argv)))
   .demandCommand(1)
   .strict().argv;
 }
@@ -174,4 +201,59 @@ async function unlockKeystore(argv) {
       console.log("Private Key:", (await ks.getPrivateKey()).toString());
     }
   console.groupEnd();
+}
+
+/**
+ * Changes a keystore's passphrase
+ * @param {object} argv
+ * @param {string}  argv.keystore
+ * @param {string}  argv.dir
+ * @param {string}  argv.oldPassphrase
+ * @param {string}  argv.newPassphrase
+ */
+async function changeKeystorePassphrase(argv) {
+  const { keystore, dir, oldPassphrase, newPassphrase } = argv;
+  const wallet = require('dcp/wallet');
+
+  const {
+    keystore: oldKeystore,
+    filename: oldFilename,
+  } = await wallet.load({
+    name: keystore,
+    dir,
+  });
+
+  console.log(`Changing passphrase for keystore in "${oldFilename}"...`);
+  
+  const unlockArgs = [];
+  if (oldPassphrase) unlockArgs.push(oldPassphrase);
+  await oldKeystore.unlock(...unlockArgs);
+
+  const newKeystoreArgs = [await oldKeystore.getPrivateKey()];
+  if (newPassphrase) newKeystoreArgs.push(newPassphrase);
+  const newKeystore = await new wallet.Keystore(...newKeystoreArgs);
+  newKeystore.label = oldKeystore.label;
+
+  const oldStats = fs.statSync(oldFilename);
+  const tempFilename = `${oldFilename}.temp-${os.hostname()}-${process.pid}`;
+  const flags = consts.O_CREAT | consts.O_EXCL | consts.O_WRONLY;
+  const mode = oldStats.mode & 0777;
+
+  // Open a temp file in the same location as the old keystore
+  //  - Must be a new file, in write-only mode (from flags)
+  //  - Preserve permissions of old file (from mode)
+  //  - Preserve ownership of old file (from oldStats uid/gid)
+  const fd = fs.openSync(tempFilename, flags, mode);
+  fs.fchownSync(fd, oldStats.uid, oldStats.gid);
+  fs.writeSync(fd, JSON.stringify(newKeystore));
+  fs.closeSync(fd);
+
+  try {
+    // Finally, replace the old keystore with the new one
+    fs.renameSync(tempFilename, oldFilename);
+    console.log("Successfully changed keystore passphrase.");
+  } catch (e) {
+    console.error(e);
+    fs.unlinkSync(tempFilename); // delete the temp file on fail
+  }
 }
