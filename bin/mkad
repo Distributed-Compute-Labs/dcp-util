@@ -48,14 +48,9 @@ async function main() {
       .options({
         passphrase: {
           alias: 'p',
-          describe: 'Passphrase used to encrypt the keystore',
-          default: '',
-        },
-        emptyPassphrase: {
-          alias: 'e',
-          describe: 'This flag must be set to create a keystore without a passphrase',
-          type: 'boolean',
-          default: false,
+          describe: 'Passphrase used to encrypt the keystore, will prompt if not provided',
+          type: 'string',
+          default: null,
         },
         privateKey: {
           alias: 'pk',
@@ -135,23 +130,21 @@ main()
  * @param {object} argv
  * @param {string}  argv.label
  * @param {string}  argv.passphrase
- * @param {boolean} argv.emptyPassphrase
  * @param {string}  argv.privateKey
  * @param {string}  argv.dir
  */
 async function createKeystore(argv) {
-  const { passphrase, emptyPassphrase, privateKey, dir } = argv;
+  const { passphrase, privateKey, dir } = argv;
   let { label } = argv;
-
-  if (!passphrase && !emptyPassphrase) {
-    console.log('The --emptyPassphrase flag must be set to create a keystore with no passphrase.');
-    return;
-  }
 
   label = label.match(/^(.*?)(\.keystore)?$/)[1]; // remove .keystore from label
 
+  let keystoreArgs = [];
+  if (typeof passphrase === 'string') keystoreArgs = [privateKey, passphrase];
+  else if (privateKey) keystoreArgs = [privateKey];
+
   const { Keystore } = require('dcp/wallet');
-  const ks = await new Keystore(privateKey, passphrase);
+  const ks = await new Keystore(...keystoreArgs);
 
   const ksObj = ks.toJSON();
   ksObj.label = label;
