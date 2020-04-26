@@ -1,4 +1,4 @@
-#! /usr/bin/node
+#! /usr/bin/env node
 /** @file       dcping.js       DCPing uses the Compute API to send a job with a 
  *                              trivial work function and one or more points in 
  *                              the input dataset accross a distributed computer
