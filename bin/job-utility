@@ -39,7 +39,7 @@ async function main () {
     'Cancels the specified job, halting execution.')
   .command('cancelAllJobs',
     'Cancels all jobs')
-  .demandCommand(1)
+  .demandCommand(1, 'A command must be specified')
   .strict().argv;
 
   const command = argv._[0];
