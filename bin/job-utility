@@ -39,6 +39,10 @@ async function main () {
     'Cancels the specified job, halting execution.')
   .command('cancelAllJobs',
     'Cancels all jobs')
+  .command('fetchJobReport <jobID>',
+    'Returns information and status of the specified job')
+  .command('fetchSliceReport <jobID>',
+    'Returns status and history of slices for a specified job')
   .demandCommand(1)
   .strict().argv;
 
@@ -87,6 +91,8 @@ async function sendRequest (command, argv) {
     case 'countTasks':
     case 'elapsedTime':
     case 'cancelJob':
+    case 'fetchJobReport':
+    case 'fetchSliceReport':
       payload = {
         jobID: argv.jobID,
       };
