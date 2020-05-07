@@ -57,7 +57,7 @@ async function main() {
       default: false,
     }
   })
-  .demandCommand(1)
+  .demandCommand(1, 'A command must be specified')
   .strict().argv;
 }
 

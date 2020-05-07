@@ -34,12 +34,8 @@ async function main() {
 
   require('dcp/dcp-cli')
   .base('Manipulate Keystore/Address Data.')
-  .hide('identity')
-  .hide('identity-file')
-  .hide('default-bank-account')
-  .hide('default-bank-account-file')
-  .command(['create [label]', 'new'],
-    'Create a new keystore', (yargs) => {
+  .command('new [label]',
+    'Create a new keystore file', (yargs) => {
       yargs
       .positional('label', {
         describe: 'Label for the keystore, used for the filename',
@@ -50,22 +46,20 @@ async function main() {
           alias: 'p',
           describe: 'Passphrase used to encrypt the keystore, will prompt if not provided',
           type: 'string',
-          default: null,
         },
         privateKey: {
           alias: 'pk',
           describe: 'Create a keystore from a private key, will be randomly generated if not provided',
-          default: null,
+          type: 'string',
         },
         dir: {
           describe: 'Directory to save the generated keystore to',
           default: dotDcpDir,
         },
       });
-    },
-    wrapHandler((argv) => createKeystore(argv)))
-  .command(['show <keystore>', 'unlock'],
-    'Unlocks the keystore and displays its information', (yargs) => {
+    }, wrapHandler(createKeystore))
+  .command('show <keystore>',
+    'Reads the keystore file and displays its information', (yargs) => {
       yargs
       .positional('keystore', {
         describe: 'A label, filepath, or private key',
@@ -79,7 +73,7 @@ async function main() {
         passphrase: {
           alias: 'p',
           describe: 'Passphrase to unlock the keystore with, will prompt if not provided',
-          default: '',
+          type: 'string',
         },
         showPrivateKey: {
           describe: 'Set this flag to include the private key in the output',
@@ -87,10 +81,9 @@ async function main() {
           default: false,
         }
       })
-    },
-    wrapHandler((argv) => unlockKeystore(argv)))
-    .command('change-passphrase <keystore>',
-    "Change a keystore's passphrase", (yargs) => {
+    }, wrapHandler(showKeystore))
+  .command('change-passphrase <keystore>',
+    "Change a keystore file's passphrase", (yargs) => {
       yargs
       .positional('keystore', {
         describe: 'A label or filepath',
@@ -104,17 +97,16 @@ async function main() {
         oldPassphrase: {
           alias: 'o',
           describe: 'Passphrase to unlock the original keystore with, will prompt if not provided',
-          default: null,
+          type: 'string',
         },
         newPassphrase: {
           alias: 'p',
           describe: 'Passphrase to lock the new keystore with, will prompt if not provided',
-          default: null,
+          type: 'string',
         }
       })
-    },
-    wrapHandler((argv) => changeKeystorePassphrase(argv)))
-  .demandCommand(1)
+    }, wrapHandler(changeKeystorePassphrase))
+  .demandCommand(1, 'A command must be specified')
   .strict().argv;
 }
 
@@ -140,8 +132,8 @@ async function createKeystore(argv) {
   label = label.match(/^(.*?)(\.keystore)?$/)[1]; // remove .keystore from label
 
   let keystoreArgs = [];
-  if (typeof passphrase === 'string') keystoreArgs = [privateKey, passphrase];
-  else if (privateKey) keystoreArgs = [privateKey];
+  if (typeof passphrase === 'string') keystoreArgs = [privateKey || null, passphrase];
+  else if (typeof privateKey === 'string') keystoreArgs = [privateKey];
 
   const { Keystore } = require('dcp/wallet');
   const ks = await new Keystore(...keystoreArgs);
@@ -170,7 +162,7 @@ async function createKeystore(argv) {
  * @param {string}  argv.passphrase
  * @param {boolean} argv.showPrivateKey
  */
-async function unlockKeystore(argv) {
+async function showKeystore(argv) {
   const { keystore, dir, passphrase, showPrivateKey } = argv;
   const wallet = require('dcp/wallet');
 
@@ -190,7 +182,7 @@ async function unlockKeystore(argv) {
     console.log("Label:", ks.label);
     console.log("Address:", ks.address.toString());
     if (showPrivateKey) {
-      if (passphrase) await ks.unlock(passphrase);
+      if (typeof passphrase === 'string') await ks.unlock(passphrase);
       console.log("Private Key:", (await ks.getPrivateKey()).toString());
     }
   console.groupEnd();
@@ -219,11 +211,11 @@ async function changeKeystorePassphrase(argv) {
   console.log(`Changing passphrase for keystore in "${oldFilename}"...`);
   
   const unlockArgs = [];
-  if (oldPassphrase) unlockArgs.push(oldPassphrase);
+  if (typeof oldPassphrase === 'string') unlockArgs.push(oldPassphrase);
   await oldKeystore.unlock(...unlockArgs);
 
   const newKeystoreArgs = [await oldKeystore.getPrivateKey()];
-  if (newPassphrase) newKeystoreArgs.push(newPassphrase);
+  if (typeof newPassphrase === 'string') newKeystoreArgs.push(newPassphrase);
   const newKeystore = await new wallet.Keystore(...newKeystoreArgs);
   newKeystore.label = oldKeystore.label;
 

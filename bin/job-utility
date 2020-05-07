@@ -43,7 +43,7 @@ async function main () {
     'Returns information and status of the specified job')
   .command('fetchSliceReport <jobID>',
     'Returns status and history of slices for a specified job')
-  .demandCommand(1)
+  .demandCommand(1, 'A command must be specified')
   .strict().argv;
 
   const command = argv._[0];
