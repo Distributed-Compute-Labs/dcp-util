@@ -16,7 +16,7 @@
 const process = require('process');
 
 async function main() {
-  await require('dcp-client').init(process.argv);
+  await require('dcp-client').init();
 
   require('dcp/dcp-cli')
   .base('Send control messages to a DCP service.')
@@ -71,13 +71,12 @@ async function main() {
 async function sendMessage (argv, command, payload={}) {
   const protocolV4 = require('dcp/protocol-v4');
   const { URL } = require('dcp/dcp-url');
-  const { getIdentityKeystore, getAccountKeystore } = require('dcp/dcp-cli');
+  const wallet = require('dcp/wallet');
 
-  const identityKeystore = await getIdentityKeystore();
-  const accountKeystore = await getAccountKeystore();
+  const accountKeystore = await wallet.get();
 
   const schedulerURL = new URL(argv.scheduler);
-  const schedulerConnection = new protocolV4.Connection(schedulerURL.resolve('/DCPv4'), identityKeystore);
+  const schedulerConnection = new protocolV4.Connection(schedulerURL.resolve('/DCPv4'));
 
   const message = {
     owner: accountKeystore.address,

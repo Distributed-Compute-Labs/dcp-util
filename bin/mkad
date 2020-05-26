@@ -29,7 +29,7 @@ function wrapHandler(handler) {
 
 async function main() {
 
-  await require('dcp-client').init(process.argv);
+  await require('dcp-client').init();
   const { dotDcpDir } = require('dcp/dot-dcp-dir');
 
   require('dcp/dcp-cli')
