@@ -17,7 +17,7 @@
   },
   "homepage": "https://gitlab.com/Distributed-Compute-Protocol/dcp-util#readme",
   "dependencies": {
-    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#e3f53e2bcd63ecdf1c86edf8751617a680ecb6d0",
+    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#2ec309092c6f853efab678eeb79a38883c5cac89",
     "expand-tilde": "^2.0.2"
   }
 }
