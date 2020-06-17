@@ -1,23 +1,28 @@
 {
   "name": "dcp-util",
-  "version": "1.0.0",
+  "version": "1.0.0a",
   "description": "DCP Command Line Utilities",
   "main": "index.js",
   "scripts": {
+    "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-util.git"
+    "url": "git+ssh://Distributed-Compute-Labs/dcp-util.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Kings Distributed Systems",
+  "license": "MIT",
   "bugs": {
     "url": "https://gitlab.com/Distributed-Compute-Protocol/dcp-util/issues"
   },
   "homepage": "https://gitlab.com/Distributed-Compute-Protocol/dcp-util#readme",
   "dependencies": {
-    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#2ec309092c6f853efab678eeb79a38883c5cac89",
+    "dcp-client": "^3.1.1-a",
     "expand-tilde": "^2.0.2"
-  }
+  },
+  "devDependencies": {},
+  "keywords": [
+    "dcp"
+  ]
 }
