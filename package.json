@@ -1,6 +1,6 @@
 {
   "name": "dcp-util",
-  "version": "1.0.0a",
+  "version": "1.0.0-b",
   "description": "DCP Command Line Utilities",
   "main": "index.js",
   "scripts": {
