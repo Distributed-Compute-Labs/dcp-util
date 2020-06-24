@@ -51,6 +51,14 @@ async function main() {
       type: 'boolean',
       default: false,
     },
+    targetIdentity: {
+      alias: 't',
+      describe: "Expects a keystore label. When provided, non-broadcast commands will be sent to workers using this target identity keystore label. Defaults to the identity used to send the command.",
+    },
+    targetIdentityFile: {
+      alias: 'T',
+      describe: "Expects a keystore path. Path-based variant of targetIdentity.",
+    },
     persistent: {
       describe: '(not implemented) Whether the message should be persistent',
       type: 'boolean',
@@ -71,26 +79,43 @@ async function main() {
 async function sendMessage (argv, command, payload={}) {
   const protocolV4 = require('dcp/protocol-v4');
   const { URL } = require('dcp/dcp-url');
-  const wallet = require('dcp/wallet');
 
-  const accountKeystore = await wallet.get();
+  const targetIdentity = await getTargetIdentity(argv);
 
   const schedulerURL = new URL(argv.scheduler);
   const schedulerConnection = new protocolV4.Connection(schedulerURL.resolve('/DCPv4'));
 
   const message = {
-    owner: accountKeystore.address,
+    target: targetIdentity.address,
     broadcast: argv.broadcast,
     command,
     payload,
   }
 
   console.log(`Sending SchedMsg to scheduler ${argv.scheduler}:`, message);
-  await schedulerConnection.send('sendSchedMsg', message, accountKeystore);
+  await schedulerConnection.send('sendSchedMsg', message, targetIdentity);
   console.log(`\nCommand '${command}' sent successfully.`);
 
   await schedulerConnection.close();
   process.exit(0);
+}
+
+function getTargetIdentity(argv) {
+  const wallet = require('dcp/wallet');
+  const { targetIdentity, targetIdentityFile } = argv;
+
+  if (targetIdentityFile) {
+    return wallet.load(targetIdentityFile).then(loaded => {
+      if (!loaded.safe)
+        console.warn(`Warning! The keystore file ${targetIdentityFile} has unsafe permissions!`);
+
+      return loaded.keystore;
+    });
+  } else if (targetIdentity) {
+    return wallet.getId(targetIdentity);
+  } else {
+    return wallet.getId();
+  }
 }
 
 main();
