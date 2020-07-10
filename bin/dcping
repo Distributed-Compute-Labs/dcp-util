@@ -12,8 +12,8 @@
  */
 
 require('dcp-rtlink').init();
-const cli = require('dcp/dcp-cli');
-const { URL } = require('dcp/dcp-url');
+const cli = require('dcp/common/dcp-cli');
+const { URL } = require('dcp/common/dcp-url');
 
 cli.name = 'Ping the DCP network';
 
@@ -234,7 +234,7 @@ function rpnPrettyReject(error) {
 function loadCompute () {
   return require('dcp-client').init(options.scheduler)
     .then(() => {
-      require('dcp/config').load();
+      require('dcp/node-libs/config').load();
       return cli.getAccountKeystore();
     })
     .then(ks => keystore = ks );
