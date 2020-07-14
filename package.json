@@ -1,6 +1,6 @@
 {
   "name": "dcp-util",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "DCP Command Line Utilities",
   "main": "index.js",
   "scripts": {
@@ -18,7 +18,7 @@
   },
   "homepage": "https://gitlab.com/Distributed-Compute-Protocol/dcp-util#readme",
   "dependencies": {
-    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#2ec309092c6f853efab678eeb79a38883c5cac89",
+    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#5bbfcc3e834655222cb7a4d5cdd381e491c93d4f",
     "expand-tilde": "^2.0.2"
   },
   "devDependencies": {},
