@@ -1,0 +1,50 @@
+#! /usr/bin/env node
+/**
+ *  @file       publish
+ *              Utility for deploying DCP Modules from package description files.
+ *
+ *              A package description file is a JSON file with the following structure:
+ *              {
+ *                name: string,
+ *                version: semver string,
+ *                files: {
+ *                  [localPathToFile: string]: [destinationFilename: string]
+ *                }
+ *              }
+ *
+ *  @author     Ryan Rossiter, ryan@kingsds.network
+ *  @date       July 2020
+ */
+
+const process = require('process');
+
+async function main() {
+  const dcpCli = require('dcp/dcp-cli');
+  const dcpPublish = require('dcp/publish');
+
+  // Process CLI
+  const options = dcpCli
+    .base('Utility to publish a new/updated DCP package')
+    .command(['$0 packageDescription', '' /* This empty alias is required for --show-hidden to work /sigh */], '', yargs => {
+      yargs.positional('packageDescription', {
+        describe: 'Path to the package description file.',
+      });
+    })
+    .argv;
+    
+  const { packageDescription } = options;
+  const idKs = await dcpCli.getIdentityKeystore();
+
+  const result = await dcpPublish.publish(packageDescription, idKs);
+
+  console.log("Successfully published package:\n", JSON.stringify(result, null, 2));
+}
+
+require('dcp-client').init()
+.then(main)
+.catch(e => {
+  console.error("Failed to execute command:");
+  console.error(e);
+  process.exitCode = 1;
+})
+.finally(() => setImmediate(process.exit));
