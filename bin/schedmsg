@@ -16,8 +16,6 @@
 const process = require('process');
 
 async function main() {
-  await require('dcp-client').init();
-
   require('dcp/dcp-cli')
   .base('Send control messages to a DCP service.')
   .command('announce <message>',
@@ -93,4 +91,10 @@ async function sendMessage (argv, command, payload={}) {
   process.exit(0);
 }
 
-main();
+require('dcp-client').init()
+.then(main)
+.catch(e => {
+  console.error("Failed to execute command:");
+  console.error(e);
+  process.exit(1);
+});

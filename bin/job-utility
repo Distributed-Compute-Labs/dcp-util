@@ -11,8 +11,6 @@
 const process = require('process');
 
 async function main () {
-  await require('dcp-client').init();
-
   const argv = require('dcp/dcp-cli')
   .base('Inspect and manipulate running jobs on the command line.')
   .command('listJobs',
@@ -50,7 +48,6 @@ async function main () {
   const response = await sendRequest(command, argv);
   console.log(JSON.stringify(response, null, 2));
 
-  process.exit(0);
 }
 
 /**
@@ -110,10 +107,11 @@ async function sendRequest (command, argv) {
   return response.payload;
 }
 
-main()
-.then(() => process.exit(0))
+require('dcp-client').init()
+.then(main)
 .catch(e => {
   console.error("Failed to execute command:");
   console.error(e);
-  process.exit(1);
-});
+  process.exitCode = 1;
+})
+.finally(() => setImmediate(process.exit));
