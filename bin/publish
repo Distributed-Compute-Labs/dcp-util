@@ -25,13 +25,13 @@ async function main() {
   // Process CLI
   const options = dcpCli
     .base('Utility to publish a new/updated DCP package')
-    .command(['$0 packageDescription', '' /* This empty alias is required for --show-hidden to work /sigh */], '', yargs => {
+    .command(['$0 packageDescription', 'publish'], '', yargs => {
       yargs.positional('packageDescription', {
         describe: 'Path to the package description file.',
       });
     })
     .argv;
-    
+
   const { packageDescription } = options;
   const idKs = await dcpCli.getIdentityKeystore();
 
