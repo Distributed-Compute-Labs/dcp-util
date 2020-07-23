@@ -1,22 +1,27 @@
 {
   "name": "dcp-util",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "DCP Command Line Utilities",
   "main": "index.js",
+  "bin": {
+    "job-utility": "bin/job-utility",
+    "mkad": "bin/mkad",
+    "schedmsg": "bin/schedmsg"
+  },
   "scripts": {
     "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-util.git"
+    "url": "https://github.com/Distributed-Compute-Labs/dcp-util"
   },
   "author": "Kings Distributed Systems",
   "license": "MIT",
   "bugs": {
-    "url": "https://gitlab.com/Distributed-Compute-Protocol/dcp-util/issues"
+    "url": "https://github.com/Distributed-Compute-Labs/dcp-util/utils"
   },
-  "homepage": "https://gitlab.com/Distributed-Compute-Protocol/dcp-util#readme",
+  "homepage": "https://github.com/Distributed-Compute-Labs/dcp-util@readme",
   "dependencies": {
     "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#edf05763f3f486d3f26b2031733e2031142f79f5",
     "expand-tilde": "^2.0.2"
