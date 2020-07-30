@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/Distributed-Compute-Labs/dcp-util@readme",
   "dependencies": {
-    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#d45c2ee78acd390a040fd73a670ca8998cc0a643",
+    "dcp-client": "^3.1.9",
     "expand-tilde": "^2.0.2"
   },
   "devDependencies": {},
