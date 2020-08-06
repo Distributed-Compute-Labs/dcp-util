@@ -1,6 +1,6 @@
 {
   "name": "dcp-util",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "DCP Command Line Utilities",
   "main": "index.js",
   "bin": {
@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/Distributed-Compute-Labs/dcp-util@readme",
   "dependencies": {
-    "dcp-client": "^3.1.9",
+    "dcp-client": "^3.1.10",
     "expand-tilde": "^2.0.2"
   },
   "devDependencies": {},
