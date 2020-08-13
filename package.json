@@ -14,14 +14,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Distributed-Compute-Labs/dcp-util"
+    "url": "https://gitlab.com/Distributed-Compute-Labs/dcp-util"
   },
   "author": "Kings Distributed Systems",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Distributed-Compute-Labs/dcp-util/utils"
+    "url": "https://gitlab.com/Distributed-Compute-Labs/dcp-util/utils"
   },
-  "homepage": "https://github.com/Distributed-Compute-Labs/dcp-util@readme",
+  "homepage": "https://gitlab.com/Distributed-Compute-Labs/dcp-util@readme",
   "dependencies": {
     "chokidar": "^2.1.8",
     "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#78441473a59696a766d1038443a93e90c6b0194d",
