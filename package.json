@@ -24,7 +24,7 @@
   "homepage": "https://gitlab.com/Distributed-Compute-Labs/dcp-util@readme",
   "dependencies": {
     "chokidar": "^2.1.8",
-    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#78441473a59696a766d1038443a93e90c6b0194d",
+    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#ef9419ce47c992b8e403bcef77daaf17be1f8a35",
     "expand-tilde": "^2.0.2"
   },
   "devDependencies": {},
