@@ -73,7 +73,7 @@ async function getBalance(options) {
   const ks = await require('dcp/dcp-cli').getAccountKeystore();
   
   if (!options.quiet && !options.json)
-    console.log('Fetching account balance for address ' + ks.address);
+    console.log(`Fetching account balance for address ${ks.address} at bank ${require('dcp/dcp-config').bank.location}`);
   
   return bankConn.send('viewAccount', { address: ks.address }, ks)
     .then(res => {
