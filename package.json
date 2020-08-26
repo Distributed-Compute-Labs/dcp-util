@@ -1,9 +1,10 @@
 {
   "name": "dcp-util",
-  "version": "1.0.7",
+  "version": "1.0.8-0",
   "description": "DCP Command Line Utilities",
   "main": "index.js",
   "bin": {
+    "bank-util": "bin/bank-util",
     "job-utility": "bin/job-utility",
     "mkad": "bin/mkad",
     "schedmsg": "bin/schedmsg"
@@ -24,7 +25,7 @@
   "homepage": "https://gitlab.com/Distributed-Compute-Labs/dcp-util@readme",
   "dependencies": {
     "chokidar": "^2.1.8",
-    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#921d41c0f4e846dab60ffb701c242dc0e05e9608",
+    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#8d8f569db0f68f87b205be90705f7c5c55f009b1",
     "expand-tilde": "^2.0.2"
   },
   "devDependencies": {},
