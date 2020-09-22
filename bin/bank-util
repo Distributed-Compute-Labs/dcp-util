@@ -146,7 +146,7 @@ async function viewFeeStructure(options) {
  */
 async function transferCredits(options) {
   const ks = await require('dcp/dcp-cli').getAccountKeystore();
-  const amount = options._[1];
+  const amount = options.amount || options._[1];
   let toAddress = false;
   
   await require('dcp/wallet').get(options.toAddress)
