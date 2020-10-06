@@ -2,7 +2,19 @@
   "name": "dcp-util",
   "version": "1.1.0",
   "description": "DCP Command Line Utilities",
-  "main": "index.js",
+  "keywords": [
+    "dcp"
+  ],
+  "homepage": "https://gitlab.com/Distributed-Compute-Labs/dcp-util@readme",
+  "bugs": {
+    "url": "https://gitlab.com/Distributed-Compute-Labs/dcp-util/utils"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/Distributed-Compute-Labs/dcp-util.git"
+  },
+  "license": "MIT",
+  "author": "Kings Distributed Systems",
   "bin": {
     "bank-util": "bin/bank-util",
     "job-utility": "bin/job-utility",
@@ -13,23 +25,10 @@
     "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://gitlab.com/Distributed-Compute-Labs/dcp-util"
-  },
-  "author": "Kings Distributed Systems",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://gitlab.com/Distributed-Compute-Labs/dcp-util/utils"
-  },
-  "homepage": "https://gitlab.com/Distributed-Compute-Labs/dcp-util@readme",
   "dependencies": {
     "chokidar": "^2.1.8",
     "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#develop",
     "expand-tilde": "^2.0.2"
   },
-  "devDependencies": {},
-  "keywords": [
-    "dcp"
-  ]
+  "devDependencies": {}
 }
