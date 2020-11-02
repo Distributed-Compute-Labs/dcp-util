@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "chokidar": "^2.1.8",
-    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#develop",
+    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#epic/scheduler-upgrade",
     "expand-tilde": "^2.0.2"
   },
   "devDependencies": {}

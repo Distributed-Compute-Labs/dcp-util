@@ -1,0 +1,83 @@
+#! /usr/bin/env node
+/**
+ * @file cg-utility
+ * 
+ * This utility is used to manage compute groups.
+ *
+ * The following operations are supported:
+ *  - create compute group
+ *  - change compute group
+ *  - delete compute group
+ *  - list jobs in group
+ * 
+ * Future versions of this utility will also adding/removing jobs from the group,
+ * maybe performance-related queries, etc.
+ * 
+ * Eventually, the portal will have a “Compute Groups” page that will also do this
+ * with a web interface, but that will come later.
+ * 
+ * @author Ryan Rossiter, ryan@kingsds.network
+ * @date Oct 2020
+ */
+
+const process = require('process');
+
+const wrapApiCall = (fn) => (argv) => {
+  const op = argv._[0];
+  console.log(`Sending compute group "${op}" operation...`);
+
+  Promise.resolve(fn(argv))
+  .then((res) => {
+    console.log("Done. Response:\n", res);
+  })
+  .catch((e) => {
+    console.error(e);
+    process.exitCode = 1;
+  })
+  .finally(() => process.exit());
+}
+
+async function main() {
+  const computeGroups = require('dcp/compute-groups');
+
+  require('dcp/dcp-cli')
+  .base('Manage compute groups.')
+  .command('create <name> [description]',
+    'Create a new compute group', {},
+    wrapApiCall((argv) => computeGroups.create(argv.name, argv.description))
+  )
+  .command('change <id> [options]',
+    'Change a compute group', (yargs) => yargs.options({
+      name: { type: 'string', },
+      description: { type: 'string', },
+      joinKey: { type: 'string', },
+      joinSecret: { type: 'string', },
+      joinAddress: { type: 'string', },
+    }),
+    wrapApiCall((argv) => computeGroups.changeGroup(argv.id, {
+      name: argv.name,
+      description: argv.description,
+      joinKey: argv.joinKey,
+      joinSecret: argv.joinSecret,
+      joinAddress: argv.joinAddress,
+    }))
+  )
+  .command('delete <id>',
+    'Delete a compute group', {},
+    wrapApiCall((argv) => computeGroups.deleteGroup(argv.id))
+  )
+  .command('listJobs <id>',
+    'List jobs in a compute group', {},
+    wrapApiCall((argv) => computeGroups.listJobs(argv.id))
+  )
+  .demandCommand(1, 'A command must be specified')
+  .strict().argv;
+}
+
+require('dcp-client').init()
+.then(main)
+.catch(e => {
+  console.error("Failed to execute command:");
+  console.error(e);
+  process.exit(1);
+});
