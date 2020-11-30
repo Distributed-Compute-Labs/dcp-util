@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "chokidar": "^2.1.8",
-    "dcp-client": "^3.2.0",
+    "dcp-client": "^3.2.3",
     "expand-tilde": "^2.0.2"
   },
   "devDependencies": {}
