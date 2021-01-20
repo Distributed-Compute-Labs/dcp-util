@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 /**
  *  @file       job-utility.js
  *              Utility to inspect and manipulate running jobs.
@@ -11,7 +11,7 @@
 const process = require('process');
 
 async function main () {
-  const argv = require('dcp/dcp-cli')
+  const { argv } = require('dcp/dcp-cli')
   .base('Inspect and manipulate running jobs on the command line.')
   .command('listJobs',
     'List attributes of jobs.', {
