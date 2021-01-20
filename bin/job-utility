@@ -57,12 +57,12 @@ async function main () {
  */
 async function sendRequest (command, argv) {
   const protocolV4 = require('dcp/protocol-v4');
-  const { URL } = require('dcp/dcp-url');
+  const { DcpURL } = require('dcp/dcp-url');
   const wallet = require('dcp/wallet');
 
   const accountKeystore = await wallet.get();
 
-  const schedulerURL = new URL(argv.scheduler);
+  const schedulerURL = new DcpURL(argv.scheduler);
   const schedulerConnection = new protocolV4.Connection(schedulerURL.resolve('/DCPv4'));
   
   let operation;
