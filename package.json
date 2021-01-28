@@ -26,15 +26,16 @@
   ],
   "scripts": {
     "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "peter -v tests"
   },
   "dependencies": {
-    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#epic/scheduler-upgrade",
+    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#feature/dcp-1578-dcp-util-scripts-do-not-work-with-scheduler-v4",
     "expand-tilde": "^2.0.2"
   },
   "devDependencies": {
     "concat-stream": "2.0.0",
     "cross-spawn": "7.0.3",
+    "peter": "2.1.0-a",
     "zora": "4.0.2"
   }
 }
