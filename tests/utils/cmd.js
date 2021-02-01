@@ -6,9 +6,10 @@
 
 const { existsSync } = require('fs');
 const { constants } = require('os');
-const path = require('path');
 const spawn = require('cross-spawn');
 const concat = require('concat-stream');
+
+const { debugInfo, debugError } = require('./debug');
 
 const { PATH } = process.env;
 
@@ -21,13 +22,12 @@ const { PATH } = process.env;
  * @returns {import('child_process').ChildProcess} the created child process
  */
 function createProcess(processPath, args = [], env = null) {
-  processPath = path.resolve(processPath);
-
   // Ensure that path exists
-  // if (!processPath || !existsSync(processPath)) {
-  //   throw new Error(`Invalid process path "${processPath}"`);
-  // }
+  if (typeof processPath !== 'string' || !existsSync(processPath)) {
+    throw new Error(`Invalid process path "${processPath}"`);
+  }
 
+  debugInfo('PATH:', PATH);
   /**
    * This works for node based CLIs, but can easily be adjusted to any other
    * process installed in the system.
@@ -98,9 +98,7 @@ function executeWithInput(processPath, args = [], inputs = [], opts = {}) {
     currentInputTimeout = setTimeout(() => {
       childProcess.stdin.write(inputs[0]);
       // Log debug I/O statements on tests
-      if (env && env.DEBUG) {
-        console.log('input:', inputs[0]);
-      }
+      debugInfo('Input:', inputs[0]);
       loop(inputs.slice(1));
     }, timeout);
   };
@@ -109,27 +107,23 @@ function executeWithInput(processPath, args = [], inputs = [], opts = {}) {
     // Get errors from CLI
     childProcess.stderr.on('data', (data) => {
       // Log debug I/O statements on tests
-      if (env && env.DEBUG) {
-        console.log('error:', data.toString());
-      }
+      debugError('Error:', String(data));
     });
 
     // Get output from CLI
     childProcess.stdout.on('data', (data) => {
       // Log debug I/O statements on tests
-      if (env && env.DEBUG) {
-        console.log('output:', data.toString());
-      }
+      debugInfo('Output:', String(data));
     });
 
-    childProcess.stderr.once('data', (err) => {
+    childProcess.stderr.once('data', (error) => {
       childProcess.stdin.end();
       if (currentInputTimeout) {
         clearTimeout(currentInputTimeout);
         inputs = [];
       }
 
-      reject(err.toString());
+      reject(String(error));
     });
 
     childProcess.on('error', reject);
@@ -143,7 +137,7 @@ function executeWithInput(processPath, args = [], inputs = [], opts = {}) {
           clearTimeout(killIOTimeout);
         }
 
-        resolve(result.toString());
+        resolve(String(result));
       }),
     );
   });

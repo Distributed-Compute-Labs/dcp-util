@@ -55,9 +55,13 @@ build:
     - chmod 644 ~/.ssh/known_hosts
 
   script:
+    # install instead of ci to take advantage of caching node_modules
     - npm install
 
 test:
   stage: test
   script:
+    # Setting this as a `variable` breaks npm, making it unable to find scripts
+    # under `node_modules/.bin` for whatever reason. e.g. `peter: not found`
+    - export DEBUG=tests
     - npm test

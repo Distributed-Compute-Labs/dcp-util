@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 /**
  *  Bank Utility - CLI for common bank operations
  *  @author     Eddie Roosenmaallen <eddie@kingsds.network>
@@ -7,61 +7,64 @@
 
 const process = require('process');
 
+const debug = require('debug');
+
 require('dcp-client').initSync(process.argv);
 
-const dcpv4 = require('dcp/protocol-v4');
+const { Connection } = require('dcp/protocol-v4');
+const {
+  bank: { location: bankLocation },
+} = require('dcp/dcp-config');
 
-const bankConn = new dcpv4.Connection(require('dcp/dcp-config').bank.location.resolve('/DCPv4'));
+const getBankConnection = () =>
+  new Connection(bankLocation.resolve('/bank-teller'));
+let bankConnection;
 
+const log = debug('bank-util');
 
-/** Handle CLI and dispatch commands to appropriate handlers
+/**
+ * Handle CLI and dispatch commands to appropriate handlers
  */
 function main() {
-  return new Promise((resolve, reject) => {
-    const options = require('dcp/dcp-cli')
-    .base('CLI for common Bank operations')
-    .command(
-      'balance',
-      'Request account balances',
-      {},
-      getBalance
-    )
-    .command(
-      'viewFeeStructure <feeStructureAddress>',
-      'View details about a FeeStructure', 
-      {},
-      viewFeeStructure
-    )
-    .command(
-      'transfer <amount> <toAddress>',
-      'Transfer credits',
-      {},
-      transferCredits
-    )
-    
-    .option('quiet', {
-      alias: 'q',
-      description: 'Less output',
-      type: 'boolean',
-      default: false,
-    })
-    .option('json', {
-      alias: 'j',
-      description: 'Provide output in JSON format',
-      type: 'boolean',
-      // implies: 'quiet',
-      default: false,
-    })
-    
-    .demandCommand()
-    
-    // Yargs doesn't seem to play well with async command handlers; this 
-    // onFinishCommand hook will resolve main() with the result value from 
-    // the command function
-    .onFinishCommand(resultValue => {
-      resolve(resultValue);
-    })
-    .argv;
+  return new Promise((resolve, _reject) => {
+    // eslint-disable-next-line no-unused-expressions
+    require('dcp/dcp-cli')
+      .base('CLI for common Bank operations')
+      .command('balance', 'Request account balances', {}, getBalance)
+      .command(
+        'viewFeeStructure <feeStructureAddress>',
+        'View details about a FeeStructure',
+        {},
+        viewFeeStructure,
+      )
+      .command(
+        'transfer <amount> <toAddress>',
+        'Transfer credits',
+        {},
+        transferCredits,
+      )
+      .option('quiet', {
+        alias: 'q',
+        description: 'Less output',
+        type: 'boolean',
+        default: false,
+      })
+      .option('json', {
+        alias: 'j',
+        description: 'Provide output in JSON format',
+        type: 'boolean',
+        // implies: 'quiet',
+        default: false,
+      })
+      .demandCommand(1)
+      /**
+       * Yargs doesn't seem to play well with async command handlers; this
+       * onFinishCommand hook will resolve main() with the result value from the
+       * command function.
+       */
+      .onFinishCommand((resultValue) => {
+        resolve(resultValue);
+      }).argv;
   });
 }
 
@@ -71,11 +74,14 @@ function main() {
  */
 async function getBalance(options) {
   const ks = await require('dcp/dcp-cli').getAccountKeystore();
-  
+
   if (!options.quiet && !options.json)
     console.log(`Fetching account balance for address ${ks.address} at bank ${require('dcp/dcp-config').bank.location}`);
-  
-  return bankConn.send('viewAccount', { address: ks.address }, ks)
+
+  bankConnection = getBankConnection();
+
+  return bankConnection
+    .send('viewAccount', { address: ks.address }, ks)
     .then(res => {
       const { address, balance, escrow } = res.payload;
       
@@ -108,13 +114,16 @@ async function getBalance(options) {
 async function viewFeeStructure(options) {
   const ks = await require('dcp/dcp-cli').getAccountKeystore();
   const feeStructureAddress = '0x' + (options.feeStructureAddress.replace(/^0x/, ''));
-  
+
   if (!options.quiet && !options.json) {
     console.log('Fetching FeeStructure:', feeStructureAddress);
     console.log(`   (owned by ${ks.address})`);
   }
-  
-  return bankConn.send('viewFeeStructure', { feeStructureAddress }, ks)
+
+  bankConnection = getBankConnection();
+
+  return bankConnection
+    .send('viewFeeStructure', { feeStructureAddress }, ks)
     .then(res => {
       if (options.json) {
         console.log(JSON.stringify(res.payload, null, 2));
@@ -170,11 +179,18 @@ async function transferCredits(options) {
     console.log('  Amount:       ' + amount);
   }
 
-  return bankConn.send('transferCredits', {
-    fromAddress: ks.address,
-    toAddress,
-    amount,
-  }, ks)
+  bankConnection = getBankConnection();
+
+  return bankConnection
+    .send(
+      'transferCredits',
+      {
+        fromAddress: ks.address,
+        toAddress,
+        amount,
+      },
+      ks,
+    )
     .then(res => {
       if (options.json) {
         console.log(JSON.stringify(res.payload, null, 2));
@@ -201,12 +217,12 @@ async function transferCredits(options) {
 }
 
 main()
-.catch(error => {
-  console.error('045: Unexpected error:', error);
-})
-.finally(() => {
-  if (bankConn && (bankConn.usable || !bankConn.closed)) {
-    // console.info('Disconnecting from Bank...');
-    bankConn.close();
-  }
-});
+  .catch((error) => {
+    console.error('045: Unexpected error:', error);
+  })
+  .finally(() => {
+    if (bankConnection && (bankConnection.usable || !bankConnection.closed)) {
+      log('Disconnecting from Bank...');
+      bankConnection.close();
+    }
+  });

@@ -2,41 +2,26 @@ const { test } = require('zora');
 
 const { create } = require('./utils/cmd');
 const shouldThrow = require('./utils/should-throw');
+const { debugError } = require('./utils/debug');
 
 const execute = create('bin/bank-util');
 
 test('Bank Utility', async (t) => {
   t.test('Help Text', async (t) => {
-    const helpText = `
-bank-util - CLI for common Bank operations
-Copyright (c) 2020 Kings Distributed Systems Ltd., All Rights Reserved.
-
-To view the common DCP options, use the --help flag with --dcp-options.
-
-Commands:
-  bank-util balance                         Request account balances
-  bank-util viewFeeStructure                View details about a FeeStructure
-  <feeStructureAddress>
-  bank-util transfer <amount> <toAddress>   Transfer credits
-
-Options:
-  --help, -h                    Show help, use with commands to show detailed
-                                command help: bank-util <cmd> --help   [boolean]
-  --show-hidden, --dcp-options  Show hidden options, and DCP common options
-                                (must be used with the --help flag)    [boolean]
-  --quiet, -q                   Less output           [boolean] [default: false]
-  --json, -j                    Provide output in JSON format
-                                                      [boolean] [default: false]
-`;
-
+    const bankUtilOperations = ['balance', 'viewFeeStructure', 'transfer'];
     const testCaseDescription =
-      'When no arguments are passed, then help text is displayed';
+      'When no arguments are passed, then help text is displayed describing supported operations.';
     await shouldThrow(execute, testCaseDescription, t, (error) => {
       if (typeof error !== 'undefined') {
-        console.error(error);
+        debugError(error);
       }
 
-      t.eq(String(error), helpText, testCaseDescription);
+      const output = String(error);
+
+      t.ok(
+        bankUtilOperations.every((operation) => output.includes(operation)),
+        testCaseDescription,
+      );
     });
   });
 });
