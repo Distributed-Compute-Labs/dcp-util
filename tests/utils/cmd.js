@@ -6,6 +6,7 @@
 
 const { existsSync } = require('fs');
 const { constants } = require('os');
+const path = require('path');
 const spawn = require('cross-spawn');
 const concat = require('concat-stream');
 
@@ -20,10 +21,12 @@ const { PATH } = process.env;
  * @returns {import('child_process').ChildProcess} the created child process
  */
 function createProcess(processPath, args = [], env = null) {
+  processPath = path.resolve(processPath);
+
   // Ensure that path exists
-  if (!processPath || !existsSync(processPath)) {
-    throw new Error(`Invalid process path "${processPath}"`);
-  }
+  // if (!processPath || !existsSync(processPath)) {
+  //   throw new Error(`Invalid process path "${processPath}"`);
+  // }
 
   /**
    * This works for node based CLIs, but can easily be adjusted to any other
@@ -56,11 +59,6 @@ function createProcess(processPath, args = [], env = null) {
  * Rejects the promise if any error.
  */
 function executeWithInput(processPath, args = [], inputs = [], opts = {}) {
-  if (!Array.isArray(inputs)) {
-    opts = inputs;
-    inputs = [];
-  }
-
   const { env = process.env, timeout = 100, maxTimeout = 10000 } = opts;
   const childProcess = createProcess(processPath, args, env);
   childProcess.stdin.setEncoding('utf-8');

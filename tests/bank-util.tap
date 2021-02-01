@@ -32,7 +32,11 @@ Options:
     const testCaseDescription =
       'When no arguments are passed, then help text is displayed';
     await shouldThrow(execute, testCaseDescription, t, (error) => {
-      t.eq(error, helpText, testCaseDescription);
+      if (typeof error !== 'undefined') {
+        console.error(error);
+      }
+
+      t.eq(String(error), helpText, testCaseDescription);
     });
   });
 });
