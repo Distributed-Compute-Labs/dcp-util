@@ -15,14 +15,20 @@
 
 const process = require('process');
 
+require('dcp-client').initSync();
+
+const { base } = require('dcp/dcp-cli');
+const { Connection } = require('dcp/protocol-v4');
+const { DcpURL } = require('dcp/dcp-url');
+const { load, getId } = require('dcp/wallet');
+
 /**
  * Provides a system to interact with the workers by converting info from
  * command line arguments to objects. The objects will be sent to protocol.js to
  * sign and send the message.
  */
 async function main() {
-  require('dcp/dcp-cli')
-    .base('Send control messages to a DCP service.')
+  base('Send control messages to a DCP service.')
     .command(
       'announce <message>',
       'Send an announcement to workers, will display a modal or log to console',
@@ -100,15 +106,10 @@ async function main() {
  * @param {object} payload
  */
 async function sendMessage(argv, command, payload = {}) {
-  const protocolV4 = require('dcp/protocol-v4');
-  const { URL } = require('dcp/dcp-url');
-
   const targetIdentity = await getTargetIdentity(argv);
 
-  const schedulerURL = new URL(argv.scheduler);
-  const schedulerConnection = new protocolV4.Connection(
-    schedulerURL.resolve('/DCPv4'),
-  );
+  const schedulerURL = new DcpURL(argv.scheduler);
+  const schedulerConnection = new Connection(schedulerURL.resolve('/DCPv4'));
 
   const message = {
     target: targetIdentity.address,
@@ -130,11 +131,10 @@ async function sendMessage(argv, command, payload = {}) {
  * @returns {object} The target identity
  */
 function getTargetIdentity(argv) {
-  const wallet = require('dcp/wallet');
   const { targetIdentity, targetIdentityFile } = argv;
 
   if (targetIdentityFile) {
-    return wallet.load(targetIdentityFile).then((loaded) => {
+    return load(targetIdentityFile).then((loaded) => {
       if (!loaded.safe)
         console.warn(
           `Warning! The keystore file ${targetIdentityFile} has unsafe permissions!`,
@@ -144,16 +144,13 @@ function getTargetIdentity(argv) {
     });
   }
   if (targetIdentity) {
-    return wallet.getId(targetIdentity);
+    return getId(targetIdentity);
   }
-  return wallet.getId();
+  return getId();
 }
 
-require('dcp-client')
-  .init()
-  .then(main)
-  .catch((e) => {
-    console.error('Failed to execute command:');
-    console.error(e);
-    process.exit(1);
-  });
+main().catch((e) => {
+  console.error('Failed to execute command:');
+  console.error(e);
+  process.exit(1);
+});
