@@ -8,7 +8,7 @@ const execute = create('bin/job-utility');
 
 test('Job Utility', async (t) => {
   t.test('Help Text', async (t) => {
-    const bankUtilOperations = [
+    const operationsAndOptions = [
       'countJobs',
       'countTasks',
       'elapsedTime',
@@ -18,7 +18,7 @@ test('Job Utility', async (t) => {
       'fetchSliceReport',
     ];
 
-    const testCaseDescription = `When no arguments are passed, then help text is displayed describing supported operations (${bankUtilOperations}).`;
+    const testCaseDescription = `When no arguments are passed, then help text is displayed describing supported operations (${operationsAndOptions}).`;
     await shouldThrow(execute, testCaseDescription, t, (error) => {
       if (typeof error !== 'undefined') {
         debugError(error);
@@ -27,7 +27,7 @@ test('Job Utility', async (t) => {
       const output = String(error);
 
       t.ok(
-        bankUtilOperations.every((operation) => output.includes(operation)),
+        operationsAndOptions.every((operation) => output.includes(operation)),
         testCaseDescription,
       );
     });

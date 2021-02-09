@@ -4,16 +4,22 @@ const { create } = require('./utils/cmd');
 const shouldThrow = require('./utils/should-throw');
 const { debugError } = require('./utils/debug');
 
-const execute = create('bin/bank-utility');
+const execute = create('bin/schedmsg');
 
-test('Bank Utility', async (t) => {
+test('Scheduler Message Utility', async (t) => {
   t.test('Help Text', async (t) => {
     const operationsAndOptions = [
-      'balance',
-      'viewFeeStructure',
-      'transfer',
-      '--quiet',
-      '--json',
+      'announce',
+      'remove',
+      'openPopup',
+      'kill',
+      'reload',
+      'restart',
+      'reload',
+      '--broadcast',
+      '--targetIdentity',
+      '--targetIdentityFile',
+      '--persistent',
     ];
 
     const testCaseDescription =
