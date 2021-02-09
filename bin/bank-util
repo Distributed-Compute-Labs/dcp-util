@@ -1,23 +1,26 @@
 #!/usr/bin/env node
 /**
  *  Bank Utility - CLI for common bank operations
+ *
  *  @author     Eddie Roosenmaallen <eddie@kingsds.network>
  *  @date       August 2020
  */
 
-const process = require('process');
+const { argv } = require('process');
 
 const debug = require('debug');
 
-require('dcp-client').initSync(process.argv);
+require('dcp-client').initSync(argv);
 
+const { base, getAccountKeystore } = require('dcp/dcp-cli');
+const { Address } = require('dcp/wallet');
 const { Connection } = require('dcp/protocol-v4');
 const {
   bank: { location: bankLocation },
 } = require('dcp/dcp-config');
 
 const getBankConnection = () =>
-  new Connection(bankLocation.resolve('/bank-teller'));
+  new Connection(bankLocation.resolve('bank-teller'));
 let bankConnection;
 
 const log = debug('bank-util');
@@ -27,9 +30,7 @@ const log = debug('bank-util');
  */
 function main() {
   return new Promise((resolve, _reject) => {
-    // eslint-disable-next-line no-unused-expressions
-    require('dcp/dcp-cli')
-      .base('CLI for common Bank operations')
+    base('CLI for common Bank operations')
       .command('balance', 'Request account balances', {}, getBalance)
       .command(
         'viewFeeStructure <feeStructureAddress>',
@@ -53,7 +54,6 @@ function main() {
         alias: 'j',
         description: 'Provide output in JSON format',
         type: 'boolean',
-        // implies: 'quiet',
         default: false,
       })
       .demandCommand(1)
@@ -64,156 +64,171 @@ function main() {
        */
       .onFinishCommand((resultValue) => {
         resolve(resultValue);
-      }).argv;
+      })
+      .parse();
   });
 }
 
-/** Fetch balance information for the default account
- *  @param {object} options   Yargs options from CLI
- *  @returns {Promise<DCP Payload>}  Resolves to the Account block from the bank
+/**
+ * Fetch balance information for the default account
+ *
+ * @param {object} options Yargs options from CLI
+ * @returns {Promise<object>}  Resolves to the Account block from the bank
  */
 async function getBalance(options) {
-  const ks = await require('dcp/dcp-cli').getAccountKeystore();
+  const ks = await getAccountKeystore();
 
   if (!options.quiet && !options.json)
-    console.log(`Fetching account balance for address ${ks.address} at bank ${require('dcp/dcp-config').bank.location}`);
+    console.log(
+      `Fetching account balance for address ${ks.address} at bank ${bankLocation}`,
+    );
 
   bankConnection = getBankConnection();
 
-  return bankConnection
-    .send('viewAccount', { address: ks.address }, ks)
-    .then(res => {
-      const { address, balance, escrow } = res.payload;
-      
-      if (options.json) {
-        console.log(JSON.stringify(res.payload, null, 2));
-      }
-      else {
-        console.log(`Account info for ${address}:`);
-        console.log(`  Balance: ${balance}`);
-        
-        if (escrow && parseInt(escrow.num)) {
-          console.log(`  Escrow count: ${escrow.num}`);
-          console.log(`  Escrow total: ${escrow.total}`);
-        }
-      }
-      
-      // console.debug(res.payload);
-      
-      return res.payload;
-    });
+  const { payload } = await bankConnection.send(
+    'viewAccount',
+    { address: ks.address },
+    ks,
+  );
+
+  if (options.json) {
+    console.log(JSON.stringify(payload, null, 2));
+  } else {
+    const { address, balance, escrow } = payload;
+    console.log(`Account info for ${address}:`);
+    console.log(`  Balance: ${balance}`);
+
+    if (escrow && parseInt(escrow.num, 10)) {
+      console.log(`  Escrow count: ${escrow.num}`);
+      console.log(`  Escrow total: ${escrow.total}`);
+    }
+  }
+
+  log(payload);
+
+  return payload;
 }
 
 /**
- *  Fetch details about a FeeStructure from the bank
+ * Fetch details about a FeeStructure from the bank
  *
- *  @param  {object} options Parsed Yargs options
- *          .feeStructureAddress: Fee structure to fetch
- *  @return {Promise<FeeStructure>}  Resolves to the requested FeeStructure
+ * @param {object} options - Parsed Yargs options .feeStructureAddress: Fee
+ * structure to fetch
+ * @returns {Promise<object>} Resolves to the requested FeeStructure
  */
 async function viewFeeStructure(options) {
-  const ks = await require('dcp/dcp-cli').getAccountKeystore();
-  const feeStructureAddress = '0x' + (options.feeStructureAddress.replace(/^0x/, ''));
+  const ks = await getAccountKeystore();
+  const feeStructureAddress = String(
+    new Address(String(options.feeStructureAddress)),
+  );
 
   if (!options.quiet && !options.json) {
     console.log('Fetching FeeStructure:', feeStructureAddress);
-    console.log(`   (owned by ${ks.address})`);
+    console.log(`  (owned by ${ks.address})`);
   }
 
   bankConnection = getBankConnection();
 
-  return bankConnection
-    .send('viewFeeStructure', { feeStructureAddress }, ks)
-    .then(res => {
-      if (options.json) {
-        console.log(JSON.stringify(res.payload, null, 2));
-      }
-      else {
-        const { address, fromAddress, escrow, balance, moved, maxTotal, maxPerRequest } = res.payload;
-        
-        console.log('Fee Structure:');
-        console.log('  Address:      ', address);
-        console.log('  From Account: ', fromAddress);
-        console.log('  Type:         ', escrow ? 'Escrow' : 'Dynamic');
-        console.log('  Slice Price:  ', maxPerRequest.padStart(22));
-        console.log('  Total amount: ', maxTotal.padStart(22));
-        console.log('  Moved:        ', moved.padStart(22));
-        console.log('  Balance:      ', balance.padStart(22));
-      }
-      
-      return res.payload;
-    });
+  const { payload } = await bankConnection.send(
+    'viewFeeStructure',
+    { feeStructureAddress },
+    ks,
+  );
+
+  if (options.json) {
+    console.log(JSON.stringify(payload, null, 2));
+  } else {
+    const {
+      address,
+      fromAddress,
+      escrow,
+      balance,
+      moved,
+      maxTotal,
+      maxPerRequest,
+    } = payload;
+
+    if (payload.name === 'Error') {
+      console.error('Unable to view fee structure for the following reason:');
+      console.error(payload.message);
+      return payload;
+    }
+
+    console.log('Fee Structure:');
+    console.log('  Address:      ', address);
+    console.log('  From Account: ', fromAddress);
+    console.log('  Type:         ', escrow ? 'Escrow' : 'Dynamic');
+    console.log('  Slice Price:  ', maxPerRequest.padStart(22));
+    console.log('  Total amount: ', maxTotal.padStart(22));
+    console.log('  Moved:        ', moved.padStart(22));
+    console.log('  Balance:      ', balance.padStart(22));
+  }
+
+  return payload;
 }
 
 /**
- *  Transfer credits to another account
+ * Transfer credits to another account
  *
- *  @param  {object} options Parsed Yargs options
- *    .amount:     Amount to transfer
- *    .toAddress:  Address to transfer to. If mixed case, checksum will be validated
- *  @return {Promise<FeeStructure>}  Resolves to the requested FeeStructure
+ * @param {object} options - Parsed Yargs options
+ * @param {number} options.amount - Amount to transfer
+ * @param {string} options.toAddress - Address to transfer to. If mixed case,
+ * checksum will be validated
+ * @returns {Promise<object>} Resolves to the requested FeeStructure
  */
 async function transferCredits(options) {
-  const ks = await require('dcp/dcp-cli').getAccountKeystore();
   const amount = options.amount || options._[1];
-  let toAddress = false;
-  
-  await require('dcp/wallet').get(options.toAddress)
-  .then(dest => {
-    return toAddress = dest.address.toString();
-  })
-  .catch(error => {
-    if (error.message.includes('Could not locate keystore')
-      && options.toAddress.match(/^(0x)?([a-fA-F0-9]+)$/)) {
-      toAddress = options.toAddress;
-    }
-    else {
-      throw error;
-    }
-  });
-  
+  const toAccount = String(new Address(String(options.toAddress)));
+  const ks = await getAccountKeystore();
+
   if (!options.quiet && !options.json) {
-    console.log('Sending transfer')
-    console.log('  From Address: ' + ks.address)
-    console.log('  To Address:   ' + toAddress);
-    console.log('  Amount:       ' + amount);
+    console.log('Sending transfer');
+    console.log(`  From Address: ${ks.address}`);
+    console.log(`  To Address:   ${toAccount}`);
+    console.log(`  Amount:       ${amount}`);
   }
 
   bankConnection = getBankConnection();
 
-  return bankConnection
-    .send(
+  try {
+    const { payload } = await bankConnection.send(
       'transferCredits',
       {
-        fromAddress: ks.address,
-        toAddress,
+        fromAccount: ks.address,
+        toAccount,
         amount,
       },
       ks,
-    )
-    .then(res => {
-      if (options.json) {
-        console.log(JSON.stringify(res.payload, null, 2));
-      }
-      else {
-        if (!options.quiet)
-          console.log('Sent ok');
-      }
-      
-      return res.payload;
-    })
-    .catch(error => {
-      if (error.code === 'ENOFUNDS') {
-        console.error('Error: Not enough credits in source account.');
-      }
-      else if (error.message.includes('Bad checksum for address')) {
-        console.error(`Error: Address ${toAddress} has an invalid checksum. Please verify the address and try again.`);
-        return false;
-      }
-      else {
-        throw error;
-      }
-    });
+    );
+
+    log(payload);
+
+    if (options.json) {
+      console.log(JSON.stringify(payload, null, 2));
+    } else if (payload.name === 'Error') {
+      console.error('Unable to complete transfer for the following reason:');
+      console.error(payload.message);
+    } else if (!options.quiet) {
+      console.log('Transfer successful!');
+    }
+
+    return payload;
+  } catch (error) {
+    if (error.code === 'ENOFUNDS') {
+      console.error('Error: Not enough credits in source account.');
+      return error;
+    }
+
+    if (error.message.includes('Bad checksum for address')) {
+      console.error(
+        `Error: Address ${toAccount} has an invalid checksum. Please verify the address and try again.`,
+      );
+
+      return error;
+    }
+
+    throw error;
+  }
 }
 
 main()
@@ -221,7 +236,10 @@ main()
     console.error('045: Unexpected error:', error);
   })
   .finally(() => {
-    if (bankConnection && (bankConnection.usable || !bankConnection.closed)) {
+    if (
+      typeof bankConnection === 'object' &&
+      (bankConnection.usable || !bankConnection.closed)
+    ) {
       log('Disconnecting from Bank...');
       bankConnection.close();
     }
