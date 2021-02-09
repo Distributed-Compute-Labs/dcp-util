@@ -14,6 +14,7 @@
  */
 
 const process = require('process');
+const debug = require('debug');
 
 require('dcp-client').initSync();
 
@@ -21,6 +22,8 @@ const { base } = require('dcp/dcp-cli');
 const { Connection } = require('dcp/protocol-v4');
 const { DcpURL } = require('dcp/dcp-url');
 const { load, getId } = require('dcp/wallet');
+
+const log = debug('schedmsg');
 
 /**
  * Provides a system to interact with the workers by converting info from
@@ -107,10 +110,8 @@ async function main() {
  */
 async function sendMessage(argv, command, payload = {}) {
   const targetIdentity = await getTargetIdentity(argv);
-
   const schedulerURL = new DcpURL(argv.scheduler);
-  const schedulerConnection = new Connection(schedulerURL.resolve('/DCPv4'));
-
+  const schedulerConnection = new Connection(schedulerURL.resolve('events'));
   const message = {
     target: targetIdentity.address,
     broadcast: argv.broadcast,
@@ -119,8 +120,21 @@ async function sendMessage(argv, command, payload = {}) {
   };
 
   console.log(`Sending SchedMsg to scheduler ${argv.scheduler}:`, message);
-  await schedulerConnection.send('sendSchedMsg', message, targetIdentity);
-  console.log(`\nCommand '${command}' sent successfully.`);
+
+  // FIXME(bryan-hoang): sendSchedMsg is not implemented
+  const response = await schedulerConnection.send(
+    'sendSchedMsg',
+    message,
+    targetIdentity,
+  );
+
+  log(response);
+  if (response.name.includes('Error')) {
+    console.error('Unable to send schedmsg:');
+    console.error(response.message);
+  } else {
+    console.log(`\nCommand '${command}' sent successfully.`);
+  }
 
   await schedulerConnection.close();
   process.exit(0);
