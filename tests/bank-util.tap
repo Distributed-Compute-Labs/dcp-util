@@ -4,7 +4,7 @@ const { create } = require('./utils/cmd');
 const shouldThrow = require('./utils/should-throw');
 const { debugError } = require('./utils/debug');
 
-const execute = create('bin/bank-util');
+const execute = create('bin/bank-utility');
 
 test('Bank Utility', async (t) => {
   t.test('Help Text', async (t) => {

@@ -16,7 +16,7 @@
   "license": "MIT",
   "author": "Kings Distributed Systems",
   "bin": {
-    "bank-util": "bin/bank-util",
+    "bank-utility": "bin/bank-utility",
     "job-utility": "bin/job-utility",
     "mkad": "bin/mkad",
     "schedmsg": "bin/schedmsg"
