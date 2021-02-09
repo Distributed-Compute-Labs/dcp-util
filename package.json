@@ -17,6 +17,7 @@
   "author": "Kings Distributed Systems",
   "bin": {
     "bank-utility": "bin/bank-utility",
+    "cg-utility": "bin/cg-utility",
     "job-utility": "bin/job-utility",
     "mkad": "bin/mkad",
     "schedmsg": "bin/schedmsg"
