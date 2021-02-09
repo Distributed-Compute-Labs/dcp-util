@@ -10,61 +10,74 @@
 
 const process = require('process');
 
-async function main () {
+/**
+ * Uses dcp-cli to help manage operations.
+ */
+async function main() {
   const { argv } = require('dcp/dcp-cli')
-  .base('Inspect and manipulate running jobs on the command line.')
-  .command('listJobs',
-    'List attributes of jobs.', {
+    .base('Inspect and manipulate running jobs on the command line.')
+    .command('listJobs', 'List attributes of jobs.', {
       all: {
         describe: 'List all jobs on the scheduler',
         type: 'boolean',
         default: false,
-      }
+      },
     })
-  .command('countJobs',
-    'Count jobs.', {
+    .command('countJobs', 'Count jobs.', {
       all: {
         describe: 'Count all jobs on the scheduler',
         type: 'boolean',
         default: false,
-      }
+      },
     })
-  .command('countTasks <jobID>',
-    'Count tasks belonging to the specified job.')
-  .command('elapsedTime <jobID>',
-    'Display how long each slice belonging to the specified job has been running.')
-  .command('cancelJob <jobID>',
-    'Cancels the specified job, halting execution.')
-  .command('cancelAllJobs',
-    'Cancels all jobs')
-  .command('fetchJobReport <jobID>',
-    'Returns information and status of the specified job')
-  .command('fetchSliceReport <jobID>',
-    'Returns status and history of slices for a specified job')
-  .demandCommand(1, 'A command must be specified')
-  .strict().argv;
+    .command(
+      'countTasks <jobID>',
+      'Count tasks belonging to the specified job.',
+    )
+    .command(
+      'elapsedTime <jobID>',
+      'Display how long each slice belonging to the specified job has been running.',
+    )
+    .command(
+      'cancelJob <jobID>',
+      'Cancels the specified job, halting execution.',
+    )
+    .command('cancelAllJobs', 'Cancels all jobs')
+    .command(
+      'fetchJobReport <jobID>',
+      'Returns information and status of the specified job',
+    )
+    .command(
+      'fetchSliceReport <jobID>',
+      'Returns status and history of slices for a specified job',
+    )
+    .demandCommand(1, 'A command must be specified')
+    .strict().argv;
 
   const command = argv._[0];
   const response = await sendRequest(command, argv);
   console.log(JSON.stringify(response, null, 2));
-
 }
 
 /**
- * Sends the request to the route specified. Manipulates the owner's jobs accordingly.
+ * Sends the request to the route specified. Manipulates the owner's jobs
+ * accordingly.
+ *
  * @param {string} command
  * @param {object} argv
+ * @returns {Promise<object>}
  */
-async function sendRequest (command, argv) {
+async function sendRequest(command, argv) {
   const protocolV4 = require('dcp/protocol-v4');
   const { DcpURL } = require('dcp/dcp-url');
   const wallet = require('dcp/wallet');
 
   const accountKeystore = await wallet.get();
-
   const schedulerURL = new DcpURL(argv.scheduler);
-  const schedulerConnection = new protocolV4.Connection(schedulerURL.resolve('/DCPv4'));
-  
+  const schedulerConnection = new protocolV4.Connection(
+    schedulerURL.resolve('/DCPv4'),
+  );
+
   let operation;
   switch (command) {
     case 'elapsedTime':
@@ -73,7 +86,7 @@ async function sendRequest (command, argv) {
     default:
       operation = command;
   }
-  
+
   let payload;
   switch (command) {
     case 'listJobs':
@@ -83,7 +96,6 @@ async function sendRequest (command, argv) {
       };
 
       break;
-
     case 'countTasks':
     case 'elapsedTime':
     case 'cancelJob':
@@ -94,24 +106,28 @@ async function sendRequest (command, argv) {
       };
 
       break;
-
     default:
   }
 
   console.log(`Sending request ${command}...`);
-  const response = await schedulerConnection.send(operation, {
-    owner: accountKeystore.address,
-    ...payload,
-  }, accountKeystore);
-  
+  const response = await schedulerConnection.send(
+    operation,
+    {
+      owner: accountKeystore.address,
+      ...payload,
+    },
+    accountKeystore,
+  );
+
   return response.payload;
 }
 
-require('dcp-client').init()
-.then(main)
-.catch(e => {
-  console.error("Failed to execute command:");
-  console.error(e);
-  process.exitCode = 1;
-})
-.finally(() => setImmediate(process.exit));
+require('dcp-client')
+  .init()
+  .then(main)
+  .catch((e) => {
+    console.error('Failed to execute command:');
+    console.error(e);
+    process.exitCode = 1;
+  })
+  .finally(() => setImmediate(process.exit));
