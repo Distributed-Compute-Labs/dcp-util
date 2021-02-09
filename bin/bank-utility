@@ -23,7 +23,7 @@ const getBankConnection = () =>
   new Connection(bankLocation.resolve('bank-teller'));
 let bankConnection;
 
-const log = debug('bank-util');
+const log = debug('bank-utility');
 
 /**
  * Handle CLI and dispatch commands to appropriate handlers
