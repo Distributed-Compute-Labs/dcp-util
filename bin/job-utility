@@ -10,19 +10,24 @@
 
 const process = require('process');
 
+require('dcp-client').initSync();
+
+const { base } = require('dcp/dcp-cli');
+const { Connection } = require('dcp/protocol-v4');
+const { DcpURL } = require('dcp/dcp-url');
+const { get: getAccountKeystore } = require('dcp/wallet');
+
+const getSchedulerConnection = (schedulerURL) =>
+  new Connection(schedulerURL.resolve('DCPv4'));
+
 /**
  * Uses dcp-cli to help manage operations.
  */
 async function main() {
-  const { argv } = require('dcp/dcp-cli')
-    .base('Inspect and manipulate running jobs on the command line.')
-    .command('listJobs', 'List attributes of jobs.', {
-      all: {
-        describe: 'List all jobs on the scheduler',
-        type: 'boolean',
-        default: false,
-      },
-    })
+  const { argv } = base(
+    'Inspect and manipulate running jobs on the command line.',
+  )
+    // FIXME(bryan-hoang): countJobs is not implemented currently.
     .command('countJobs', 'Count jobs.', {
       all: {
         describe: 'Count all jobs on the scheduler',
@@ -30,23 +35,29 @@ async function main() {
         default: false,
       },
     })
+    // FIXME(bryan-hoang): countTasks is not implemented currently.
     .command(
       'countTasks <jobID>',
       'Count tasks belonging to the specified job.',
     )
+    // FIXME(bryan-hoang): elapsedTime is not implemented currently.
     .command(
       'elapsedTime <jobID>',
       'Display how long each slice belonging to the specified job has been running.',
     )
+    // FIXME(bryan-hoang): cancelJob is not implemented currently.
     .command(
       'cancelJob <jobID>',
       'Cancels the specified job, halting execution.',
     )
+    // FIXME(bryan-hoang): cancelAllJobs is not implemented currently.
     .command('cancelAllJobs', 'Cancels all jobs')
+    // FIXME(bryan-hoang): fetchJobReport is not implemented currently.
     .command(
       'fetchJobReport <jobID>',
       'Returns information and status of the specified job',
     )
+    // FIXME(bryan-hoang): fetchSliceReport is not implemented currently.
     .command(
       'fetchSliceReport <jobID>',
       'Returns status and history of slices for a specified job',
@@ -68,15 +79,9 @@ async function main() {
  * @returns {Promise<object>}
  */
 async function sendRequest(command, argv) {
-  const protocolV4 = require('dcp/protocol-v4');
-  const { DcpURL } = require('dcp/dcp-url');
-  const wallet = require('dcp/wallet');
-
-  const accountKeystore = await wallet.get();
+  const accountKeystore = await getAccountKeystore();
   const schedulerURL = new DcpURL(argv.scheduler);
-  const schedulerConnection = new protocolV4.Connection(
-    schedulerURL.resolve('/DCPv4'),
-  );
+  const schedulerConnection = getSchedulerConnection(schedulerURL);
 
   let operation;
   switch (command) {
@@ -89,7 +94,6 @@ async function sendRequest(command, argv) {
 
   let payload;
   switch (command) {
-    case 'listJobs':
     case 'countJobs':
       payload = {
         all: argv.all,
@@ -110,21 +114,19 @@ async function sendRequest(command, argv) {
   }
 
   console.log(`Sending request ${command}...`);
-  const response = await schedulerConnection.send(
+  ({ payload } = await schedulerConnection.send(
     operation,
     {
       owner: accountKeystore.address,
       ...payload,
     },
     accountKeystore,
-  );
+  ));
 
-  return response.payload;
+  return payload;
 }
 
-require('dcp-client')
-  .init()
-  .then(main)
+main()
   .catch((e) => {
     console.error('Failed to execute command:');
     console.error(e);
