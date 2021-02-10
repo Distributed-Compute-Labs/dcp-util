@@ -11,11 +11,17 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const process = require('process');
-const consts = require('constants');
 const expandTilde = require('expand-tilde');
+
+require('dcp-client').initSync();
+
+const { base } = require('dcp/dcp-cli');
+const { dotDcpDir } = require('dcp/dcp-dot-dir');
+const { Keystore, isPrivateKey, load } = require('dcp/wallet');
 
 /**
  * @param handler
+ * @returns
  */
 function wrapHandler(handler) {
   return async function (argv) {
@@ -34,10 +40,7 @@ function wrapHandler(handler) {
  *
  */
 async function main() {
-  const { dotDcpDir } = require('dcp/dcp-dot-dir');
-
-  require('dcp/dcp-cli')
-    .base('Manipulate Keystore/Address Data.')
+  base('Manipulate Keystore/Address Data.')
     .command(
       'new [label]',
       'Create a new keystore file',
@@ -135,14 +138,11 @@ async function main() {
     .parse();
 }
 
-require('dcp-client')
-  .init()
-  .then(main)
-  .catch((e) => {
-    console.error('Failed to execute command:');
-    console.error(e);
-    process.exit(1);
-  });
+main().catch((e) => {
+  console.error('Failed to execute command:');
+  console.error(e);
+  process.exit(1);
+});
 
 /**
  * Create a new keystore from the provided options
@@ -157,14 +157,14 @@ async function createKeystore(argv) {
   const { passphrase, privateKey, dir } = argv;
   let { label } = argv;
 
-  label = label.match(/^(.*?)(\.keystore)?$/)[1]; // remove .keystore from label
+  // Remove .keystore from label
+  [, label] = label.match(/^(.*?)(\.keystore)?$/); 
 
   let keystoreArgs = [];
   if (typeof passphrase === 'string')
     keystoreArgs = [privateKey || null, passphrase];
   else if (typeof privateKey === 'string') keystoreArgs = [privateKey];
 
-  const { Keystore } = require('dcp/wallet');
   const ks = await new Keystore(...keystoreArgs);
 
   const ksObj = ks.toJSON();
@@ -198,13 +198,12 @@ async function createKeystore(argv) {
  */
 async function showKeystore(argv) {
   const { keystore, dir, passphrase, showPrivateKey } = argv;
-  const wallet = require('dcp/wallet');
 
   let ks;
-  if (wallet.isPrivateKey(keystore)) {
-    ks = await new wallet.Keystore(keystore, '');
+  if (isPrivateKey(keystore)) {
+    ks = await new Keystore(keystore, '');
   } else {
-    const loadResult = await wallet.load({
+    const loadResult = await load({
       name: keystore,
       dir,
     });
@@ -233,9 +232,8 @@ async function showKeystore(argv) {
  */
 async function changeKeystorePassphrase(argv) {
   const { keystore, dir, oldPassphrase, newPassphrase } = argv;
-  const wallet = require('dcp/wallet');
 
-  const { keystore: oldKeystore, filename: oldFilename } = await wallet.load({
+  const { keystore: oldKeystore, filename: oldFilename } = await load({
     name: keystore,
     dir,
   });
@@ -248,12 +246,15 @@ async function changeKeystorePassphrase(argv) {
 
   const newKeystoreArgs = [await oldKeystore.getPrivateKey()];
   if (typeof newPassphrase === 'string') newKeystoreArgs.push(newPassphrase);
-  const newKeystore = await new wallet.Keystore(...newKeystoreArgs);
+  const newKeystore = await new Keystore(...newKeystoreArgs);
   newKeystore.label = oldKeystore.label;
 
   const oldStats = fs.statSync(oldFilename);
   const tempFilename = `${oldFilename}.temp-${os.hostname()}-${process.pid}`;
-  const flags = consts.O_CREAT | consts.O_EXCL | consts.O_WRONLY;
+  const {
+    constants: { O_CREAT, O_EXCL, O_WRONLY },
+  } = fs;
+  const flags = O_CREAT | O_EXCL | O_WRONLY;
   const mode = oldStats.mode & 0777;
 
   // Open a temp file in the same location as the old keystore
