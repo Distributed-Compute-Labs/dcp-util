@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 /**
  *  @file       publish
  *              Utility for deploying DCP Modules from package description files.
@@ -18,6 +18,9 @@
 
 const process = require('process');
 
+/**
+ *
+ */
 async function main() {
   const dcpCli = require('dcp/dcp-cli');
   const dcpPublish = require('dcp/publish');
@@ -25,26 +28,28 @@ async function main() {
   // Process CLI
   const options = dcpCli
     .base('Utility to publish a new/updated DCP package')
-    .command(['$0 packageDescription', 'publish'], '', yargs => {
+    .command(['$0 packageDescription', 'publish'], '', (yargs) => {
       yargs.positional('packageDescription', {
         describe: 'Path to the package description file.',
       });
-    })
-    .argv;
+    }).argv;
 
   const { packageDescription } = options;
   const idKs = await dcpCli.getIdentityKeystore();
-
   const result = await dcpPublish.publish(packageDescription, idKs);
 
-  console.log("Successfully published package:\n", JSON.stringify(result, null, 2));
+  console.log(
+    'Successfully published package:\n',
+    JSON.stringify(result, null, 2),
+  );
 }
 
-require('dcp-client').init()
-.then(main)
-.catch(e => {
-  console.error("Failed to execute command:");
-  console.error(e);
-  process.exitCode = 1;
-})
-.finally(() => setImmediate(process.exit));
+require('dcp-client')
+  .init()
+  .then(main)
+  .catch((e) => {
+    console.error('Failed to execute command:');
+    console.error(e);
+    process.exitCode = 1;
+  })
+  .finally(() => setImmediate(process.exit));
