@@ -17,27 +17,41 @@
  */
 
 const process = require('process');
+const { existsSync } = require('fs');
 
 require('dcp-client').initSync();
+
 const { base, getIdentityKeystore } = require('dcp/dcp-cli');
 const { publish } = require('dcp/publish');
 
 /**
- *
+ * Utility for deploying DCP Modules from package description files.
  */
 async function main() {
-  // Process CLI
   const { packageDescription } = base(
     'Utility to publish a new/updated DCP package',
-  ).command(['$0 packageDescription', 'publish'], '', (yargs) => {
+  ).command(['$0 <packageDescription>'], '', (yargs) => {
     yargs.positional('packageDescription', {
       describe: 'Path to the package description file.',
+      type: 'string',
+      /**
+       * The key provided represents a path and should have path.normalize()
+       * applied.
+       */
+      normalize: true,
     });
   }).argv;
 
+  if (!existsSync(packageDescription)) {
+    console.error(
+      `Failed to publish package: The file "${packageDescription}" does not exist`,
+    );
+
+    return;
+  }
+
   const idKs = await getIdentityKeystore();
   const result = await publish(packageDescription, idKs);
-
   console.log(
     'Successfully published package:\n',
     JSON.stringify(result, null, 2),
