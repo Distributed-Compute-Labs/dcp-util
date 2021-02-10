@@ -129,15 +129,31 @@ async function viewFeeStructure(options) {
 
   bankConnection = getBankConnection();
 
-  const { payload } = await bankConnection.send(
+  // FIXME(bryan-hoang): viewFeeStructure is not implemented.
+  const response = await bankConnection.send(
     'viewFeeStructure',
     { feeStructureAddress },
     ks,
   );
 
+  let { payload } = response;
+
+  // In case the response is an ErrorPayload itself.
+  if (typeof response.payload === 'undefined') {
+    payload = response;
+  }
+
   if (options.json) {
     console.log(JSON.stringify(payload, null, 2));
   } else {
+    log('Payload:', payload);
+
+    if (payload.name.includes('Error')) {
+      console.error('Unable to view fee structure for the following reason:');
+      console.error(payload.message);
+      return payload;
+    }
+
     const {
       address,
       fromAddress,
@@ -147,12 +163,6 @@ async function viewFeeStructure(options) {
       maxTotal,
       maxPerRequest,
     } = payload;
-
-    if (payload.name === 'Error') {
-      console.error('Unable to view fee structure for the following reason:');
-      console.error(payload.message);
-      return payload;
-    }
 
     console.log('Fee Structure:');
     console.log('  Address:      ', address);

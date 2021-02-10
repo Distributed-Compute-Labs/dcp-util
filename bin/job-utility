@@ -18,15 +18,13 @@ const { DcpURL } = require('dcp/dcp-url');
 const { get: getAccountKeystore } = require('dcp/wallet');
 
 const getSchedulerConnection = (schedulerURL) =>
-  new Connection(schedulerURL.resolve('DCPv4'));
+  new Connection(schedulerURL.resolve('events'));
 
 /**
  * Uses dcp-cli to help manage operations.
  */
 async function main() {
-  const { argv } = base(
-    'Inspect and manipulate running jobs on the command line.',
-  )
+  const argv = base('Inspect and manipulate running jobs on the command line.')
     // FIXME(bryan-hoang): countJobs is not implemented currently.
     .command('countJobs', 'Count jobs.', {
       all: {
@@ -63,11 +61,11 @@ async function main() {
       'Returns status and history of slices for a specified job',
     )
     .demandCommand(1, 'A command must be specified')
-    .strict().argv;
+    .strict()
+    .parse();
 
   const command = argv._[0];
-  const response = await sendRequest(command, argv);
-  console.log(JSON.stringify(response, null, 2));
+  await sendRequest(command, argv);
 }
 
 /**
@@ -114,16 +112,23 @@ async function sendRequest(command, argv) {
   }
 
   console.log(`Sending request ${command}...`);
-  ({ payload } = await schedulerConnection.send(
+  const response = await schedulerConnection.send(
     operation,
     {
       owner: accountKeystore.address,
       ...payload,
     },
     accountKeystore,
-  ));
+  );
 
-  return payload;
+  let { payload: responsePayload } = response;
+
+  // In case the response is an ErrorPayload itself.
+  if (typeof response.payload === 'undefined') {
+    responsePayload = response;
+  }
+
+  console.log('Reponse:', JSON.stringify(responsePayload, null, 2));
 }
 
 main()

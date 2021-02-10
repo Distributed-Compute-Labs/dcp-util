@@ -77,6 +77,7 @@ async function main() {
       (yargs) => {
         yargs
           .positional('keystore', {
+            type: 'string',
             describe: 'A label, filepath, or private key',
           })
           .options({
@@ -109,6 +110,7 @@ async function main() {
         yargs
           .positional('keystore', {
             describe: 'A label or filepath',
+            type: 'string',
           })
           .options({
             dir: {
@@ -158,7 +160,7 @@ async function createKeystore(argv) {
   let { label } = argv;
 
   // Remove .keystore from label
-  [, label] = label.match(/^(.*?)(\.keystore)?$/); 
+  [, label] = label.match(/^(.*?)(\.keystore)?$/);
 
   let keystoreArgs = [];
   if (typeof passphrase === 'string')

@@ -54,20 +54,35 @@ async function main() {
     .command(
       'create <name> [description]',
       'Create a new compute group',
-      {},
+      (yargs) =>
+        yargs
+          .positional('name', {
+            type: 'string',
+            description: 'The name of the compute group to create',
+          })
+          .option('description', {
+            alias: 'd',
+            type: 'string',
+            description: 'The description of the compute group to create',
+          }),
       wrapApiCall((argv) => create(argv.name, argv.description)),
     )
     .command(
       'change <id> [options]',
       'Change a compute group',
       (yargs) =>
-        yargs.options({
-          name: { type: 'string' },
-          description: { type: 'string' },
-          joinKey: { type: 'string' },
-          joinSecret: { type: 'string' },
-          joinAddress: { type: 'string' },
-        }),
+        yargs
+          .options({
+            name: { type: 'string' },
+            description: { type: 'string' },
+            joinKey: { type: 'string' },
+            joinSecret: { type: 'string' },
+            joinAddress: { type: 'string' },
+          })
+          .positional('id', {
+            type: 'number',
+            description: 'The id of the compute group to change',
+          }),
       wrapApiCall((argv) =>
         changeGroup(argv.id, {
           name: argv.name,
@@ -81,13 +96,21 @@ async function main() {
     .command(
       'delete <id>',
       'Delete a compute group',
-      {},
+      (yargs) =>
+        yargs.positional('id', {
+          type: 'number',
+          description: 'The id of the compute group to delete',
+        }),
       wrapApiCall((argv) => deleteGroup(argv.id)),
     )
     .command(
       'listJobs <id>',
       'List jobs in a compute group',
-      {},
+      (yargs) =>
+        yargs.positional('id', {
+          type: 'number',
+          description: 'The id of the compute group to list jobs under',
+        }),
       wrapApiCall((argv) => listJobs(argv.id)),
     )
     .demandCommand(1, 'A command must be specified')

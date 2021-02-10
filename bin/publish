@@ -30,17 +30,28 @@ const { publish } = require('dcp/publish');
 async function main() {
   const { packageDescription } = base(
     'Utility to publish a new/updated DCP package',
-  ).command(['$0 <packageDescription>'], '', (yargs) => {
-    yargs.positional('packageDescription', {
-      describe: 'Path to the package description file.',
-      type: 'string',
+  )
+    .command(
       /**
-       * The key provided represents a path and should have path.normalize()
-       * applied.
+       * Specifying the default command so that specifying the package command
+       * is optional.
        */
-      normalize: true,
-    });
-  }).argv;
+      ['package <packageDescription>', '$0 <packageDescription>'],
+      'Publish a new/updated DCP package from a package description file',
+      (yargs) => {
+        yargs.positional('packageDescription', {
+          describe: 'Path to the package description file.',
+          type: 'string',
+          /**
+           * The key provided represents a path and should have path.normalize()
+           * applied.
+           */
+          normalize: true,
+        });
+      },
+    )
+    .strict()
+    .parse();
 
   if (!existsSync(packageDescription)) {
     console.error(

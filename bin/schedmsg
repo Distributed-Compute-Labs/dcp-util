@@ -35,28 +35,40 @@ async function main() {
     .command(
       'announce <message>',
       'Send an announcement to workers, will display a modal or log to console',
-      {},
+      (yargs) =>
+        yargs.positional('message', {
+          type: 'string',
+          description: 'The message to send to the workers',
+        }),
       (argv) => sendMessage(argv, 'announce', { message: argv.message }),
     )
     .command(
       'remove <jobAddress>',
       'Removes any active slices for job address',
-      {},
+      (yargs) =>
+        yargs.positional('jobAddress', {
+          type: 'string',
+          description: 'The job address to remove slices from',
+        }),
       (argv) => sendMessage(argv, 'remove', { jobAddress: argv.jobAddress }),
     )
     .command(
       'openPopup <href>',
       'Opens a new tab on browser workers',
-      {},
+      (yargs) =>
+        yargs.positional('href', {
+          type: 'string',
+          description: 'The URL to open the new tab in.',
+        }),
       (argv) => sendMessage(argv, 'openPopup', { href: argv.href }),
     )
     .command(
-      'kill [temporary]',
+      'kill',
       'Immediately stops workers',
       (yargs) => {
-        yargs.positional('temporary', {
+        yargs.option('temporary', {
           describe:
-            'if false the worker will be permanently disabled, requiring manual intervention to be restarted',
+            'If not specified, the worker will be permanently disabled, requiring manual intervention to be restarted',
           default: false,
           type: 'boolean',
         });
