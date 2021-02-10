@@ -5,19 +5,23 @@
   "keywords": [
     "dcp"
   ],
-  "homepage": "https://gitlab.com/Distributed-Compute-Protocol/dcp-util#readme",
+  "homepage": "https://gitlab.com/Distributed-Compute-Labs/dcp-util@readme",
   "bugs": {
-    "url": "https://gitlab.com/Distributed-Compute-Protocol/dcp-util/issues"
+    "url": "https://gitlab.com/Distributed-Compute-Labs/dcp-util/utils"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-util.git"
+    "url": "git+https://gitlab.com/Distributed-Compute-Labs/dcp-util.git"
   },
   "license": "MIT",
   "author": "Kings Distributed Systems",
-  "directories": {
-    "bin": "bin",
-    "test": "tests"
+  "bin": {
+    "bank-utility": "bin/bank-utility",
+    "cg-utility": "bin/cg-utility",
+    "job-utility": "bin/job-utility",
+    "mkad": "bin/mkad",
+    "publish": "bin/publish",
+    "schedmsg": "bin/schedmsg"
   },
   "files": [
     "bin"
