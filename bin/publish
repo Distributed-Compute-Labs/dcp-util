@@ -18,25 +18,25 @@
 
 const process = require('process');
 
+require('dcp-client').initSync();
+const { base, getIdentityKeystore } = require('dcp/dcp-cli');
+const { publish } = require('dcp/publish');
+
 /**
  *
  */
 async function main() {
-  const dcpCli = require('dcp/dcp-cli');
-  const dcpPublish = require('dcp/publish');
-
   // Process CLI
-  const options = dcpCli
-    .base('Utility to publish a new/updated DCP package')
-    .command(['$0 packageDescription', 'publish'], '', (yargs) => {
-      yargs.positional('packageDescription', {
-        describe: 'Path to the package description file.',
-      });
-    }).argv;
+  const { packageDescription } = base(
+    'Utility to publish a new/updated DCP package',
+  ).command(['$0 packageDescription', 'publish'], '', (yargs) => {
+    yargs.positional('packageDescription', {
+      describe: 'Path to the package description file.',
+    });
+  }).argv;
 
-  const { packageDescription } = options;
-  const idKs = await dcpCli.getIdentityKeystore();
-  const result = await dcpPublish.publish(packageDescription, idKs);
+  const idKs = await getIdentityKeystore();
+  const result = await publish(packageDescription, idKs);
 
   console.log(
     'Successfully published package:\n',
@@ -44,9 +44,7 @@ async function main() {
   );
 }
 
-require('dcp-client')
-  .init()
-  .then(main)
+main()
   .catch((e) => {
     console.error('Failed to execute command:');
     console.error(e);
