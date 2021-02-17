@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 /**
- *  @file       job-utility.js
- *              Utility to inspect and manipulate running jobs.
+ * @file   job-utility.js - Utility to inspect and manipulate running jobs.
  *
- *  @author     Ryan Rossiter, ryan@kingsds.network
- *              Karen Batch, karen@kingsds.network
- *  @date       April 2019
+ * @author Ryan Rossiter <ryan@kingsds.network>
+ * @author Karen Batch <karen@kingsds.network>
+ * @date   April 2019
  */
 
 const process = require('process');
+const { green, red } = require('chalk');
+const ora = require('ora');
+const debug = require('debug');
 
 require('dcp-client').initSync();
 
@@ -17,8 +19,11 @@ const { Connection } = require('dcp/protocol-v4');
 const { DcpURL } = require('dcp/dcp-url');
 const { get: getAccountKeystore } = require('dcp/wallet');
 
+const log = debug('job-utility');
 const getSchedulerConnection = (schedulerURL) =>
-  new Connection(schedulerURL.resolve('events'));
+  new Connection(schedulerURL.resolve('job-submit'));
+
+let schedulerConnection = null;
 
 /**
  * Uses dcp-cli to help manage operations.
@@ -35,36 +40,56 @@ async function main() {
     })
     // FIXME(bryan-hoang): countTasks is not implemented currently.
     .command(
-      'countTasks <jobID>',
+      'countTasks <jobId>',
       'Count tasks belonging to the specified job.',
     )
-    // FIXME(bryan-hoang): elapsedTime is not implemented currently.
+    // FIXME(bryan-hoang): elapsedJobTime is not implemented currently.
     .command(
-      'elapsedTime <jobID>',
+      'elapsedJobTime <jobId>',
       'Display how long each slice belonging to the specified job has been running.',
+      (yargs) => {
+        yargs.positional('jobId', {
+          type: 'string',
+          describe: 'The id of the job',
+        });
+      },
     )
     // FIXME(bryan-hoang): cancelJob is not implemented currently.
     .command(
-      'cancelJob <jobID>',
+      'cancelJob <jobId>',
       'Cancels the specified job, halting execution.',
     )
     // FIXME(bryan-hoang): cancelAllJobs is not implemented currently.
     .command('cancelAllJobs', 'Cancels all jobs')
     // FIXME(bryan-hoang): fetchJobReport is not implemented currently.
     .command(
-      'fetchJobReport <jobID>',
+      'fetchJobReport <jobId>',
       'Returns information and status of the specified job',
     )
     // FIXME(bryan-hoang): fetchSliceReport is not implemented currently.
     .command(
-      'fetchSliceReport <jobID>',
+      'fetchSliceReport <jobId>',
       'Returns status and history of slices for a specified job',
     )
+    .options({
+      debug: {
+        alias: 'd',
+        type: 'boolean',
+        default: false,
+        describe: 'Show debugging information',
+      },
+      json: {
+        alias: 'j',
+        type: 'boolean',
+        default: false,
+        describe: 'Show the output in JSON format',
+      },
+    })
     .demandCommand(1, 'A command must be specified')
     .strict()
     .parse();
 
-  const command = argv._[0];
+  const [command] = argv._;
   await sendRequest(command, argv);
 }
 
@@ -72,63 +97,75 @@ async function main() {
  * Sends the request to the route specified. Manipulates the owner's jobs
  * accordingly.
  *
- * @param {string} command
+ * @param {string} requestRoute
  * @param {object} argv
  * @returns {Promise<object>}
  */
-async function sendRequest(command, argv) {
-  const accountKeystore = await getAccountKeystore();
-  const schedulerURL = new DcpURL(argv.scheduler);
-  const schedulerConnection = getSchedulerConnection(schedulerURL);
-
-  let operation;
-  switch (command) {
-    case 'elapsedTime':
-      operation = 'elapsedJobTime';
-      break;
-    default:
-      operation = command;
+async function sendRequest(requestRoute, argv) {
+  if (argv.debug) {
+    debug.enable('job-utility');
   }
 
-  let payload;
-  switch (command) {
+  const accountKeystore = await getAccountKeystore();
+  const schedulerURL = new DcpURL(argv.scheduler);
+  schedulerConnection = getSchedulerConnection(schedulerURL);
+
+  let requestPayload;
+  switch (requestRoute) {
     case 'countJobs':
-      payload = {
+      requestPayload = {
         all: argv.all,
       };
 
       break;
     case 'countTasks':
-    case 'elapsedTime':
+    case 'elapsedJobTime':
     case 'cancelJob':
     case 'fetchJobReport':
     case 'fetchSliceReport':
-      payload = {
-        jobID: argv.jobID,
+      requestPayload = {
+        jobOpaqueId: argv.jobId,
       };
 
       break;
     default:
   }
 
-  console.log(`Sending request ${command}...`);
-  const response = await schedulerConnection.send(
-    operation,
-    {
-      owner: accountKeystore.address,
-      ...payload,
-    },
+  let spinner;
+  if (!argv.json) {
+    spinner = ora(
+      `Sending request ${green(requestRoute)} to ${green(argv.scheduler)}`,
+    ).start();
+  }
+
+  const { success, payload: responsePayload } = await schedulerConnection.send(
+    requestRoute,
+    requestPayload,
     accountKeystore,
   );
 
-  let { payload: responsePayload } = response;
+  if (argv.json) {
+    console.log(JSON.stringify(responsePayload, null, 2));
+  } else if (!success) {
+    spinner.fail();
+    log('responsePayload', responsePayload);
+    console.error(
+      red(
+        `Response Error${
+          typeof responsePayload.code !== 'undefined'
+            ? ` (${responsePayload.code})`
+            : ''
+        }:`,
+      ),
+      responsePayload.message,
+    );
 
-  // In case the response is an ErrorPayload itself.
-  if (typeof response.payload === 'undefined') {
-    responsePayload = response;
+    process.exitCode = 1;
+  } else {
+    spinner.succeed();
+    log('responsePayload', responsePayload);
+    console.log('Response:', JSON.stringify(responsePayload, null, 2));
   }
-
-  console.log('Reponse:', JSON.stringify(responsePayload, null, 2));
 }
 
 main()
@@ -137,4 +174,10 @@ main()
     console.error(e);
     process.exitCode = 1;
   })
-  .finally(() => setImmediate(process.exit));
+  .finally(async () => {
+    if (typeof schedulerConnection.close === 'function') {
+      await schedulerConnection.close();
+    }
+
+    process.exit();
+  });

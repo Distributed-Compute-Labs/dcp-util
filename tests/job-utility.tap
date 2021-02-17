@@ -11,7 +11,7 @@ test('Job Utility', async (t) => {
     const operationsAndOptions = [
       'countJobs',
       'countTasks',
-      'elapsedTime',
+      'elapsedJobTime',
       'cancelJob',
       'cancelAllJobs',
       'fetchJobReport',
