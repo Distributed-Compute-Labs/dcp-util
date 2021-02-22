@@ -42,14 +42,16 @@ async function main() {
         });
       },
     )
-    // FIXME(bryan-hoang): countJobs is not implemented currently.
-    .command('countJobs', 'Count jobs.', {
-      all: {
-        describe: 'Count all jobs on the scheduler',
-        type: 'boolean',
-        default: false,
+    .command(
+      'countJobs [jobOwner]',
+      'Count jobs owned by an identity, or list all of them if jobOwner is omitted',
+      (yargs) => {
+        yargs.positional('jobOwner', {
+          describe: 'The identity address of the owner of the jobs to count',
+          type: 'string',
+        });
       },
-    })
+    )
     // FIXME(bryan-hoang): countTasks is not implemented currently.
     .command(
       'countTasks <jobId>',
@@ -119,12 +121,6 @@ async function sendRequest(requestRoute, argv) {
 
   let requestPayload;
   switch (requestRoute) {
-    case 'countJobs':
-      requestPayload = {
-        all: argv.all,
-      };
-
-      break;
     case 'cancelJob':
     case 'countTasks':
     case 'elapsedJobTime':
@@ -134,16 +130,17 @@ async function sendRequest(requestRoute, argv) {
         jobOpaqueId: argv.jobId,
       };
       break;
+    case 'countJobs':
     case 'listJobs': {
       const { jobOwner } = argv;
       if (typeof jobOwner === 'undefined') {
         requestPayload = {
-          isListingAll: true,
+          isSelectingAll: true,
           jobOwner: String(idKeystore.address),
         };
       } else {
         requestPayload = {
-          isListingAll: false,
+          isSelectingAll: false,
           jobOwner,
         };
       }
