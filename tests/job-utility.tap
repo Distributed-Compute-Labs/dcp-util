@@ -9,13 +9,14 @@ const execute = create('bin/job-utility');
 test('Job Utility', async (t) => {
   t.test('Help Text', async (t) => {
     const operationsAndOptions = [
+      'cancelAllJobs',
+      'cancelJob',
       'countJobs',
       'countTasks',
       'elapsedJobTime',
-      'cancelJob',
-      'cancelAllJobs',
       'fetchJobReport',
       'fetchSliceReport',
+      'listJobs',
     ];
 
     const testCaseDescription = `When no arguments are passed, then help text is displayed describing supported operations (${operationsAndOptions}).`;

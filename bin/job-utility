@@ -17,19 +17,31 @@ require('dcp-client').initSync();
 const { base } = require('dcp/dcp-cli');
 const { Connection } = require('dcp/protocol-v4');
 const { DcpURL } = require('dcp/dcp-url');
-const { get: getAccountKeystore } = require('dcp/wallet');
+const { getId } = require('dcp/wallet');
 
 const log = debug('job-utility');
 const getSchedulerConnection = (schedulerURL) =>
   new Connection(schedulerURL.resolve('job-submit'));
 
+let idKeystore = null;
 let schedulerConnection = null;
 
 /**
- * Uses dcp-cli to help manage operations.
+ * Uses dcp-cli to help manage sending requests to routes/operations.
  */
 async function main() {
+  idKeystore = await getId();
   const argv = base('Inspect and manipulate running jobs on the command line.')
+    .command(
+      'listJobs [jobOwner]',
+      'List jobs owned by an identity, or list all of them if jobOwner is omitted',
+      (yargs) => {
+        yargs.positional('jobOwner', {
+          describe: 'The identity address of the owner of the jobs to list',
+          type: 'string',
+        });
+      },
+    )
     // FIXME(bryan-hoang): countJobs is not implemented currently.
     .command('countJobs', 'Count jobs.', {
       all: {
@@ -43,14 +55,13 @@ async function main() {
       'countTasks <jobId>',
       'Count tasks belonging to the specified job.',
     )
-    // FIXME(bryan-hoang): elapsedJobTime is not implemented currently.
     .command(
       'elapsedJobTime <jobId>',
       'Display how long each slice belonging to the specified job has been running.',
       (yargs) => {
         yargs.positional('jobId', {
-          type: 'string',
           describe: 'The id of the job',
+          type: 'string',
         });
       },
     )
@@ -106,10 +117,6 @@ async function sendRequest(requestRoute, argv) {
     debug.enable('job-utility');
   }
 
-  const accountKeystore = await getAccountKeystore();
-  const schedulerURL = new DcpURL(argv.scheduler);
-  schedulerConnection = getSchedulerConnection(schedulerURL);
-
   let requestPayload;
   switch (requestRoute) {
     case 'countJobs':
@@ -118,18 +125,34 @@ async function sendRequest(requestRoute, argv) {
       };
 
       break;
+    case 'cancelJob':
     case 'countTasks':
     case 'elapsedJobTime':
-    case 'cancelJob':
     case 'fetchJobReport':
     case 'fetchSliceReport':
       requestPayload = {
         jobOpaqueId: argv.jobId,
       };
-
       break;
+    case 'listJobs': {
+      const { jobOwner } = argv;
+      if (typeof jobOwner === 'undefined') {
+        requestPayload = {
+          isListingAll: true,
+          jobOwner: String(idKeystore.address),
+        };
+      } else {
+        requestPayload = {
+          isListingAll: false,
+          jobOwner,
+        };
+      }
+      break;
+    }
     default:
   }
+
+  log('requestPayload:', requestPayload);
 
   let spinner;
   if (!argv.json) {
@@ -138,10 +161,12 @@ async function sendRequest(requestRoute, argv) {
     ).start();
   }
 
+  const schedulerURL = new DcpURL(argv.scheduler);
+  schedulerConnection = getSchedulerConnection(schedulerURL);
   const { success, payload: responsePayload } = await schedulerConnection.send(
     requestRoute,
     requestPayload,
-    accountKeystore,
+    idKeystore,
   );
 
   if (argv.json) {
@@ -163,7 +188,6 @@ async function sendRequest(requestRoute, argv) {
     process.exitCode = 1;
   } else {
     spinner.succeed();
-    log('responsePayload', responsePayload);
     console.log('Response:', JSON.stringify(responsePayload, null, 2));
   }
 }
