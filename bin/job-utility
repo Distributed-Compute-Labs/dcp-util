@@ -20,10 +20,9 @@ const { DcpURL } = require('dcp/dcp-url');
 const { getId } = require('dcp/wallet');
 
 const log = debug('job-utility');
-const getSchedulerConnection = (schedulerURL) =>
-  new Connection(schedulerURL.resolve('job-submit'));
 
 let idKeystore = null;
+let idAddress;
 let schedulerConnection = null;
 
 /**
@@ -31,6 +30,7 @@ let schedulerConnection = null;
  */
 async function main() {
   idKeystore = await getId();
+  idAddress = String(idKeystore.address);
   const argv = base('Inspect and manipulate running jobs on the command line.')
     .command(
       'listJobs [jobOwner]',
@@ -52,10 +52,21 @@ async function main() {
         });
       },
     )
-    // FIXME(bryan-hoang): countTasks is not implemented currently.
     .command(
-      'countTasks <jobId>',
-      'Count tasks belonging to the specified job.',
+      'countSlices <jobId> [jobOwner]',
+      "Count slices belonging to the specified job and optionally pass the job's owner (default to the current identity)",
+      (yargs) => {
+        yargs
+          .positional('jobId', {
+            describe: 'The id of the job',
+            type: 'string',
+          })
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs to count',
+            type: 'string',
+            default: idAddress,
+          });
+      },
     )
     .command(
       'elapsedJobTime <jobId>',
@@ -112,31 +123,42 @@ async function main() {
  *
  * @param {string} requestRoute
  * @param {object} argv
+ * @param argv.debug
+ * @param argv.jobOwner
+ * @param argv.jobId
+ * @param argv.json
+ * @param argv.scheduler
  * @returns {Promise<object>}
  */
-async function sendRequest(requestRoute, argv) {
-  if (argv.debug) {
+async function sendRequest(
+  requestRoute,
+  { debug: isDebugging, jobOwner, jobId, json: isOutputJSON, scheduler },
+) {
+  if (isDebugging) {
     debug.enable('job-utility');
   }
 
-  let requestPayload;
+  let requestPayload = {};
+  let microservice = 'job-submit';
   switch (requestRoute) {
+    case 'countSlices': {
+      microservice = 'task-distributor';
+      requestPayload.jobOwner = jobOwner;
+    }
+    // Falls through
     case 'cancelJob':
-    case 'countTasks':
     case 'elapsedJobTime':
     case 'fetchJobReport':
-    case 'fetchSliceReport':
-      requestPayload = {
-        jobOpaqueId: argv.jobId,
-      };
+    case 'fetchSliceReport': {
+      requestPayload.job = jobId;
       break;
+    }
     case 'countJobs':
     case 'listJobs': {
-      const { jobOwner } = argv;
       if (typeof jobOwner === 'undefined') {
         requestPayload = {
           isSelectingAll: true,
-          jobOwner: String(idKeystore.address),
+          jobOwner: idAddress,
         };
       } else {
         requestPayload = {
@@ -152,21 +174,21 @@ async function sendRequest(requestRoute, argv) {
   log('requestPayload:', requestPayload);
 
   let spinner;
-  if (!argv.json) {
+  if (!isOutputJSON) {
     spinner = ora(
-      `Sending request ${green(requestRoute)} to ${green(argv.scheduler)}`,
+      `Sending request ${green(requestRoute)} to ${green(scheduler)}`,
     ).start();
   }
 
-  const schedulerURL = new DcpURL(argv.scheduler);
-  schedulerConnection = getSchedulerConnection(schedulerURL);
+  const schedulerURL = new DcpURL(scheduler);
+  schedulerConnection = new Connection(schedulerURL.resolve(microservice));
   const { success, payload: responsePayload } = await schedulerConnection.send(
     requestRoute,
     requestPayload,
     idKeystore,
   );
 
-  if (argv.json) {
+  if (isOutputJSON) {
     console.log(JSON.stringify(responsePayload, null, 2));
   } else if (!success) {
     spinner.fail();

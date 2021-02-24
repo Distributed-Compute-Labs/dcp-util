@@ -12,7 +12,7 @@ test('Job Utility', async (t) => {
       'cancelAllJobs',
       'cancelJob',
       'countJobs',
-      'countTasks',
+      'countSlices',
       'elapsedJobTime',
       'fetchJobReport',
       'fetchSliceReport',
