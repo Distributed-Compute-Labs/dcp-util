@@ -62,7 +62,7 @@ async function main() {
             type: 'string',
           })
           .positional('jobOwner', {
-            describe: 'The identity address of the owner of the jobs to count',
+            describe: 'The identity address of the owner of the jobs',
             type: 'string',
             default: idAddress,
           });
@@ -85,10 +85,21 @@ async function main() {
     )
     // FIXME(bryan-hoang): cancelAllJobs is not implemented currently.
     .command('cancelAllJobs', 'Cancels all jobs')
-    // FIXME(bryan-hoang): fetchJobReport is not implemented currently.
     .command(
-      'fetchJobReport <jobId>',
-      'Returns information and status of the specified job',
+      'fetchJobReport <jobId> [jobOwner]',
+      'Returns information and status of the specified job. Can specify the owner of the job for authorization.',
+      (yargs) => {
+        yargs
+          .positional('jobId', {
+            describe: 'The id of the job',
+            type: 'string',
+          })
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs',
+            type: 'string',
+            default: idAddress,
+          });
+      },
     )
     // FIXME(bryan-hoang): fetchSliceReport is not implemented currently.
     .command(
@@ -141,14 +152,14 @@ async function sendRequest(
   let requestPayload = {};
   let microservice = 'job-submit';
   switch (requestRoute) {
-    case 'countSlices': {
+    case 'countSlices':
       microservice = 'task-distributor';
+    // Falls through
+    case 'fetchJobReport':
       requestPayload.jobOwner = jobOwner;
-    }
     // Falls through
     case 'cancelJob':
     case 'elapsedJobTime':
-    case 'fetchJobReport':
     case 'fetchSliceReport': {
       requestPayload.job = jobId;
       break;
