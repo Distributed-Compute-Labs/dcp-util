@@ -33,12 +33,6 @@ function main() {
     base('CLI for common Bank operations')
       .command('balance', 'Request account balances', {}, getBalance)
       .command(
-        'viewFeeStructure <feeStructureAddress>',
-        'View details about a FeeStructure',
-        {},
-        viewFeeStructure,
-      )
-      .command(
         'transfer <amount> <toAddress>',
         'Transfer credits',
         {},
@@ -105,74 +99,6 @@ async function getBalance(options) {
   }
 
   log(payload);
-
-  return payload;
-}
-
-/**
- * Fetch details about a FeeStructure from the bank
- *
- * @param {object} options - Parsed Yargs options .feeStructureAddress: Fee
- * structure to fetch
- * @returns {Promise<object>} Resolves to the requested FeeStructure
- */
-async function viewFeeStructure(options) {
-  const ks = await getAccountKeystore();
-  const feeStructureAddress = String(
-    new Address(String(options.feeStructureAddress)),
-  );
-
-  if (!options.quiet && !options.json) {
-    console.log('Fetching FeeStructure:', feeStructureAddress);
-    console.log(`  (owned by ${ks.address})`);
-  }
-
-  bankConnection = getBankConnection();
-
-  // FIXME(bryan-hoang): viewFeeStructure is not implemented.
-  const response = await bankConnection.send(
-    'viewFeeStructure',
-    { feeStructureAddress },
-    ks,
-  );
-
-  let { payload } = response;
-
-  // In case the response is an ErrorPayload itself.
-  if (typeof response.payload === 'undefined') {
-    payload = response;
-  }
-
-  if (options.json) {
-    console.log(JSON.stringify(payload, null, 2));
-  } else {
-    log('Payload:', payload);
-
-    if (payload.name.includes('Error')) {
-      console.error('Unable to view fee structure for the following reason:');
-      console.error(payload.message);
-      return payload;
-    }
-
-    const {
-      address,
-      fromAddress,
-      escrow,
-      balance,
-      moved,
-      maxTotal,
-      maxPerRequest,
-    } = payload;
-
-    console.log('Fee Structure:');
-    console.log('  Address:      ', address);
-    console.log('  From Account: ', fromAddress);
-    console.log('  Type:         ', escrow ? 'Escrow' : 'Dynamic');
-    console.log('  Slice Price:  ', maxPerRequest.padStart(22));
-    console.log('  Total amount: ', maxTotal.padStart(22));
-    console.log('  Moved:        ', moved.padStart(22));
-    console.log('  Balance:      ', balance.padStart(22));
-  }
 
   return payload;
 }

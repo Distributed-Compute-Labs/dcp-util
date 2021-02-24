@@ -8,13 +8,7 @@ const execute = create('bin/bank-utility');
 
 test('Bank Utility', async (t) => {
   t.test('Help Text', async (t) => {
-    const operationsAndOptions = [
-      'balance',
-      'viewFeeStructure',
-      'transfer',
-      '--quiet',
-      '--json',
-    ];
+    const operationsAndOptions = ['balance', 'transfer', '--quiet', '--json'];
 
     const testCaseDescription =
       'When no arguments are passed, then help text is displayed describing supported operations.';
