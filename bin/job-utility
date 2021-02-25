@@ -8,6 +8,7 @@
  */
 
 const process = require('process');
+const assert = require('assert').strict;
 const { green, red } = require('chalk');
 const ora = require('ora');
 const debug = require('debug');
@@ -23,7 +24,7 @@ const log = debug('job-utility');
 
 let idKeystore = null;
 let idAddress;
-let schedulerConnection = null;
+let microserviceConnection;
 
 /**
  * Uses dcp-cli to help manage sending requests to routes/operations.
@@ -80,8 +81,25 @@ async function main() {
     )
     // FIXME(bryan-hoang): cancelJob is not implemented currently.
     .command(
-      'cancelJob <jobId>',
-      'Cancels the specified job, halting execution.',
+      'cancelJob <jobId> <reason> [jobOwner]',
+      'Cancels the specified job with the given reason, halting its execution. Can pass the jobOwner for authorization',
+      (yargs) => {
+        yargs
+          .positional('jobId', {
+            describe: 'The id of the job',
+            type: 'string',
+          })
+          .positional('reason', {
+            describe:
+              'The reason for cancelling the job, which workers will see',
+            type: 'string',
+          })
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs',
+            type: 'string',
+            default: idAddress,
+          });
+      },
     )
     // FIXME(bryan-hoang): cancelAllJobs is not implemented currently.
     .command('cancelAllJobs', 'Cancels all jobs')
@@ -135,15 +153,23 @@ async function main() {
  * @param {string} requestRoute
  * @param {object} argv
  * @param argv.debug
- * @param argv.jobOwner
  * @param argv.jobId
+ * @param argv.jobOwner
  * @param argv.json
+ * @param argv.reason
  * @param argv.scheduler
  * @returns {Promise<object>}
  */
 async function sendRequest(
   requestRoute,
-  { debug: isDebugging, jobOwner, jobId, json: isOutputJSON, scheduler },
+  {
+    jobId,
+    reason,
+    scheduler,
+    debug: isDebugging,
+    jobOwner: ownerAddress,
+    json: isOutputJSON,
+  },
 ) {
   if (isDebugging) {
     debug.enable('job-utility');
@@ -155,10 +181,18 @@ async function sendRequest(
     case 'countSlices':
       microservice = 'task-distributor';
     // Falls through
-    case 'fetchJobReport':
-      requestPayload.jobOwner = jobOwner;
-    // Falls through
     case 'cancelJob':
+      if (reason === '') {
+        throw new Error(
+          'An empty reason should not be given for cancelling jobs.',
+        );
+      }
+
+      requestPayload.reason = reason;
+    // Falls through
+    case 'fetchJobReport':
+      requestPayload.ownerAddress = ownerAddress;
+    // Falls through
     case 'elapsedJobTime':
     case 'fetchSliceReport': {
       requestPayload.job = jobId;
@@ -169,30 +203,36 @@ async function sendRequest(
       if (typeof jobOwner === 'undefined') {
         requestPayload = {
           isSelectingAll: true,
-          jobOwner: idAddress,
+          ownerAddress: idAddress,
         };
       } else {
         requestPayload = {
-          jobOwner,
+          ownerAddress,
         };
       }
       break;
     }
     default:
+      assert(false, 'An invalid command was specified');
   }
 
   log('requestPayload:', requestPayload);
 
+  const schedulerURL = new DcpURL(scheduler);
+  const microserviceURL = schedulerURL.resolve(microservice);
+
   let spinner;
   if (!isOutputJSON) {
     spinner = ora(
-      `Sending request ${green(requestRoute)} to ${green(scheduler)}`,
+      `Sending request ${green(requestRoute)} to ${green(microserviceURL)}`,
     ).start();
   }
 
-  const schedulerURL = new DcpURL(scheduler);
-  schedulerConnection = new Connection(schedulerURL.resolve(microservice));
-  const { success, payload: responsePayload } = await schedulerConnection.send(
+  microserviceConnection = new Connection(microserviceURL);
+  const {
+    success,
+    payload: responsePayload,
+  } = await microserviceConnection.send(
     requestRoute,
     requestPayload,
     idKeystore,
@@ -203,14 +243,12 @@ async function sendRequest(
   } else if (!success) {
     spinner.fail();
     log('responsePayload', responsePayload);
+    const errorCodeDisplay =
+      typeof responsePayload.code !== 'undefined'
+        ? ` (${responsePayload.code})`
+        : '';
     console.error(
-      red(
-        `Response Error${
-          typeof responsePayload.code !== 'undefined'
-            ? ` (${responsePayload.code})`
-            : ''
-        }:`,
-      ),
+      red(`Response Error${errorCodeDisplay}:`),
       responsePayload.message,
     );
 
@@ -222,14 +260,16 @@ async function sendRequest(
 }
 
 main()
-  .catch((e) => {
-    console.error('Failed to execute command:');
-    console.error(e);
+  .catch((error) => {
+    console.error(red('Command Error:'), error.message);
     process.exitCode = 1;
   })
   .finally(async () => {
-    if (typeof schedulerConnection.close === 'function') {
-      await schedulerConnection.close();
+    if (
+      typeof microserviceConnection !== 'undefined' &&
+      typeof microserviceConnection.close === 'function'
+    ) {
+      await microserviceConnection.close();
     }
 
     process.exit();
