@@ -37,10 +37,16 @@ async function main() {
       'listJobs [jobOwner]',
       'List jobs owned by an identity, or list all of them if jobOwner is omitted',
       (yargs) => {
-        yargs.positional('jobOwner', {
-          describe: 'The identity address of the owner of the jobs to list',
-          type: 'string',
-        });
+        yargs
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs to list',
+            type: 'string',
+          })
+          .option('statuses', {
+            alias: 's',
+            describe: 'The status(es) of the jobs to list',
+            type: 'array',
+          });
       },
     )
     .command(
@@ -166,6 +172,7 @@ async function sendRequest(
     jobId,
     reason,
     scheduler,
+    statuses,
     debug: isDebugging,
     jobOwner: ownerAddress,
     json: isOutputJSON,
@@ -175,7 +182,11 @@ async function sendRequest(
     debug.enable('job-utility');
   }
 
-  let requestPayload = {};
+  if (statuses.length === 0) {
+    throw new Error('statuses option should not be an empty array');
+  }
+
+  const requestPayload = {};
   let microservice = 'job-submit';
   switch (requestRoute) {
     case 'countSlices':
@@ -198,17 +209,15 @@ async function sendRequest(
       requestPayload.job = jobId;
       break;
     }
-    case 'countJobs':
-    case 'listJobs': {
-      if (typeof jobOwner === 'undefined') {
-        requestPayload = {
-          isSelectingAll: true,
-          ownerAddress: idAddress,
-        };
+    case 'listJobs':
+      requestPayload.statuses = statuses;
+    // Fall through
+    case 'countJobs': {
+      if (typeof ownerAddress === 'undefined') {
+        requestPayload.ownerAddress = idAddress;
+        requestPayload.isSelectingAll = true;
       } else {
-        requestPayload = {
-          ownerAddress,
-        };
+        requestPayload.ownerAddress = ownerAddress;
       }
       break;
     }
