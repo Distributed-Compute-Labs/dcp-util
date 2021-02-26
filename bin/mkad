@@ -13,7 +13,7 @@ const os = require('os');
 const process = require('process');
 const expandTilde = require('expand-tilde');
 
-require('dcp-client').initSync();
+require('dcp-client');
 
 const { base } = require('dcp/dcp-cli');
 const { dotDcpDir } = require('dcp/dcp-dot-dir');
