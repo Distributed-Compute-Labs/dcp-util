@@ -60,8 +60,12 @@ build:
 
 test:
   stage: test
-  script:
+  before_script:
     # Setting this as a `variable` breaks npm, making it unable to find scripts
     # under `node_modules/.bin` for whatever reason. e.g. `peter: not found`
     - export DEBUG=tests
+    # Make a random id keystore for testing so that job-utility doesn't throw
+    - mkdir ~/.dcp
+    - node bin/mkad new id -p ""
+  script:
     - npm test
