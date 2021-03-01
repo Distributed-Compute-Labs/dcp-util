@@ -22,15 +22,7 @@
 
 const process = require('process');
 
-require('dcp-client').initSync();
-
-const { base } = require('dcp/dcp-cli');
-const {
-  create,
-  changeGroup,
-  deleteGroup,
-  listJobs,
-} = require('dcp/compute-groups');
+const { init: initDCPClient } = require('dcp-client');
 
 const wrapApiCall = (fn) => (argv) => {
   const [op] = argv._;
@@ -50,6 +42,14 @@ const wrapApiCall = (fn) => (argv) => {
  * Wraps the Compute API using the dcp-cli API.
  */
 async function main() {
+  const { base } = require('dcp/dcp-cli');
+  const {
+    create,
+    changeGroup,
+    deleteGroup,
+    listJobs,
+  } = require('dcp/compute-groups');
+
   base('Manage compute groups.')
     .command(
       'create <name> [description]',
@@ -118,8 +118,10 @@ async function main() {
     .parse();
 }
 
-main().catch((e) => {
-  console.error('Failed to execute command:');
-  console.error(e);
-  process.exit(1);
-});
+initDCPClient()
+  .then(main)
+  .catch((e) => {
+    console.error('Failed to execute command:');
+    console.error(e);
+    process.exit(1);
+  });

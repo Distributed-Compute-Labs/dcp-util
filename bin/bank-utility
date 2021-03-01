@@ -6,21 +6,15 @@
  *  @date       August 2020
  */
 
-const { argv } = require('process');
-
 const debug = require('debug');
+const { init: initDCPClient } = require('dcp-client');
 
-require('dcp-client').initSync(argv);
-
-const { base, getAccountKeystore } = require('dcp/dcp-cli');
-const { Address } = require('dcp/wallet');
-const { Connection } = require('dcp/protocol-v4');
-const {
-  bank: { location: bankLocation },
-} = require('dcp/dcp-config');
-
-const getBankConnection = () =>
-  new Connection(bankLocation.resolve('bank-teller'));
+let base;
+let getAccountKeystore;
+let Address;
+let Connection;
+let bankLocation;
+let getBankConnection;
 let bankConnection;
 
 const log = debug('bank-utility');
@@ -29,6 +23,15 @@ const log = debug('bank-utility');
  * Handle CLI and dispatch commands to appropriate handlers
  */
 function main() {
+  ({ base, getAccountKeystore } = require('dcp/dcp-cli'));
+  ({ Address } = require('dcp/wallet'));
+  ({ Connection } = require('dcp/protocol-v4'));
+  ({
+    bank: { location: bankLocation },
+  } = require('dcp/dcp-config'));
+
+  getBankConnection = () => new Connection(bankLocation.resolve('bank-teller'));
+
   return new Promise((resolve, _reject) => {
     base('CLI for common Bank operations')
       .command('balance', 'Request account balances', {}, getBalance)
@@ -167,7 +170,8 @@ async function transferCredits(options) {
   }
 }
 
-main()
+initDCPClient()
+  .then(main)
   .catch((error) => {
     console.error('045: Unexpected error:', error);
   })

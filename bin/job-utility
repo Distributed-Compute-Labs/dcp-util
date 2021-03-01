@@ -13,26 +13,38 @@ const { green, red } = require('chalk');
 const ora = require('ora');
 const debug = require('debug');
 
-require('dcp-client').initSync();
-
-const { base } = require('dcp/dcp-cli');
-const { Connection } = require('dcp/protocol-v4');
-const { DcpURL } = require('dcp/dcp-url');
-const { getId } = require('dcp/wallet');
+const { init: initDCPClient } = require('dcp-client');
 
 const log = debug('job-utility');
+
+let base;
+let Connection;
+let DcpURL;
+let getId;
+let schedulerURL;
 
 let idKeystore = null;
 let idAddress;
 let microserviceConnection;
+let spinner = {};
 
 /**
  * Uses dcp-cli to help manage sending requests to routes/operations.
  */
 async function main() {
+  ({ base } = require('dcp/dcp-cli'));
+  ({ Connection } = require('dcp/protocol-v4'));
+  ({ DcpURL } = require('dcp/dcp-url'));
+  ({ getId } = require('dcp/wallet'));
+  ({
+    scheduler: { location: schedulerURL },
+  } = require('dcp/dcp-config'));
+
   idKeystore = await getId();
   idAddress = String(idKeystore.address);
-  const argv = base('Inspect and manipulate running jobs on the command line.')
+  const argv = await base(
+    'Inspect and manipulate running jobs on the command line.',
+  )
     .command(
       'listJobs [jobOwner]',
       'List jobs owned by an identity, or list all of them if jobOwner is omitted',
@@ -163,7 +175,8 @@ async function main() {
  * @param argv.jobOwner
  * @param argv.json
  * @param argv.reason
- * @param argv.scheduler
+ * @param argv.dcpScheduler
+ * @param argv.statuses
  * @returns {Promise<object>}
  */
 async function sendRequest(
@@ -171,7 +184,6 @@ async function sendRequest(
   {
     jobId,
     reason,
-    scheduler,
     statuses,
     debug: isDebugging,
     jobOwner: ownerAddress,
@@ -182,7 +194,7 @@ async function sendRequest(
     debug.enable('job-utility');
   }
 
-  if (statuses.length === 0) {
+  if (Array.isArray(statuses) && statuses.length === 0) {
     throw new Error('statuses option should not be an empty array');
   }
 
@@ -210,14 +222,16 @@ async function sendRequest(
       break;
     }
     case 'listJobs':
-      requestPayload.statuses = statuses;
+      if (typeof statuses !== 'undefined') {
+        requestPayload.statuses = statuses;
+      }
     // Fall through
     case 'countJobs': {
       if (typeof ownerAddress === 'undefined') {
-        requestPayload.ownerAddress = idAddress;
+        requestPayload.jobOwner = idAddress;
         requestPayload.isSelectingAll = true;
       } else {
-        requestPayload.ownerAddress = ownerAddress;
+        requestPayload.jobOwner = ownerAddress;
       }
       break;
     }
@@ -227,10 +241,8 @@ async function sendRequest(
 
   log('requestPayload:', requestPayload);
 
-  const schedulerURL = new DcpURL(scheduler);
   const microserviceURL = schedulerURL.resolve(microservice);
 
-  let spinner;
   if (!isOutputJSON) {
     spinner = ora(
       `Sending request ${green(requestRoute)} to ${green(microserviceURL)}`,
@@ -268,18 +280,25 @@ async function sendRequest(
   }
 }
 
-main()
-  .catch((error) => {
-    console.error(red('Command Error:'), error.message);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    if (
-      typeof microserviceConnection !== 'undefined' &&
-      typeof microserviceConnection.close === 'function'
-    ) {
-      await microserviceConnection.close();
-    }
+const errorHandler = (error) => {
+  if (typeof spinner.fail === 'function') {
+    spinner.fail();
+  }
 
-    process.exit();
-  });
+  log(error);
+  console.error(red('Command Error:'), error.message);
+  process.exitCode = 1;
+};
+
+const finallyHandler = async () => {
+  if (
+    typeof microserviceConnection !== 'undefined' &&
+    typeof microserviceConnection.close === 'function'
+  ) {
+    await microserviceConnection.close();
+  }
+
+  process.exit();
+};
+
+initDCPClient().then(main).catch(errorHandler).finally(finallyHandler);

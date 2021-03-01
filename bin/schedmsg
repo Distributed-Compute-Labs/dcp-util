@@ -17,14 +17,15 @@ const process = require('process');
 const { red, green } = require('chalk');
 const debug = require('debug');
 
-require('dcp-client').initSync();
-
-const { base } = require('dcp/dcp-cli');
-const { Connection } = require('dcp/protocol-v4');
-const { DcpURL } = require('dcp/dcp-url');
-const { load, getId } = require('dcp/wallet');
+const { init: initDCPClient } = require('dcp-client');
 
 const log = debug('schedmsg');
+
+let base;
+let Connection;
+let load;
+let getId;
+let schedulerLocation;
 
 let eventRouterConnection;
 
@@ -34,6 +35,13 @@ let eventRouterConnection;
  * sign and send the message.
  */
 function main() {
+  ({ base } = require('dcp/dcp-cli'));
+  ({ Connection } = require('dcp/protocol-v4'));
+  ({ load, getId } = require('dcp/wallet'));
+  ({
+    scheduler: { location: schedulerLocation },
+  } = require('dcp/dcp-config'));
+
   return new Promise((resolve, reject) => {
     base('Send control messages to a DCP service.')
       .command(
@@ -144,7 +152,6 @@ async function sendMessage(argv, command, payload = {}) {
   }
 
   const targetIdentity = await getTargetIdentity(argv);
-  const schedulerURL = new DcpURL(argv.scheduler);
   const message = {
     target: targetIdentity.address,
     broadcast: argv.broadcast,
@@ -152,7 +159,7 @@ async function sendMessage(argv, command, payload = {}) {
     payload,
   };
 
-  eventRouterConnection = new Connection(schedulerURL.resolve('events'));
+  eventRouterConnection = new Connection(schedulerLocation.resolve('events'));
 
   console.log(
     `Sending SchedMsg to scheduler ${green(argv.scheduler)}:`,
@@ -202,7 +209,8 @@ function getTargetIdentity(argv) {
   return getId();
 }
 
-main()
+initDCPClient()
+  .then(main)
   .catch((error) => {
     console.error(red('Failed to execute command:'));
     console.error(error);

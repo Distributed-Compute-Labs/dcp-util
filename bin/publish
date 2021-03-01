@@ -19,7 +19,7 @@
 const process = require('process');
 const { existsSync } = require('fs');
 
-require('dcp-client').initSync();
+require('dcp-client');
 
 const { base, getIdentityKeystore } = require('dcp/dcp-cli');
 const { publish } = require('dcp/publish');
