@@ -19,7 +19,6 @@ const log = debug('job-utility');
 
 let base;
 let Connection;
-let DcpURL;
 let getId;
 let schedulerURL;
 
@@ -34,7 +33,6 @@ let spinner = {};
 async function main() {
   ({ base } = require('dcp/dcp-cli'));
   ({ Connection } = require('dcp/protocol-v4'));
-  ({ DcpURL } = require('dcp/dcp-url'));
   ({ getId } = require('dcp/wallet'));
   ({
     scheduler: { location: schedulerURL },
