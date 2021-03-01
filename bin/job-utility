@@ -139,8 +139,20 @@ async function main() {
     )
     // FIXME(bryan-hoang): fetchSliceReport is not implemented currently.
     .command(
-      'fetchSliceReport <jobId>',
-      'Returns status and history of slices for a specified job',
+      'fetchSliceReport <jobId> [jobOwner]',
+      'Returns status and history of slices for a specified job. Can specify the owner of the job for authorization.',
+      (yargs) => {
+        yargs
+          .positional('jobId', {
+            describe: 'The id of the job',
+            type: 'string',
+          })
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs',
+            type: 'string',
+            default: idAddress,
+          });
+      },
     )
     .options({
       debug: {
@@ -181,14 +193,7 @@ async function main() {
  */
 async function sendRequest(
   requestRoute,
-  {
-    jobId,
-    reason,
-    statuses,
-    debug: isDebugging,
-    jobOwner: ownerAddress,
-    json: isOutputJSON,
-  },
+  { jobId, jobOwner, reason, statuses, debug: isDebugging, json: isOutputJSON },
 ) {
   if (isDebugging) {
     debug.enable('job-utility');
@@ -202,6 +207,7 @@ async function sendRequest(
   let microservice = 'job-submit';
   switch (requestRoute) {
     case 'countSlices':
+    case 'fetchSliceReport':
       microservice = 'task-distributor';
     // Falls through
     case 'cancelJob':
@@ -214,24 +220,22 @@ async function sendRequest(
       requestPayload.reason = reason;
     // Falls through
     case 'fetchJobReport':
-      requestPayload.ownerAddress = ownerAddress;
+      requestPayload.jobOwner = jobOwner;
     // Falls through
     case 'elapsedJobTime':
-    case 'fetchSliceReport': {
       requestPayload.job = jobId;
       break;
-    }
     case 'listJobs':
       if (typeof statuses !== 'undefined') {
         requestPayload.statuses = statuses;
       }
     // Fall through
     case 'countJobs': {
-      if (typeof ownerAddress === 'undefined') {
+      if (typeof jobOwner === 'undefined') {
         requestPayload.jobOwner = idAddress;
         requestPayload.isSelectingAll = true;
       } else {
-        requestPayload.jobOwner = ownerAddress;
+        requestPayload.jobOwner = jobOwner;
       }
       break;
     }
