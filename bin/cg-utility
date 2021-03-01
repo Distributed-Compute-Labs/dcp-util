@@ -21,21 +21,46 @@
  */
 
 const process = require('process');
-
+const { green } = require('chalk');
+const ora = require('ora');
 const { init: initDCPClient } = require('dcp-client');
 
-const wrapApiCall = (fn) => (argv) => {
-  const [op] = argv._;
-  console.log(`Sending compute group "${op}" operation...`);
-  Promise.resolve(fn(argv))
-    .then((res) => {
-      console.log('Done. Response:\n', res);
-    })
-    .catch((e) => {
-      console.error(e);
-      process.exitCode = 1;
-    })
-    .finally(() => process.exit());
+let spinner;
+let computeGroupsLocation;
+
+const wrapAPICall = (callback) => async ({
+  _: [command],
+  json: isOutputJSON,
+  ...argv
+}) => {
+  if (!isOutputJSON) {
+    spinner = ora(
+      `Sending request ${green(command)} to ${green(computeGroupsLocation)}`,
+    ).start();
+  }
+
+  try {
+    const response = await callback(argv);
+    const responseJSON = JSON.stringify(response, null, 2);
+    if (isOutputJSON) {
+      console.log(responseJSON);
+    } else {
+      spinner.succeed();
+      console.log('Response:', responseJSON);
+    }
+  } catch (error) {
+    if (isOutputJSON) {
+      console.error(
+        JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
+      );
+    } else {
+      spinner.fail();
+      console.error(error);
+    }
+    process.exitCode = 1;
+  } finally {
+    process.exit();
+  }
 };
 
 /**
@@ -44,11 +69,20 @@ const wrapApiCall = (fn) => (argv) => {
 async function main() {
   const { base } = require('dcp/dcp-cli');
   const {
+    cancelJob,
+    cancelAllJobs,
     create,
     changeGroup,
     deleteGroup,
     listJobs,
   } = require('dcp/compute-groups');
+  ({
+    scheduler: {
+      services: {
+        computeGroups: { location: computeGroupsLocation },
+      },
+    },
+  } = require('dcp/dcp-config'));
 
   base('Manage compute groups.')
     .command(
@@ -65,7 +99,7 @@ async function main() {
             type: 'string',
             description: 'The description of the compute group to create',
           }),
-      wrapApiCall((argv) => create(argv.name, argv.description)),
+      wrapAPICall((argv) => create(argv.name, argv.description)),
     )
     .command(
       'change <id> [options]',
@@ -83,7 +117,7 @@ async function main() {
             type: 'number',
             description: 'The id of the compute group to change',
           }),
-      wrapApiCall((argv) =>
+      wrapAPICall((argv) =>
         changeGroup(argv.id, {
           name: argv.name,
           description: argv.description,
@@ -101,7 +135,7 @@ async function main() {
           type: 'number',
           description: 'The id of the compute group to delete',
         }),
-      wrapApiCall((argv) => deleteGroup(argv.id)),
+      wrapAPICall((argv) => deleteGroup(argv.id)),
     )
     .command(
       'listJobs <id>',
@@ -111,8 +145,43 @@ async function main() {
           type: 'number',
           description: 'The id of the compute group to list jobs under',
         }),
-      wrapApiCall((argv) => listJobs(argv.id)),
+      wrapAPICall((argv) => listJobs(argv.id)),
     )
+    .command(
+      'cancelJob <computeGroupId> <jobId>',
+      "Cancel the specified job that's in the specified compute-group",
+      (yargs) =>
+        yargs
+          .positional('computeGroupId', {
+            type: 'number',
+            description: 'The id of the compute group that the job is in',
+          })
+          .positional('jobId', {
+            type: 'string',
+            description: 'The id of the job to cancel',
+          }),
+      wrapAPICall(({ computeGroupId, jobId }) =>
+        cancelJob(computeGroupId, jobId),
+      ),
+    )
+    .command(
+      'cancelAllJobs <computeGroupId>',
+      'Cancel all jobs in the specified compute-group',
+      (yargs) =>
+        yargs.positional('computeGroupId', {
+          type: 'number',
+          description: 'The id of the compute group',
+        }),
+      wrapAPICall(({ computeGroupId }) => cancelAllJobs(computeGroupId)),
+    )
+    .options({
+      json: {
+        alias: 'j',
+        type: 'boolean',
+        default: false,
+        describe: 'Show the output in JSON format',
+      },
+    })
     .demandCommand(1, 'A command must be specified')
     .strict()
     .parse();
