@@ -41,103 +41,103 @@ function wrapHandler(handler) {
  */
 async function main() {
   base('Manipulate Keystore/Address Data.')
-    .command(
-      'new [label]',
-      'Create a new keystore file',
-      (yargs) => {
-        yargs
-          .positional('label', {
-            describe: 'Label for the keystore, used for the filename',
-            default: 'default',
-          })
-          .options({
-            passphrase: {
-              alias: 'p',
-              describe:
-                'Passphrase used to encrypt the keystore, will prompt if not provided',
-              type: 'string',
-            },
-            privateKey: {
-              alias: 'pk',
-              describe:
-                'Create a keystore from a private key, will be randomly generated if not provided',
-              type: 'string',
-            },
-            dir: {
-              describe: 'Directory to save the generated keystore to',
-              default: dotDcpDir,
-            },
-          });
-      },
-      wrapHandler(createKeystore),
-    )
-    .command(
-      'show <keystore>',
-      'Reads the keystore file and displays its information',
-      (yargs) => {
-        yargs
-          .positional('keystore', {
+  .command(
+    'new [label]',
+    'Create a new keystore file',
+    (yargs) => {
+      yargs
+        .positional('label', {
+          describe: 'Label for the keystore, used for the filename',
+          default: 'default',
+        })
+        .options({
+          passphrase: {
+            alias: 'p',
+            describe:
+              'Passphrase used to encrypt the keystore, will prompt if not provided',
             type: 'string',
-            describe: 'A label, filepath, or private key',
-          })
-          .options({
-            dir: {
-              alias: 'd',
-              describe:
-                'Directory to load the keystore from, if a label was provided',
-              default: dotDcpDir,
-            },
-            passphrase: {
-              alias: 'p',
-              describe:
-                'Passphrase to unlock the keystore with, will prompt if not provided',
-              type: 'string',
-            },
-            showPrivateKey: {
-              describe:
-                'Set this flag to include the private key in the output',
-              type: 'boolean',
-              default: false,
-            },
-          });
-      },
-      wrapHandler(showKeystore),
-    )
-    .command(
-      'change-passphrase <keystore>',
-      "Change a keystore file's passphrase",
-      (yargs) => {
-        yargs
-          .positional('keystore', {
-            describe: 'A label or filepath',
+          },
+          privateKey: {
+            alias: 'pk',
+            describe:
+              'Create a keystore from a private key, will be randomly generated if not provided',
             type: 'string',
-          })
-          .options({
-            dir: {
-              alias: 'd',
-              describe:
-                'Directory to load the keystore from, if a label was provided',
-              default: dotDcpDir,
-            },
-            oldPassphrase: {
-              alias: 'o',
-              describe:
-                'Passphrase to unlock the original keystore with, will prompt if not provided',
-              type: 'string',
-            },
-            newPassphrase: {
-              alias: 'p',
-              describe:
-                'Passphrase to lock the new keystore with, will prompt if not provided',
-              type: 'string',
-            },
-          });
-      },
-      wrapHandler(changeKeystorePassphrase),
-    )
-    .demandCommand(1, 'A command must be specified')
-    .strict()
-    .parse();
+          },
+          dir: {
+            describe: 'Directory to save the generated keystore to',
+            default: dotDcpDir,
+          },
+        });
+    },
+    wrapHandler(createKeystore),
+  )
+  .command(
+    'show <keystore>',
+    'Reads the keystore file and displays its information',
+    (yargs) => {
+      yargs
+        .positional('keystore', {
+          type: 'string',
+          describe: 'A label, filepath, or private key',
+        })
+        .options({
+          dir: {
+            alias: 'd',
+            describe:
+              'Directory to load the keystore from, if a label was provided',
+            default: dotDcpDir,
+          },
+          passphrase: {
+            alias: 'p',
+            describe:
+              'Passphrase to unlock the keystore with, will prompt if not provided',
+            type: 'string',
+          },
+          showPrivateKey: {
+            describe:
+              'Set this flag to include the private key in the output',
+            type: 'boolean',
+            default: false,
+          },
+        });
+    },
+    wrapHandler(showKeystore),
+  )
+  .command(
+    'change-passphrase <keystore>',
+    "Change a keystore file's passphrase",
+    (yargs) => {
+      yargs
+        .positional('keystore', {
+          describe: 'A label or filepath',
+          type: 'string',
+        })
+        .options({
+          dir: {
+            alias: 'd',
+            describe:
+              'Directory to load the keystore from, if a label was provided',
+            default: dotDcpDir,
+          },
+          oldPassphrase: {
+            alias: 'o',
+            describe:
+              'Passphrase to unlock the original keystore with, will prompt if not provided',
+            type: 'string',
+          },
+          newPassphrase: {
+            alias: 'p',
+            describe:
+              'Passphrase to lock the new keystore with, will prompt if not provided',
+            type: 'string',
+          },
+        });
+    },
+    wrapHandler(changeKeystorePassphrase),
+  )
+  .demandCommand(1, 'A command must be specified')
+  .strict()
+  .parse();
 }
 
 main().catch((e) => {
@@ -176,13 +176,9 @@ async function createKeystore(argv) {
   const fullpath = path.resolve(expandTilde(dir), filename);
   const dirname = path.dirname(fullpath);
   if (!fs.existsSync(dirname)) {
-    console.error(
-      `Failed to save keystore: Directory ${dirname} does not exist`,
-    );
+    console.error(`Failed to save keystore: Directory ${dirname} does not exist`);
   } else if (fs.existsSync(fullpath)) {
-    console.error(
-      `Failed to save keystore: A file named ${filename} already exists in ${dirname}`,
-    );
+    console.error(`Failed to save keystore: A file named ${filename} already exists in ${dirname}`);
   } else {
     fs.writeFileSync(fullpath, JSON.stringify(ksObj));
     console.log(`Created keystore ${filename} in ${dirname}`);
