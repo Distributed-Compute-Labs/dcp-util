@@ -8,7 +8,15 @@ const execute = create('bin/cg-utility');
 
 test('Compute Group Utility', async (t) => {
   t.test('Help Text', async (t) => {
-    const operationsAndOptions = ['create', 'change', 'delete', 'listJobs'];
+    const operationsAndOptions = [
+      'cancel',
+      'cancelAllJobs',
+      'change',
+      'create',
+      'delete',
+      'listJobs',
+      '--json',
+    ];
     const testCaseDescription =
       'When no arguments are passed, then help text is displayed describing supported operations.';
     await shouldThrow(execute, testCaseDescription, t, (error) => {
