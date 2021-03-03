@@ -23,7 +23,7 @@ const log = debug('bank-utility');
  * Handle CLI and dispatch commands to appropriate handlers
  */
 function main() {
-  ({ base, getAccountKeystore } = require('dcp/dcp-cli'));
+  ({ base, getAccountKeystore } = require('dcp/cli'));
   ({ Address } = require('dcp/wallet'));
   ({ Connection } = require('dcp/protocol-v4'));
   ({

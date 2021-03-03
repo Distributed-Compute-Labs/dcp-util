@@ -35,7 +35,7 @@ let eventRouterConnection;
  * sign and send the message.
  */
 function main() {
-  ({ base } = require('dcp/dcp-cli'));
+  ({ base } = require('dcp/cli'));
   ({ Connection } = require('dcp/protocol-v4'));
   ({ load, getId } = require('dcp/wallet'));
   ({

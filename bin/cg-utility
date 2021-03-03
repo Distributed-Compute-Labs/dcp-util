@@ -64,10 +64,10 @@ const wrapAPICall = (callback) => async ({
 };
 
 /**
- * Wraps the Compute API using the dcp-cli API.
+ * Wraps the Compute API using the cli API.
  */
 async function main() {
-  const { base } = require('dcp/dcp-cli');
+  const { base } = require('dcp/cli');
   const {
     cancelJob,
     cancelAllJobs,

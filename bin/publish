@@ -21,7 +21,7 @@ const { existsSync } = require('fs');
 
 require('dcp-client');
 
-const { base, getIdentityKeystore } = require('dcp/dcp-cli');
+const { base, getIdentityKeystore } = require('dcp/cli');
 const { publish } = require('dcp/publish');
 
 /**

@@ -28,10 +28,10 @@ let microserviceConnection;
 let spinner = {};
 
 /**
- * Uses dcp-cli to help manage sending requests to routes/operations.
+ * Uses cli to help manage sending requests to routes/operations.
  */
 async function main() {
-  ({ base } = require('dcp/dcp-cli'));
+  ({ base } = require('dcp/cli'));
   ({ Connection } = require('dcp/protocol-v4'));
   ({ getId } = require('dcp/wallet'));
   ({

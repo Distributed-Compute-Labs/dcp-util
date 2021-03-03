@@ -15,7 +15,7 @@ const expandTilde = require('expand-tilde');
 
 require('dcp-client');
 
-const { base } = require('dcp/dcp-cli');
+const { base } = require('dcp/cli');
 const { dotDcpDir } = require('dcp/dcp-dot-dir');
 const { Keystore, isPrivateKey, load } = require('dcp/wallet');
 
