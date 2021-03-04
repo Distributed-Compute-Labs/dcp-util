@@ -25,6 +25,7 @@ let schedulerURL;
 let idKeystore = null;
 let idAddress;
 let microserviceConnection;
+/** @type {ora.Ora} */
 let spinner = {};
 
 /**
@@ -43,7 +44,6 @@ async function main() {
   const argv = await base(
     'Inspect and manipulate running jobs on the command line.',
   )
-    // FIXME(bryan-hoang): cancelJob is not implemented currently.
     .command(
       'cancelJob <jobId> <reason> [jobOwner]',
       'Cancels the specified job with the given reason, halting its execution. Can pass the jobOwner for authorization',
@@ -119,7 +119,6 @@ async function main() {
           });
       },
     )
-    // FIXME(bryan-hoang): fetchSliceReport is not implemented currently.
     .command(
       'fetchSliceReport <jobId> [jobOwner]',
       'Returns status and history of slices for a specified job. Can specify the owner of the job for authorization.',
@@ -277,11 +276,22 @@ async function sendRequest(
 
   const microserviceURL = schedulerURL.resolve(microservice);
 
-  if (!isOutputJSON) {
-    spinner = ora(
-      `Sending request ${green(requestRoute)} to ${green(microserviceURL)}`,
-    ).start();
-  }
+  spinner = ora({
+    isSilent: isOutputJSON,
+  }).start(
+    `Sending request ${green(requestRoute)} to ${green(microserviceURL)}`,
+  );
+
+  /**
+   * Intercept calls to console.error to make output nicer while spinner is
+   * active. e.g. Handle "Could not connect to..." console messages from the
+   * protocol.
+   */
+  const logError = console.error;
+  console.error = (...args) => {
+    spinner.clear().frame();
+    logError(...args);
+  };
 
   microserviceConnection = new Connection(microserviceURL);
   const {
