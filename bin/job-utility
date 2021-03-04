@@ -43,22 +43,30 @@ async function main() {
   const argv = await base(
     'Inspect and manipulate running jobs on the command line.',
   )
+    // FIXME(bryan-hoang): cancelJob is not implemented currently.
     .command(
-      'listJobs [jobOwner]',
-      'List jobs owned by an identity, or list all of them if jobOwner is omitted',
+      'cancelJob <jobId> <reason> [jobOwner]',
+      'Cancels the specified job with the given reason, halting its execution. Can pass the jobOwner for authorization',
       (yargs) => {
         yargs
-          .positional('jobOwner', {
-            describe: 'The identity address of the owner of the jobs to list',
+          .positional('jobId', {
+            describe: 'The id of the job',
             type: 'string',
           })
-          .option('statuses', {
-            alias: 's',
-            describe: 'The status(es) of the jobs to list',
-            type: 'array',
+          .positional('reason', {
+            describe:
+              'The reason for cancelling the job, which workers will see',
+            type: 'string',
+          })
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs',
+            type: 'string',
+            default: idAddress,
           });
       },
     )
+    // FIXME(bryan-hoang): cancelAllJobs is not implemented currently.
+    .command('cancelAllJobs', 'Cancels all jobs')
     .command(
       'countJobs [jobOwner]',
       'Count jobs owned by an identity, or list all of them if jobOwner is omitted',
@@ -95,30 +103,6 @@ async function main() {
         });
       },
     )
-    // FIXME(bryan-hoang): cancelJob is not implemented currently.
-    .command(
-      'cancelJob <jobId> <reason> [jobOwner]',
-      'Cancels the specified job with the given reason, halting its execution. Can pass the jobOwner for authorization',
-      (yargs) => {
-        yargs
-          .positional('jobId', {
-            describe: 'The id of the job',
-            type: 'string',
-          })
-          .positional('reason', {
-            describe:
-              'The reason for cancelling the job, which workers will see',
-            type: 'string',
-          })
-          .positional('jobOwner', {
-            describe: 'The identity address of the owner of the jobs',
-            type: 'string',
-            default: idAddress,
-          });
-      },
-    )
-    // FIXME(bryan-hoang): cancelAllJobs is not implemented currently.
-    .command('cancelAllJobs', 'Cancels all jobs')
     .command(
       'fetchJobReport <jobId> [jobOwner]',
       'Returns information and status of the specified job. Can specify the owner of the job for authorization.',
@@ -149,6 +133,22 @@ async function main() {
             describe: 'The identity address of the owner of the jobs',
             type: 'string',
             default: idAddress,
+          });
+      },
+    )
+    .command(
+      'listJobs [jobOwner]',
+      'List jobs owned by an identity, or list all of them if jobOwner is omitted',
+      (yargs) => {
+        yargs
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs to list',
+            type: 'string',
+          })
+          .option('statuses', {
+            alias: 's',
+            describe: 'The status(es) of the jobs to list',
+            type: 'array',
           });
       },
     )
@@ -201,42 +201,74 @@ async function sendRequest(
     throw new Error('statuses option should not be an empty array');
   }
 
-  const requestPayload = {};
-  let microservice = 'job-submit';
+  let requestPayload;
+  let microservice;
   switch (requestRoute) {
-    case 'countSlices':
-    case 'fetchSliceReport':
-      microservice = 'task-distributor';
-    // Falls through
     case 'cancelJob':
+      microservice = 'job-submit';
       if (reason === '') {
         throw new Error(
           'An empty reason should not be given for cancelling jobs.',
         );
       }
 
-      requestPayload.reason = reason;
-    // Falls through
-    case 'fetchJobReport':
-      requestPayload.jobOwner = jobOwner;
-    // Falls through
+      requestPayload = {
+        jobOwner,
+        reason,
+        job: jobId,
+      };
+      break;
+    case 'cancelAllJobs':
+      break;
+    case 'countJobs':
+      microservice = 'pheme';
+      if (typeof jobOwner === 'undefined') {
+        requestPayload = {
+          jobOwner: idAddress,
+          isSelectingAll: true,
+        };
+      } else {
+        requestPayload = { jobOwner };
+      }
+      break;
+    case 'countSlices':
+      microservice = 'pheme';
+      requestPayload = {
+        jobOwner,
+        job: jobId,
+      };
+      break;
     case 'elapsedJobTime':
-      requestPayload.job = jobId;
+      microservice = 'job-submit';
+      requestPayload = {
+        job: jobId,
+      };
+      break;
+    case 'fetchJobReport':
+      microservice = 'pheme';
+      requestPayload = {
+        jobOwner,
+        job: jobId,
+      };
+      break;
+    case 'fetchSliceReport':
+      microservice = 'pheme';
+      requestPayload = {
+        jobOwner,
+        job: jobId,
+      };
       break;
     case 'listJobs':
-      if (typeof statuses !== 'undefined') {
-        requestPayload.statuses = statuses;
-      }
-    // Fall through
-    case 'countJobs': {
+      microservice = 'job-submit';
       if (typeof jobOwner === 'undefined') {
-        requestPayload.jobOwner = idAddress;
-        requestPayload.isSelectingAll = true;
+        requestPayload = {
+          jobOwner: idAddress,
+          isSelectingAll: true,
+        };
       } else {
-        requestPayload.jobOwner = jobOwner;
+        requestPayload = { jobOwner };
       }
       break;
-    }
     default:
       assert(false, 'An invalid command was specified');
   }
