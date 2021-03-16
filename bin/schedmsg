@@ -16,7 +16,7 @@
 const process = require('process');
 
 async function main() {
-  require('dcp/dcp-cli')
+  require('dcp/cli')
   .base('Send control messages to a DCP service.')
   .command('announce <message>',
     'Send an announcement to workers, will display a modal or log to console', {},
@@ -76,12 +76,11 @@ async function main() {
  */
 async function sendMessage (argv, command, payload={}) {
   const protocolV4 = require('dcp/protocol-v4');
-  const { URL } = require('dcp/dcp-url');
 
   const targetIdentity = await getTargetIdentity(argv);
 
-  const schedulerURL = new URL(argv.scheduler);
-  const schedulerConnection = new protocolV4.Connection(schedulerURL.resolve('/DCPv4'));
+  const schedulerURL = require('dcp/dcp-config').scheduler.services.eventRouter.location;
+  const schedulerConnection = new protocolV4.Connection(schedulerURL);
 
   const message = {
     target: targetIdentity.address,
