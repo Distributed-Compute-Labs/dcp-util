@@ -11,7 +11,7 @@
 const process = require('process');
 
 async function main () {
-  const { argv } = require('dcp/dcp-cli')
+  const { argv } = require('dcp/cli')
   .base('Inspect and manipulate running jobs on the command line.')
   .command('listJobs',
     'List attributes of jobs.', {

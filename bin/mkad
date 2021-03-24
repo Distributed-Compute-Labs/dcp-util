@@ -30,7 +30,7 @@ function wrapHandler(handler) {
 async function main() {
   const { dotDcpDir } = require('dcp/dcp-dot-dir');
 
-  require('dcp/dcp-cli')
+  require('dcp/cli')
   .base('Manipulate Keystore/Address Data.')
   .command('new [label]',
     'Create a new keystore file', (yargs) => {

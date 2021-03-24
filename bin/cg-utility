@@ -40,7 +40,7 @@ const wrapApiCall = (fn) => (argv) => {
 async function main() {
   const computeGroups = require('dcp/compute-groups');
 
-  require('dcp/dcp-cli')
+  require('dcp/cli')
   .base('Manage compute groups.')
   .command('create <name> [description]',
     'Create a new compute group', {},

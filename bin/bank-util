@@ -18,7 +18,7 @@ const bankConn = new dcpv4.Connection(require('dcp/dcp-config').bank.location.re
  */
 function main() {
   return new Promise((resolve, reject) => {
-    const options = require('dcp/dcp-cli')
+    const options = require('dcp/cli')
     .base('CLI for common Bank operations')
     .command(
       'balance',
@@ -70,7 +70,7 @@ function main() {
  *  @returns {Promise<DCP Payload>}  Resolves to the Account block from the bank
  */
 async function getBalance(options) {
-  const ks = await require('dcp/dcp-cli').getAccountKeystore();
+  const ks = await require('dcp/cli').getAccountKeystore();
   
   if (!options.quiet && !options.json)
     console.log(`Fetching account balance for address ${ks.address} at bank ${require('dcp/dcp-config').bank.location}`);
@@ -106,7 +106,7 @@ async function getBalance(options) {
  *  @return {Promise<FeeStructure>}  Resolves to the requested FeeStructure
  */
 async function viewFeeStructure(options) {
-  const ks = await require('dcp/dcp-cli').getAccountKeystore();
+  const ks = await require('dcp/cli').getAccountKeystore();
   const feeStructureAddress = '0x' + (options.feeStructureAddress.replace(/^0x/, ''));
   
   if (!options.quiet && !options.json) {
@@ -145,7 +145,7 @@ async function viewFeeStructure(options) {
  *  @return {Promise<FeeStructure>}  Resolves to the requested FeeStructure
  */
 async function transferCredits(options) {
-  const ks = await require('dcp/dcp-cli').getAccountKeystore();
+  const ks = await require('dcp/cli').getAccountKeystore();
   const amount = options.amount || options._[1];
   let toAddress = false;
   

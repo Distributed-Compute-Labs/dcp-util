@@ -19,7 +19,7 @@
 const process = require('process');
 
 async function main() {
-  const dcpCli = require('dcp/dcp-cli');
+  const dcpCli = require('dcp/cli');
   const dcpPublish = require('dcp/publish');
 
   // Process CLI
