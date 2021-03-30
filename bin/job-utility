@@ -20,9 +20,12 @@ const log = debug('job-utility');
 let base;
 let Connection;
 let getId;
+let getAccountKeystore;
 let schedulerURL;
 
-let idKeystore = null;
+let accountKeystore;
+let accountAddress;
+let idKeystore;
 let idAddress;
 let microserviceConnection;
 /** @type {ora.Ora} */
@@ -34,13 +37,17 @@ let spinner = {};
 async function main() {
   ({ base } = require('dcp/cli'));
   ({ Connection } = require('dcp/protocol-v4'));
-  ({ getId } = require('dcp/wallet'));
+  ({ getId, get: getAccountKeystore } = require('dcp/wallet'));
   ({
     scheduler: { location: schedulerURL },
   } = require('dcp/dcp-config'));
 
+  accountKeystore = await getAccountKeystore();
+  accountAddress = String(accountKeystore.address);
+  log('accountAddress:', accountAddress);
   idKeystore = await getId();
   idAddress = String(idKeystore.address);
+  log('idAddress:', idAddress);
   const argv = await base(
     'Inspect and manipulate running jobs on the command line.',
   )
@@ -65,8 +72,24 @@ async function main() {
           });
       },
     )
-    // FIXME(bryan-hoang): cancelAllJobs is not implemented currently.
-    .command('cancelAllJobs', 'Cancels all jobs')
+    .command(
+      'cancelAllJobs <reason> [paymentAccount]',
+      'Cancels all jobs that an account is paying for with the given reason',
+      (yargs) => {
+        yargs
+          .positional('reason', {
+            describe:
+              'The reason for cancelling the job, which workers will see',
+            type: 'string',
+          })
+          .positional('paymentAccount', {
+            describe:
+              'The address of the account paying for the jobs to be canceled',
+            type: 'string',
+            default: accountAddress,
+          });
+      },
+    )
     .command(
       'countJobs [jobOwner]',
       'Count jobs owned by an identity, or list all of them if jobOwner is omitted',
@@ -179,18 +202,25 @@ async function main() {
  *
  * @param {string} requestRoute
  * @param {object} argv
- * @param argv.debug
- * @param argv.jobId
- * @param argv.jobOwner
- * @param argv.json
- * @param argv.reason
- * @param argv.dcpScheduler
- * @param argv.statuses
- * @returns {Promise<object>}
+ * @param {string} argv.jobId
+ * @param {string} argv.jobOwner
+ * @param {string} argv.paymentAccount
+ * @param {string} argv.reason
+ * @param {string[]} argv.statuses
+ * @param {boolean} argv.debug
+ * @param {boolean} argv.json
  */
 async function sendRequest(
   requestRoute,
-  { jobId, jobOwner, reason, statuses, debug: isDebugging, json: isOutputJSON },
+  {
+    jobId,
+    jobOwner,
+    paymentAccount,
+    reason,
+    statuses,
+    debug: isDebugging,
+    json: isOutputJSON,
+  },
 ) {
   if (isDebugging) {
     debug.enable('job-utility');
@@ -200,6 +230,7 @@ async function sendRequest(
     throw new Error('statuses option should not be an empty array');
   }
 
+  let requestIdentity = idKeystore;
   let requestPayload;
   let microservice;
   switch (requestRoute) {
@@ -212,12 +243,22 @@ async function sendRequest(
       }
 
       requestPayload = {
-        jobOwner,
+        ownerAddress: jobOwner,
         reason,
         job: jobId,
       };
       break;
     case 'cancelAllJobs':
+      requestIdentity = accountKeystore;
+      microservice = 'job-submit';
+      if (reason === '') {
+        throw new Error('An empty reason cannot be given for cancelling jobs.');
+      }
+
+      requestPayload = {
+        paymentAccount,
+        reason,
+      };
       break;
     case 'countJobs':
       microservice = 'pheme';
@@ -293,15 +334,11 @@ async function sendRequest(
     logError(...args);
   };
 
-  microserviceConnection = new Connection(microserviceURL);
+  microserviceConnection = new Connection(microserviceURL, requestIdentity);
   const {
     success,
     payload: responsePayload,
-  } = await microserviceConnection.send(
-    requestRoute,
-    requestPayload,
-    idKeystore,
-  );
+  } = await microserviceConnection.send(requestRoute, requestPayload);
 
   if (isOutputJSON) {
     console.log(JSON.stringify(responsePayload, null, 2));
