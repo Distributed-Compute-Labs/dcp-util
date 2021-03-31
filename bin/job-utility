@@ -308,6 +308,10 @@ async function sendRequest(
       } else {
         requestPayload = { jobOwner };
       }
+
+      if (statuses) {
+        requestPayload.statuses = statuses;
+      }
       break;
     default:
       assert(false, 'An invalid command was specified');
