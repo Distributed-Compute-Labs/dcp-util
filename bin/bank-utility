@@ -36,20 +36,37 @@ function main() {
     base('CLI for common Bank operations')
       .command('balance', 'Request account balances', {}, getBalance)
       .command(
-        'transfer <amount> <toAddress>',
+        'transfer <amount> <toAccount>',
         'Transfer credits',
-        {},
+        (yargs) => {
+          yargs
+            .positional('amount', {
+              describe: 'The amount of credits to transfer',
+              type: 'number',
+            })
+            .positional('toAccount', {
+              describe: 'The address of the account to transfer the credits to',
+              type: 'string',
+              coerce: (arg) => new Address(arg).address,
+            });
+        },
         transferCredits,
       )
-      .option('quiet', {
-        alias: 'q',
-        description: 'Less output',
+      .option('debug', {
+        alias: 'd',
         type: 'boolean',
         default: false,
+        describe: 'Show debugging information',
       })
       .option('json', {
         alias: 'j',
         description: 'Provide output in JSON format',
+        type: 'boolean',
+        default: false,
+      })
+      .option('quiet', {
+        alias: 'q',
+        description: 'Less output',
         type: 'boolean',
         default: false,
       })
@@ -73,6 +90,10 @@ function main() {
  * @returns {Promise<object>}  Resolves to the Account block from the bank
  */
 async function getBalance(options) {
+  if (options.debug) {
+    debug.enable('bank-utility');
+  }
+
   const ks = await getAccountKeystore();
 
   if (!options.quiet && !options.json)
@@ -111,16 +132,26 @@ async function getBalance(options) {
  *
  * @param {object} options - Parsed Yargs options
  * @param {number} options.amount - Amount to transfer
- * @param {string} options.toAddress - Address to transfer to. If mixed case,
- * checksum will be validated
+ * @param {string} options.toAccount - Address to transfer to
+ * @param {boolean} options.debug
+ * @param {boolean} options.json
+ * @param {boolean} options.quiet
  * @returns {Promise<object>} Resolves to the requested FeeStructure
  */
-async function transferCredits(options) {
-  const amount = options.amount || options._[1];
-  const toAccount = String(new Address(String(options.toAddress)));
+async function transferCredits({
+  amount,
+  toAccount,
+  debug: isDebugging,
+  json: isOutputJSON,
+  quiet: isOutputQuiet,
+}) {
+  if (isDebugging) {
+    debug.enable('bank-utility');
+  }
+
   const ks = await getAccountKeystore();
 
-  if (!options.quiet && !options.json) {
+  if (!isOutputQuiet && !isOutputJSON) {
     console.log('Sending transfer');
     console.log(`  From Address: ${ks.address}`);
     console.log(`  To Address:   ${toAccount}`);
@@ -130,7 +161,7 @@ async function transferCredits(options) {
   bankConnection = getBankConnection();
 
   try {
-    const { payload } = await bankConnection.send(
+    const { success, payload } = await bankConnection.send(
       'transferCredits',
       {
         fromAccount: ks.address,
@@ -140,14 +171,18 @@ async function transferCredits(options) {
       ks,
     );
 
+    if (!success) {
+      throw payload;
+    }
+
     log(payload);
 
-    if (options.json) {
+    if (isOutputJSON) {
       console.log(JSON.stringify(payload, null, 2));
     } else if (payload.name === 'Error') {
       console.error('Unable to complete transfer for the following reason:');
       console.error(payload.message);
-    } else if (!options.quiet) {
+    } else if (!isOutputQuiet) {
       console.log('Transfer successful!');
     }
 
