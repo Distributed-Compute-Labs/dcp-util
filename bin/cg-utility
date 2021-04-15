@@ -30,14 +30,19 @@ let computeGroupsLocation;
 
 const wrapAPICall = (callback) => async ({
   _: [command],
+  debug: isDebugging,
   json: isOutputJSON,
   ...argv
 }) => {
-  if (!isOutputJSON) {
-    spinner = ora(
-      `Sending request ${green(command)} to ${green(computeGroupsLocation)}`,
-    ).start();
+  if (isDebugging) {
+    process.env.DCP_DEBUG = 'dcp-client:compute-groups';
   }
+
+  spinner = ora({
+    isSilent: isOutputJSON || isDebugging,
+  }).start(
+    `Sending request ${green(command)} to ${green(computeGroupsLocation)}`,
+  );
 
   try {
     const response = await callback(argv);
@@ -95,11 +100,29 @@ async function main() {
             description: 'The name of the compute group to create',
           })
           .option('description', {
-            alias: 'd',
+            alias: 'D',
             type: 'string',
             description: 'The description of the compute group to create',
+          })
+          .option('joinKey', {
+            alias: 'K',
+            type: 'string',
+            description:
+              'The join key used to join the created compute group. Can be specified by itself.',
+          })
+          .option('joinSecret', {
+            alias: 'S',
+            type: 'string',
+            description:
+              'The join secret used to join the created compute group. Must be specified along with a join key.',
           }),
-      wrapAPICall((argv) => create(argv.name, argv.description)),
+      wrapAPICall((argv) =>
+        create(argv.name, {
+          description: argv.description,
+          joinKey: argv.joinKey,
+          joinSecret: argv.joinSecret,
+        }),
+      ),
     )
     .command(
       'change <id> [options]',
@@ -180,6 +203,12 @@ async function main() {
         type: 'boolean',
         default: false,
         describe: 'Show the output in JSON format',
+      },
+      debug: {
+        alias: 'd',
+        type: 'boolean',
+        default: false,
+        describe: 'Show debugging information',
       },
     })
     .demandCommand(1, 'A command must be specified')
