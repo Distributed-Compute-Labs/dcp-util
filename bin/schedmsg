@@ -1,12 +1,12 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 /**
  * @file schedmsg.js
- * 
+ *
  * Schedmsg provides a system to interact with the workers.
- * 
+ *
  * schedmsg.js will convert info from command line arguments to objects. The
  * objects will be sent to protocol.js to sign and send the message
- * 
+ *
  * @author Ryan Rossiter, ryan@kingsds.network,
  *         Sam Cantor, samcantor@kingsds.network
  *         Duncan Mays, duncan@kingds.network
@@ -14,111 +14,215 @@
  */
 
 const process = require('process');
+const { red, green } = require('chalk');
+const debug = require('debug');
 
-async function main() {
-  require('dcp/cli')
-  .base('Send control messages to a DCP service.')
-  .command('announce <message>',
-    'Send an announcement to workers, will display a modal or log to console', {},
-    (argv) => sendMessage(argv, 'announce', { message: argv.message }))
-  .command('remove <jobAddress>', 
-    'Removes any active slices for job address', {},
-    (argv) => sendMessage(argv, 'remove', { jobAddress: argv.jobAddress }))
-  .command('openPopup <href>',
-    'Opens a new tab on browser workers', {},
-    (argv) => sendMessage(argv, 'openPopup', { href: argv.href }))
-  .command('kill [temporary]',
-    'Immediately stops workers', (yargs) => {
-      yargs.positional('temporary', {
-        describe: 'if false the worker will be permanently disabled, requiring manual intervention to be restarted',
-        default: false,
-        type: 'boolean',
-      });
-    },
-    (argv) => sendMessage(argv, 'kill', { temporary: argv.temporary }))
-  .command('reload',
-    'Forces a reload of the worker', {},
-    (argv) => sendMessage(argv, 'reload'))
-  .command('restart',
-    'Stop and refreshes workers without reloading the entire worker', {},
-    (argv) => sendMessage(argv, 'restart'))
-  .options({
-    broadcast: {
-      alias: 'b',
-      describe: 'when true, command will be sent to all workers connected to the scheduler (provided keystore must be in the scheduler\'s schedMsgAdmins list). When false, command will be sent to workers that use the provided keystore as their identity',
-      type: 'boolean',
-      default: false,
-    },
-    targetIdentity: {
-      alias: 't',
-      describe: "Expects a keystore label. When provided, non-broadcast commands will be sent to workers using this target identity keystore label. Defaults to the identity used to send the command.",
-    },
-    targetIdentityFile: {
-      alias: 'T',
-      describe: "Expects a keystore path. Path-based variant of targetIdentity.",
-    },
-    persistent: {
-      describe: '(not implemented) Whether the message should be persistent',
-      type: 'boolean',
-      default: false,
-    }
-  })
-  .demandCommand(1, 'A command must be specified')
-  .strict().argv;
+const { init: initDCPClient } = require('dcp-client');
+
+const log = debug('schedmsg');
+
+let base;
+let Connection;
+let load;
+let getId;
+let schedulerLocation;
+
+let eventRouterConnection;
+
+/**
+ * Provides a system to interact with the workers by converting info from
+ * command line arguments to objects. The objects will be sent to protocol.js to
+ * sign and send the message.
+ */
+function main() {
+  ({ base } = require('dcp/cli'));
+  ({ Connection } = require('dcp/protocol-v4'));
+  ({ load, getId } = require('dcp/wallet'));
+  ({
+    scheduler: { location: schedulerLocation },
+  } = require('dcp/dcp-config'));
+
+  return new Promise((resolve, reject) => {
+    base('Send control messages to a DCP service.')
+      .command(
+        'announce <message>',
+        'Send an announcement to workers, will display a modal or log to console',
+        (yargs) =>
+          yargs.positional('message', {
+            type: 'string',
+            description: 'The message to send to the workers',
+          }),
+        (argv) => sendMessage(argv, 'announce', { message: argv.message }),
+      )
+      .command(
+        'remove <jobAddress>',
+        'Removes any active slices for job address',
+        (yargs) =>
+          yargs.positional('jobAddress', {
+            type: 'string',
+            description: 'The job address to remove slices from',
+          }),
+        (argv) =>
+          sendMessage(argv, 'remove', {
+            jobOpaqueId: argv.jobAddress,
+          }),
+      )
+      .command(
+        'openPopup <href>',
+        'Opens a new tab on browser workers',
+        (yargs) =>
+          yargs.positional('href', {
+            type: 'string',
+            description: 'The URL to open the new tab in.',
+          }),
+        (argv) => sendMessage(argv, 'openPopup', { href: argv.href }),
+      )
+      .command(
+        'kill',
+        'Immediately stops workers',
+        (yargs) => {
+          yargs.option('temporary', {
+            describe:
+              'If not specified, the worker will be permanently disabled, requiring manual intervention to be restarted',
+            default: false,
+            type: 'boolean',
+          });
+        },
+        (argv) => sendMessage(argv, 'kill', { temporary: argv.temporary }),
+      )
+      .command('reload', 'Forces a reload of the worker', {}, (argv) =>
+        sendMessage(argv, 'reload'),
+      )
+      .command(
+        'restart',
+        'Stop and refreshes workers without reloading the entire worker',
+        {},
+        (argv) => sendMessage(argv, 'restart'),
+      )
+      .options({
+        debug: {
+          alias: 'd',
+          describe: 'Enable debug mode',
+          type: 'boolean',
+          default: false,
+        },
+        broadcast: {
+          alias: 'b',
+          describe:
+            "when true, command will be sent to all workers connected to the scheduler (provided keystore must be in the scheduler's schedMsgAdmins list). When false, command will be sent to workers that use the provided keystore as their identity",
+          type: 'boolean',
+          default: false,
+        },
+        targetIdentity: {
+          alias: 't',
+          describe:
+            'Expects a keystore label. When provided, non-broadcast commands will be sent to workers using this target identity keystore label. Defaults to the identity used to send the command.',
+        },
+        targetIdentityFile: {
+          alias: 'T',
+          describe:
+            'Expects a keystore path. Path-based variant of targetIdentity.',
+        },
+        persistent: {
+          describe:
+            '(not implemented) Whether the message should be persistent',
+          type: 'boolean',
+          default: false,
+        },
+      })
+      .onFinishCommand((value) => {
+        resolve(value);
+      })
+      .demandCommand(1, 'A command must be specified')
+      .strict()
+      .parse();
+  });
 }
-
 
 /**
  * Send the message to the scheduler
+ *
  * @param {object} argv - yarg options
  * @param {string} command
  * @param {object} payload
  */
-async function sendMessage (argv, command, payload={}) {
-  const protocolV4 = require('dcp/protocol-v4');
+async function sendMessage(argv, command, payload = {}) {
+  if (argv.debug) {
+    debug.enable('schedmsg');
+  }
 
   const targetIdentity = await getTargetIdentity(argv);
-
-  const schedulerURL = require('dcp/dcp-config').scheduler.services.eventRouter.location;
-  const schedulerConnection = new protocolV4.Connection(schedulerURL);
-
   const message = {
     target: targetIdentity.address,
     broadcast: argv.broadcast,
     command,
     payload,
+  };
+
+  eventRouterConnection = new Connection(schedulerLocation.resolve('events'));
+
+  console.log(
+    `Sending SchedMsg to scheduler ${green(argv.scheduler)}:`,
+    message,
+  );
+
+  // FIXME(DCP-1626): sendSchedMsg is not implemented
+  const {
+    success,
+    payload: responsePayload,
+  } = await eventRouterConnection.send('sendSchedMsg', message, targetIdentity);
+
+  log(responsePayload);
+  if (!success) {
+    console.error(
+      red(`Error (${responsePayload.code}):`),
+      responsePayload.message,
+    );
+  } else {
+    console.log(`\nCommand '${green(command)}' sent successfully.`);
   }
-
-  console.log(`Sending SchedMsg to scheduler ${argv.scheduler}:`, message);
-  await schedulerConnection.send('sendSchedMsg', message, targetIdentity);
-  console.log(`\nCommand '${command}' sent successfully.`);
-
-  await schedulerConnection.close();
-  process.exit(0);
 }
 
+/**
+ * @param argv
+ * @returns {object} The target identity
+ */
 function getTargetIdentity(argv) {
-  const wallet = require('dcp/wallet');
   const { targetIdentity, targetIdentityFile } = argv;
 
   if (targetIdentityFile) {
-    return wallet.load(targetIdentityFile).then(loaded => {
-      if (!loaded.safe)
-        console.warn(`Warning! The keystore file ${targetIdentityFile} has unsafe permissions!`);
+    return load(targetIdentityFile).then((loaded) => {
+      if (!loaded.safe) {
+        console.warn(
+          `Warning! The keystore file ${targetIdentityFile} has unsafe permissions!`,
+        );
+      }
 
       return loaded.keystore;
     });
-  } else if (targetIdentity) {
-    return wallet.getId(targetIdentity);
-  } else {
-    return wallet.getId();
   }
+
+  if (targetIdentity) {
+    return getId(targetIdentity);
+  }
+
+  return getId();
 }
 
-require('dcp-client').init()
-.then(main)
-.catch(e => {
-  console.error("Failed to execute command:");
-  console.error(e);
-  process.exit(1);
-});
+initDCPClient()
+  .then(main)
+  .catch((error) => {
+    console.error(red('Failed to execute command:'));
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    if (
+      typeof eventRouterConnection !== 'undefined' &&
+      typeof eventRouterConnection.close !== 'undefined'
+    ) {
+      await eventRouterConnection.close();
+    }
+
+    process.exit();
+  });

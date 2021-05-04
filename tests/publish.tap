@@ -1,0 +1,27 @@
+const { test } = require('zora');
+
+const { create } = require('./utils/cmd');
+const shouldThrow = require('./utils/should-throw');
+const { debugError } = require('./utils/debug');
+
+const execute = create('bin/publish');
+
+test('Job Utility', async (t) => {
+  t.test('Help Text', async (t) => {
+    const operationsAndOptions = ['packageDescription'];
+
+    const testCaseDescription = `When no arguments are passed, then help text is displayed describing supported operations (${operationsAndOptions}).`;
+    await shouldThrow(execute, testCaseDescription, t, (error) => {
+      if (typeof error !== 'undefined') {
+        debugError(error);
+      }
+
+      const output = String(error);
+
+      t.ok(
+        operationsAndOptions.every((operation) => output.includes(operation)),
+        testCaseDescription,
+      );
+    });
+  });
+});

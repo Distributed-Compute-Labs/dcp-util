@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 /**
  *  @file       mkad.js
  *              Manipulate Keystore/Address Data.
@@ -11,9 +11,18 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const process = require('process');
-const consts = require('constants');
 const expandTilde = require('expand-tilde');
 
+require('dcp-client');
+
+const { base } = require('dcp/cli');
+const { dotDcpDir } = require('dcp/dcp-dot-dir');
+const { Keystore, isPrivateKey, load } = require('dcp/wallet');
+
+/**
+ * @param handler
+ * @returns
+ */
 function wrapHandler(handler) {
   return async function (argv) {
     try {
@@ -24,100 +33,122 @@ function wrapHandler(handler) {
       console.error(e);
       process.exit(1);
     }
-  }
+  };
 }
 
+/**
+ *
+ */
 async function main() {
-  const { dotDcpDir } = require('dcp/dcp-dot-dir');
-
-  require('dcp/cli')
-  .base('Manipulate Keystore/Address Data.')
-  .command('new [label]',
-    'Create a new keystore file', (yargs) => {
+  base('Manipulate Keystore/Address Data.')
+  .command(
+    'new [label]',
+    'Create a new keystore file',
+    (yargs) => {
       yargs
-      .positional('label', {
-        describe: 'Label for the keystore, used for the filename',
-        default: 'default',
-      })
-      .options({
-        passphrase: {
-          alias: 'p',
-          describe: 'Passphrase used to encrypt the keystore, will prompt if not provided',
-          type: 'string',
-        },
-        privateKey: {
-          alias: 'pk',
-          describe: 'Create a keystore from a private key, will be randomly generated if not provided',
-          type: 'string',
-        },
-        dir: {
-          describe: 'Directory to save the generated keystore to',
-          default: dotDcpDir,
-        },
-      });
-    }, wrapHandler(createKeystore))
-  .command('show <keystore>',
-    'Reads the keystore file and displays its information', (yargs) => {
+        .positional('label', {
+          describe: 'Label for the keystore, used for the filename',
+          default: 'default',
+        })
+        .options({
+          passphrase: {
+            alias: 'p',
+            describe:
+              'Passphrase used to encrypt the keystore, will prompt if not provided',
+            type: 'string',
+          },
+          privateKey: {
+            alias: 'pk',
+            describe:
+              'Create a keystore from a private key, will be randomly generated if not provided',
+            type: 'string',
+          },
+          dir: {
+            describe: 'Directory to save the generated keystore to',
+            default: dotDcpDir,
+          },
+        });
+    },
+    wrapHandler(createKeystore),
+  )
+  .command(
+    'show <keystore>',
+    'Reads the keystore file and displays its information',
+    (yargs) => {
       yargs
-      .positional('keystore', {
-        describe: 'A label, filepath, or private key',
-      })
-      .options({
-        dir: {
-          alias: 'd',
-          describe: 'Directory to load the keystore from, if a label was provided',
-          default: dotDcpDir,
-        },
-        passphrase: {
-          alias: 'p',
-          describe: 'Passphrase to unlock the keystore with, will prompt if not provided',
+        .positional('keystore', {
           type: 'string',
-        },
-        showPrivateKey: {
-          describe: 'Set this flag to include the private key in the output',
-          type: 'boolean',
-          default: false,
-        }
-      })
-    }, wrapHandler(showKeystore))
-  .command('change-passphrase <keystore>',
-    "Change a keystore file's passphrase", (yargs) => {
+          describe: 'A label, filepath, or private key',
+        })
+        .options({
+          dir: {
+            alias: 'd',
+            describe:
+              'Directory to load the keystore from, if a label was provided',
+            default: dotDcpDir,
+          },
+          passphrase: {
+            alias: 'p',
+            describe:
+              'Passphrase to unlock the keystore with, will prompt if not provided',
+            type: 'string',
+          },
+          showPrivateKey: {
+            describe:
+              'Set this flag to include the private key in the output',
+            type: 'boolean',
+            default: false,
+          },
+        });
+    },
+    wrapHandler(showKeystore),
+  )
+  .command(
+    'change-passphrase <keystore>',
+    "Change a keystore file's passphrase",
+    (yargs) => {
       yargs
-      .positional('keystore', {
-        describe: 'A label or filepath',
-      })
-      .options({
-        dir: {
-          alias: 'd',
-          describe: 'Directory to load the keystore from, if a label was provided',
-          default: dotDcpDir,
-        },
-        oldPassphrase: {
-          alias: 'o',
-          describe: 'Passphrase to unlock the original keystore with, will prompt if not provided',
+        .positional('keystore', {
+          describe: 'A label or filepath',
           type: 'string',
-        },
-        newPassphrase: {
-          alias: 'p',
-          describe: 'Passphrase to lock the new keystore with, will prompt if not provided',
-          type: 'string',
-        }
-      })
-    }, wrapHandler(changeKeystorePassphrase))
+        })
+        .options({
+          dir: {
+            alias: 'd',
+            describe:
+              'Directory to load the keystore from, if a label was provided',
+            default: dotDcpDir,
+          },
+          oldPassphrase: {
+            alias: 'o',
+            describe:
+              'Passphrase to unlock the original keystore with, will prompt if not provided',
+            type: 'string',
+          },
+          newPassphrase: {
+            alias: 'p',
+            describe:
+              'Passphrase to lock the new keystore with, will prompt if not provided',
+            type: 'string',
+          },
+        });
+    },
+    wrapHandler(changeKeystorePassphrase),
+  )
   .demandCommand(1, 'A command must be specified')
-  .strict().argv;
+  .strict()
+  .parse();
 }
 
-require('dcp-client').init()
-.then(main)
-.catch(e => {
-  console.error("Failed to execute command:");
+main().catch((e) => {
+  console.error('Failed to execute command:');
   console.error(e);
   process.exit(1);
 });
 
 /**
  * Create a new keystore from the provided options
+ *
  * @param {object} argv
  * @param {string}  argv.label
  * @param {string}  argv.passphrase
@@ -128,13 +159,14 @@ async function createKeystore(argv) {
   const { passphrase, privateKey, dir } = argv;
   let { label } = argv;
 
-  label = label.match(/^(.*?)(\.keystore)?$/)[1]; // remove .keystore from label
+  // Remove .keystore from label
+  [, label] = label.match(/^(.*?)(\.keystore)?$/);
 
   let keystoreArgs = [];
-  if (typeof passphrase === 'string') keystoreArgs = [privateKey || null, passphrase];
+  if (typeof passphrase === 'string')
+    keystoreArgs = [privateKey || null, passphrase];
   else if (typeof privateKey === 'string') keystoreArgs = [privateKey];
 
-  const { Keystore } = require('dcp/wallet');
   const ks = await new Keystore(...keystoreArgs);
 
   const ksObj = ks.toJSON();
@@ -155,6 +187,7 @@ async function createKeystore(argv) {
 
 /**
  * Unlocks a keystore
+ *
  * @param {object} argv
  * @param {string}  argv.keystore
  * @param {string}  argv.dir
@@ -163,32 +196,32 @@ async function createKeystore(argv) {
  */
 async function showKeystore(argv) {
   const { keystore, dir, passphrase, showPrivateKey } = argv;
-  const wallet = require('dcp/wallet');
 
   let ks;
-  if (wallet.isPrivateKey(keystore)) {
-    ks = await new wallet.Keystore(keystore, '');
+  if (isPrivateKey(keystore)) {
+    ks = await new Keystore(keystore, '');
   } else {
-    const loadResult = await wallet.load({
+    const loadResult = await load({
       name: keystore,
       dir,
     });
     ks = loadResult.keystore;
   }
-  
+
   console.log(`Keystore "${keystore}":`);
   console.group();
-    console.log("Label:", ks.label);
-    console.log("Address:", ks.address.toString());
-    if (showPrivateKey) {
-      if (typeof passphrase === 'string') await ks.unlock(passphrase);
-      console.log("Private Key:", (await ks.getPrivateKey()).toString());
-    }
+  console.log('Label:', ks.label);
+  console.log('Address:', ks.address.toString());
+  if (showPrivateKey) {
+    if (typeof passphrase === 'string') await ks.unlock(passphrase);
+    console.log('Private Key:', (await ks.getPrivateKey()).toString());
+  }
   console.groupEnd();
 }
 
 /**
  * Changes a keystore's passphrase
+ *
  * @param {object} argv
  * @param {string}  argv.keystore
  * @param {string}  argv.dir
@@ -197,30 +230,29 @@ async function showKeystore(argv) {
  */
 async function changeKeystorePassphrase(argv) {
   const { keystore, dir, oldPassphrase, newPassphrase } = argv;
-  const wallet = require('dcp/wallet');
 
-  const {
-    keystore: oldKeystore,
-    filename: oldFilename,
-  } = await wallet.load({
+  const { keystore: oldKeystore, filename: oldFilename } = await load({
     name: keystore,
     dir,
   });
 
   console.log(`Changing passphrase for keystore in "${oldFilename}"...`);
-  
+
   const unlockArgs = [];
   if (typeof oldPassphrase === 'string') unlockArgs.push(oldPassphrase);
   await oldKeystore.unlock(...unlockArgs);
 
   const newKeystoreArgs = [await oldKeystore.getPrivateKey()];
   if (typeof newPassphrase === 'string') newKeystoreArgs.push(newPassphrase);
-  const newKeystore = await new wallet.Keystore(...newKeystoreArgs);
+  const newKeystore = await new Keystore(...newKeystoreArgs);
   newKeystore.label = oldKeystore.label;
 
   const oldStats = fs.statSync(oldFilename);
   const tempFilename = `${oldFilename}.temp-${os.hostname()}-${process.pid}`;
-  const flags = consts.O_CREAT | consts.O_EXCL | consts.O_WRONLY;
+  const {
+    constants: { O_CREAT, O_EXCL, O_WRONLY },
+  } = fs;
+  const flags = O_CREAT | O_EXCL | O_WRONLY;
   const mode = oldStats.mode & 0777;
 
   // Open a temp file in the same location as the old keystore
@@ -235,7 +267,7 @@ async function changeKeystorePassphrase(argv) {
   try {
     // Finally, replace the old keystore with the new one
     fs.renameSync(tempFilename, oldFilename);
-    console.log("Successfully changed keystore passphrase.");
+    console.log('Successfully changed keystore passphrase.');
   } catch (e) {
     console.error(e);
     fs.unlinkSync(tempFilename); // delete the temp file on fail

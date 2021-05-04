@@ -1,0 +1,48 @@
+const { test } = require('zora');
+
+const { create } = require('./utils/cmd');
+const shouldThrow = require('./utils/should-throw');
+const { debugError } = require('./utils/debug');
+
+const execute = create('bin/job-utility');
+const executeMkad = create('bin/mkad');
+
+test('Job Utility', async (t) => {
+  t.test('Help Text', async (t) => {
+    const operationsAndOptions = [
+      'cancelAllJobs',
+      'cancelJob',
+      'countJobs',
+      'countSlices',
+      'elapsedJobTime',
+      'fetchJobReport',
+      'fetchSliceReport',
+      'listJobs',
+    ];
+
+    try {
+      /**
+       * Create a default keystore to prevent "Could not locate keystore named
+       * 'default' in these locations: ["/root/.dcp/default.keystore"]" from
+       * being thrown in CI.
+       */
+      await executeMkad(['new', 'default', '-p', '']);
+    } catch (error) {
+      console.error(error);
+    }
+
+    const testCaseDescription = `When no arguments are passed, then help text is displayed describing supported operations (${operationsAndOptions}).`;
+    await shouldThrow(execute, testCaseDescription, t, (error) => {
+      if (typeof error !== 'undefined') {
+        debugError(error);
+      }
+
+      const output = String(error);
+
+      t.ok(
+        operationsAndOptions.every((operation) => output.includes(operation)),
+        testCaseDescription,
+      );
+    });
+  });
+});

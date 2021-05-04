@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 /**
  *  @file       publish
  *              Utility for deploying DCP Modules from package description files.
@@ -17,34 +17,62 @@
  */
 
 const process = require('process');
+const { existsSync } = require('fs');
 
+require('dcp-client');
+
+const { base, getIdentityKeystore } = require('dcp/cli');
+const { publish } = require('dcp/publish');
+
+/**
+ * Utility for deploying DCP Modules from package description files.
+ */
 async function main() {
-  const dcpCli = require('dcp/cli');
-  const dcpPublish = require('dcp/publish');
+  const { packageDescription } = base(
+    'Utility to publish a new/updated DCP package',
+  )
+    .command(
+      /**
+       * Specifying the default command so that specifying the package command
+       * is optional.
+       */
+      ['package <packageDescription>', '$0 <packageDescription>'],
+      'Publish a new/updated DCP package from a package description file',
+      (yargs) => {
+        yargs.positional('packageDescription', {
+          describe: 'Path to the package description file.',
+          type: 'string',
+          /**
+           * The key provided represents a path and should have path.normalize()
+           * applied.
+           */
+          normalize: true,
+        });
+      },
+    )
+    .strict()
+    .parse();
 
-  // Process CLI
-  const options = dcpCli
-    .base('Utility to publish a new/updated DCP package')
-    .command(['$0 packageDescription', 'publish'], '', yargs => {
-      yargs.positional('packageDescription', {
-        describe: 'Path to the package description file.',
-      });
-    })
-    .argv;
+  if (!existsSync(packageDescription)) {
+    console.error(
+      `Failed to publish package: The file "${packageDescription}" does not exist`,
+    );
 
-  const { packageDescription } = options;
-  const idKs = await dcpCli.getIdentityKeystore();
+    return;
+  }
 
-  const result = await dcpPublish.publish(packageDescription, idKs);
-
-  console.log("Successfully published package:\n", JSON.stringify(result, null, 2));
+  const idKs = await getIdentityKeystore();
+  const result = await publish(packageDescription, idKs);
+  console.log(
+    'Successfully published package:\n',
+    JSON.stringify(result, null, 2),
+  );
 }
 
-require('dcp-client').init()
-.then(main)
-.catch(e => {
-  console.error("Failed to execute command:");
-  console.error(e);
-  process.exitCode = 1;
-})
-.finally(() => setImmediate(process.exit));
+main()
+  .catch((e) => {
+    console.error('Failed to execute command:');
+    console.error(e);
+    process.exitCode = 1;
+  })
+  .finally(() => setImmediate(process.exit));

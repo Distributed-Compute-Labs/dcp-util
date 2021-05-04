@@ -1,117 +1,389 @@
 #!/usr/bin/env node
 /**
- *  @file       job-utility.js
- *              Utility to inspect and manipulate running jobs.
+ * @file   job-utility.js - Utility to inspect and manipulate running jobs.
  *
- *  @author     Ryan Rossiter, ryan@kingsds.network
- *              Karen Batch, karen@kingsds.network
- *  @date       April 2019
+ * @author Ryan Rossiter <ryan@kingsds.network>
+ * @author Karen Batch <karen@kingsds.network>
+ * @date   April 2019
  */
 
 const process = require('process');
+const assert = require('assert').strict;
+const { green, red } = require('chalk');
+const ora = require('ora');
+const debug = require('debug');
 
-async function main () {
-  const { argv } = require('dcp/cli')
-  .base('Inspect and manipulate running jobs on the command line.')
-  .command('listJobs',
-    'List attributes of jobs.', {
-      all: {
-        describe: 'List all jobs on the scheduler',
+const { init: initDCPClient } = require('dcp-client');
+
+const log = debug('job-utility');
+
+let base;
+let Connection;
+let getId;
+let getAccountKeystore;
+let schedulerURL;
+
+let accountKeystore;
+let accountAddress;
+let idKeystore;
+let idAddress;
+let microserviceConnection;
+/** @type {ora.Ora} */
+let spinner = {};
+
+/**
+ * Uses cli to help manage sending requests to routes/operations.
+ */
+async function main() {
+  ({ base } = require('dcp/cli'));
+  ({ Connection } = require('dcp/protocol-v4'));
+  ({ getId, get: getAccountKeystore } = require('dcp/wallet'));
+  ({
+    scheduler: { location: schedulerURL },
+  } = require('dcp/dcp-config'));
+
+  accountKeystore = await getAccountKeystore();
+  accountAddress = String(accountKeystore.address);
+  log('accountAddress:', accountAddress);
+  idKeystore = await getId();
+  idAddress = String(idKeystore.address);
+  log('idAddress:', idAddress);
+  const argv = await base(
+    'Inspect and manipulate running jobs on the command line.',
+  )
+    .command(
+      'cancelJob <jobId> <reason> [jobOwner]',
+      'Cancels the specified job with the given reason, halting its execution. Can pass the jobOwner for authorization',
+      (yargs) => {
+        yargs
+          .positional('jobId', {
+            describe: 'The id of the job',
+            type: 'string',
+          })
+          .positional('reason', {
+            describe:
+              'The reason for cancelling the job, which workers will see',
+            type: 'string',
+          })
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs',
+            type: 'string',
+            default: idAddress,
+          });
+      },
+    )
+    .command(
+      'cancelAllJobs <reason> [paymentAccount]',
+      'Cancels all jobs that an account is paying for with the given reason',
+      (yargs) => {
+        yargs
+          .positional('reason', {
+            describe:
+              'The reason for cancelling the job, which workers will see',
+            type: 'string',
+          })
+          .positional('paymentAccount', {
+            describe:
+              'The address of the account paying for the jobs to be canceled',
+            type: 'string',
+            default: accountAddress,
+          });
+      },
+    )
+    .command(
+      'countJobs [jobOwner]',
+      'Count jobs owned by an identity, or list all of them if jobOwner is omitted',
+      (yargs) => {
+        yargs.positional('jobOwner', {
+          describe: 'The identity address of the owner of the jobs to count',
+          type: 'string',
+        });
+      },
+    )
+    .command(
+      'countSlices <jobId> [jobOwner]',
+      "Count slices belonging to the specified job and optionally pass the job's owner (default to the current identity)",
+      (yargs) => {
+        yargs
+          .positional('jobId', {
+            describe: 'The id of the job',
+            type: 'string',
+          })
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs',
+            type: 'string',
+            default: idAddress,
+          });
+      },
+    )
+    .command(
+      'elapsedJobTime <jobId>',
+      'Display how long each slice belonging to the specified job has been running.',
+      (yargs) => {
+        yargs.positional('jobId', {
+          describe: 'The id of the job',
+          type: 'string',
+        });
+      },
+    )
+    .command(
+      'fetchJobReport <jobId> [jobOwner]',
+      'Returns information and status of the specified job. Can specify the owner of the job for authorization.',
+      (yargs) => {
+        yargs
+          .positional('jobId', {
+            describe: 'The id of the job',
+            type: 'string',
+          })
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs',
+            type: 'string',
+            default: idAddress,
+          });
+      },
+    )
+    .command(
+      'fetchSliceReport <jobId> [jobOwner]',
+      'Returns status and history of slices for a specified job. Can specify the owner of the job for authorization.',
+      (yargs) => {
+        yargs
+          .positional('jobId', {
+            describe: 'The id of the job',
+            type: 'string',
+          })
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs',
+            type: 'string',
+            default: idAddress,
+          });
+      },
+    )
+    .command(
+      'listJobs [jobOwner]',
+      'List jobs owned by an identity, or list all of them if jobOwner is omitted',
+      (yargs) => {
+        yargs
+          .positional('jobOwner', {
+            describe: 'The identity address of the owner of the jobs to list',
+            type: 'string',
+          })
+          .option('statuses', {
+            alias: 's',
+            describe: 'The status(es) of the jobs to list',
+            type: 'array',
+          });
+      },
+    )
+    .options({
+      debug: {
+        alias: 'd',
         type: 'boolean',
         default: false,
-      }
-    })
-  .command('countJobs',
-    'Count jobs.', {
-      all: {
-        describe: 'Count all jobs on the scheduler',
+        describe: 'Show debugging information',
+      },
+      json: {
+        alias: 'j',
         type: 'boolean',
         default: false,
-      }
+        describe: 'Show the output in JSON format',
+      },
     })
-  .command('countTasks <jobID>',
-    'Count tasks belonging to the specified job.')
-  .command('elapsedTime <jobID>',
-    'Display how long each slice belonging to the specified job has been running.')
-  .command('cancelJob <jobID>',
-    'Cancels the specified job, halting execution.')
-  .command('cancelAllJobs',
-    'Cancels all jobs')
-  .command('fetchJobReport <jobID>',
-    'Returns information and status of the specified job')
-  .command('fetchSliceReport <jobID>',
-    'Returns status and history of slices for a specified job')
-  .demandCommand(1, 'A command must be specified')
-  .strict().argv;
+    .demandCommand(1, 'A command must be specified')
+    .strict()
+    .parse();
 
-  const command = argv._[0];
-  const response = await sendRequest(command, argv);
-  console.log(JSON.stringify(response, null, 2));
-
+  const [command] = argv._;
+  await sendRequest(command, argv);
 }
 
 /**
- * Sends the request to the route specified. Manipulates the owner's jobs accordingly.
- * @param {string} command
+ * Sends the request to the route specified. Manipulates the owner's jobs
+ * accordingly.
+ *
+ * @param {string} requestRoute
  * @param {object} argv
+ * @param {string} argv.jobId
+ * @param {string} argv.jobOwner
+ * @param {string} argv.paymentAccount
+ * @param {string} argv.reason
+ * @param {string[]} argv.statuses
+ * @param {boolean} argv.debug
+ * @param {boolean} argv.json
  */
-async function sendRequest (command, argv) {
-  const protocolV4 = require('dcp/protocol-v4');
-  const { DcpURL } = require('dcp/dcp-url');
-  const wallet = require('dcp/wallet');
-
-  const accountKeystore = await wallet.get();
-
-  const schedulerURL = new DcpURL(argv.scheduler);
-  const schedulerConnection = new protocolV4.Connection(schedulerURL.resolve('/DCPv4'));
-  
-  let operation;
-  switch (command) {
-    case 'elapsedTime':
-      operation = 'elapsedJobTime';
-      break;
-    default:
-      operation = command;
+async function sendRequest(
+  requestRoute,
+  {
+    jobId,
+    jobOwner,
+    paymentAccount,
+    reason,
+    statuses,
+    debug: isDebugging,
+    json: isOutputJSON,
+  },
+) {
+  if (isDebugging) {
+    debug.enable('job-utility');
   }
-  
-  let payload;
-  switch (command) {
-    case 'listJobs':
-    case 'countJobs':
-      payload = {
-        all: argv.all,
-      };
 
-      break;
+  if (Array.isArray(statuses) && statuses.length === 0) {
+    throw new Error('statuses option should not be an empty array');
+  }
 
-    case 'countTasks':
-    case 'elapsedTime':
+  let requestIdentity = idKeystore;
+  let requestPayload;
+  let microservice;
+  switch (requestRoute) {
     case 'cancelJob':
-    case 'fetchJobReport':
-    case 'fetchSliceReport':
-      payload = {
-        jobID: argv.jobID,
+      microservice = 'job-submit';
+      if (reason === '') {
+        throw new Error(
+          'An empty reason should not be given for cancelling jobs.',
+        );
+      }
+
+      requestPayload = {
+        ownerAddress: jobOwner,
+        reason,
+        job: jobId,
       };
-
       break;
+    case 'cancelAllJobs':
+      requestIdentity = accountKeystore;
+      microservice = 'job-submit';
+      if (reason === '') {
+        throw new Error('An empty reason cannot be given for cancelling jobs.');
+      }
 
+      requestPayload = {
+        paymentAccount,
+        reason,
+      };
+      break;
+    case 'countJobs':
+      microservice = 'pheme';
+      if (typeof jobOwner === 'undefined') {
+        requestPayload = {
+          jobOwner: idAddress,
+          isSelectingAll: true,
+        };
+      } else {
+        requestPayload = { jobOwner };
+      }
+      break;
+    case 'countSlices':
+      microservice = 'pheme';
+      requestPayload = {
+        jobOwner,
+        job: jobId,
+      };
+      break;
+    case 'elapsedJobTime':
+      microservice = 'job-submit';
+      requestPayload = {
+        job: jobId,
+      };
+      break;
+    case 'fetchJobReport':
+      microservice = 'pheme';
+      requestPayload = {
+        jobOwner,
+        job: jobId,
+      };
+      break;
+    case 'fetchSliceReport':
+      microservice = 'pheme';
+      requestPayload = {
+        jobOwner,
+        job: jobId,
+      };
+      break;
+    case 'listJobs':
+      microservice = 'job-submit';
+      if (typeof jobOwner === 'undefined') {
+        requestPayload = {
+          jobOwner: idAddress,
+          isSelectingAll: true,
+        };
+      } else {
+        requestPayload = { jobOwner };
+      }
+
+      if (statuses) {
+        requestPayload.statuses = statuses;
+      }
+      break;
     default:
+      assert(false, 'An invalid command was specified');
   }
 
-  console.log(`Sending request ${command}...`);
-  const response = await schedulerConnection.send(operation, {
-    owner: accountKeystore.address,
-    ...payload,
-  }, accountKeystore);
-  
-  return response.payload;
+  log('requestPayload:', requestPayload);
+
+  const microserviceURL = schedulerURL.resolve(microservice);
+
+  spinner = ora({
+    isSilent: isOutputJSON,
+  }).start(
+    `Sending request ${green(requestRoute)} to ${green(microserviceURL)}`,
+  );
+
+  /**
+   * Intercept calls to console.error to make output nicer while spinner is
+   * active. e.g. Handle "Could not connect to..." console messages from the
+   * protocol.
+   */
+  const logError = console.error;
+  console.error = (...args) => {
+    spinner.clear().frame();
+    logError(...args);
+  };
+
+  microserviceConnection = new Connection(microserviceURL, requestIdentity);
+  const {
+    success,
+    payload: responsePayload,
+  } = await microserviceConnection.send(requestRoute, requestPayload);
+
+  if (isOutputJSON) {
+    console.log(JSON.stringify(responsePayload, null, 2));
+  } else if (!success) {
+    spinner.fail();
+    log('responsePayload', responsePayload);
+    const errorCodeDisplay =
+      typeof responsePayload.code !== 'undefined'
+        ? ` (${responsePayload.code})`
+        : '';
+    console.error(
+      red(`Response Error${errorCodeDisplay}:`),
+      responsePayload.message,
+    );
+
+    process.exitCode = 1;
+  } else {
+    spinner.succeed();
+    console.log('Response:', JSON.stringify(responsePayload, null, 2));
+  }
 }
 
-require('dcp-client').init()
-.then(main)
-.catch(e => {
-  console.error("Failed to execute command:");
-  console.error(e);
+const errorHandler = (error) => {
+  if (typeof spinner.fail === 'function') {
+    spinner.fail();
+  }
+
+  log(error);
+  console.error(red('Command Error:'), error.message);
   process.exitCode = 1;
-})
-.finally(() => setImmediate(process.exit));
+};
+
+const finallyHandler = async () => {
+  if (
+    typeof microserviceConnection !== 'undefined' &&
+    typeof microserviceConnection.close === 'function'
+  ) {
+    await microserviceConnection.close();
+  }
+
+  process.exit();
+};
+
+initDCPClient().then(main).catch(errorHandler).finally(finallyHandler);
