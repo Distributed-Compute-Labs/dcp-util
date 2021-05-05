@@ -1,0 +1,221 @@
+#!/usr/bin/env node
+/**
+ *  Bank Utility - CLI for common bank operations
+ *
+ *  @author     Eddie Roosenmaallen <eddie@kingsds.network>
+ *  @date       August 2020
+ */
+
+const debug = require('debug');
+const { init: initDCPClient } = require('dcp-client');
+
+let base;
+let getAccountKeystore;
+let Address;
+let Connection;
+let bankLocation;
+let getBankConnection;
+let bankConnection;
+
+const log = debug('bank-utility');
+
+/**
+ * Handle CLI and dispatch commands to appropriate handlers
+ */
+function main() {
+  ({ base, getAccountKeystore } = require('dcp/cli'));
+  ({ Address } = require('dcp/wallet'));
+  ({ Connection } = require('dcp/protocol-v4'));
+  ({
+    bank: { location: bankLocation },
+  } = require('dcp/dcp-config'));
+
+  getBankConnection = () => new Connection(bankLocation.resolve('bank-teller'));
+
+  return new Promise((resolve, _reject) => {
+    base('CLI for common Bank operations')
+      .command('balance', 'Request account balances', {}, getBalance)
+      .command(
+        'transfer <amount> <toAccount>',
+        'Transfer credits',
+        (yargs) => {
+          yargs
+            .positional('amount', {
+              describe: 'The amount of credits to transfer',
+              type: 'number',
+            })
+            .positional('toAccount', {
+              describe: 'The address of the account to transfer the credits to',
+              type: 'string',
+              coerce: (arg) => new Address(arg).address,
+            });
+        },
+        transferCredits,
+      )
+      .option('debug', {
+        alias: 'd',
+        type: 'boolean',
+        default: false,
+        describe: 'Show debugging information',
+      })
+      .option('json', {
+        alias: 'j',
+        description: 'Provide output in JSON format',
+        type: 'boolean',
+        default: false,
+      })
+      .option('quiet', {
+        alias: 'q',
+        description: 'Less output',
+        type: 'boolean',
+        default: false,
+      })
+      .demandCommand(1)
+      /**
+       * Yargs doesn't seem to play well with async command handlers; this
+       * onFinishCommand hook will resolve main() with the result value from the
+       * command function.
+       */
+      .onFinishCommand((resultValue) => {
+        resolve(resultValue);
+      })
+      .parse();
+  });
+}
+
+/**
+ * Fetch balance information for the default account
+ *
+ * @param {object} options Yargs options from CLI
+ * @returns {Promise<object>}  Resolves to the Account block from the bank
+ */
+async function getBalance(options) {
+  if (options.debug) {
+    debug.enable('bank-utility');
+  }
+
+  const ks = await getAccountKeystore();
+
+  if (!options.quiet && !options.json)
+    console.log(
+      `Fetching account balance for address ${ks.address} at bank ${bankLocation}`,
+    );
+
+  bankConnection = getBankConnection();
+
+  const { payload } = await bankConnection.send(
+    'viewAccount',
+    { address: ks.address },
+    ks,
+  );
+
+  if (options.json) {
+    console.log(JSON.stringify(payload, null, 2));
+  } else {
+    const { address, balance, escrow } = payload;
+    console.log(`Account info for ${address}:`);
+    console.log(`  Balance: ${balance}`);
+
+    if (escrow && parseInt(escrow.num, 10)) {
+      console.log(`  Escrow count: ${escrow.num}`);
+      console.log(`  Escrow total: ${escrow.total}`);
+    }
+  }
+
+  log(payload);
+
+  return payload;
+}
+
+/**
+ * Transfer credits to another account
+ *
+ * @param {object} options - Parsed Yargs options
+ * @param {number} options.amount - Amount to transfer
+ * @param {string} options.toAccount - Address to transfer to
+ * @param {boolean} options.debug
+ * @param {boolean} options.json
+ * @param {boolean} options.quiet
+ * @returns {Promise<object>} Resolves to the requested FeeStructure
+ */
+async function transferCredits({
+  amount,
+  toAccount,
+  debug: isDebugging,
+  json: isOutputJSON,
+  quiet: isOutputQuiet,
+}) {
+  if (isDebugging) {
+    debug.enable('bank-utility');
+  }
+
+  const ks = await getAccountKeystore();
+
+  if (!isOutputQuiet && !isOutputJSON) {
+    console.log('Sending transfer');
+    console.log(`  From Address: ${ks.address}`);
+    console.log(`  To Address:   ${toAccount}`);
+    console.log(`  Amount:       ${amount}`);
+  }
+
+  bankConnection = getBankConnection();
+
+  try {
+    const { success, payload } = await bankConnection.send(
+      'transferCredits',
+      {
+        fromAccount: ks.address,
+        toAccount,
+        amount,
+      },
+      ks,
+    );
+
+    if (!success) {
+      throw payload;
+    }
+
+    log(payload);
+
+    if (isOutputJSON) {
+      console.log(JSON.stringify(payload, null, 2));
+    } else if (payload.name === 'Error') {
+      console.error('Unable to complete transfer for the following reason:');
+      console.error(payload.message);
+    } else if (!isOutputQuiet) {
+      console.log('Transfer successful!');
+    }
+
+    return payload;
+  } catch (error) {
+    if (error.code === 'ENOFUNDS') {
+      console.error('Error: Not enough credits in source account.');
+      return error;
+    }
+
+    if (error.message.includes('Bad checksum for address')) {
+      console.error(
+        `Error: Address ${toAccount} has an invalid checksum. Please verify the address and try again.`,
+      );
+
+      return error;
+    }
+
+    throw error;
+  }
+}
+
+initDCPClient()
+  .then(main)
+  .catch((error) => {
+    console.error('045: Unexpected error:', error);
+  })
+  .finally(() => {
+    if (
+      typeof bankConnection === 'object' &&
+      (bankConnection.usable || !bankConnection.closed)
+    ) {
+      log('Disconnecting from Bank...');
+      bankConnection.close();
+    }
+  });

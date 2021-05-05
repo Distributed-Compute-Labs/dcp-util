@@ -1,0 +1,225 @@
+#!/usr/bin/env node
+/**
+ * @file cg-utility
+ *
+ * This utility is used to manage compute groups.
+ *
+ * The following operations are supported:
+ * - create compute group
+ * - change compute group
+ * - delete compute group
+ * - list jobs in group
+ *
+ * Future versions of this utility will also adding/removing jobs from the
+ * group, maybe performance-related queries, etc.
+ *
+ * Eventually, the portal will have a "Compute Groups" page that will also do
+ * this with a web interface, but that will come later.
+ *
+ * @author Ryan Rossiter, ryan@kingsds.network
+ * @date Oct 2020
+ */
+
+const process = require('process');
+const { green } = require('chalk');
+const ora = require('ora');
+const { init: initDCPClient } = require('dcp-client');
+
+let spinner;
+let computeGroupsLocation;
+
+const wrapAPICall = (callback) => async ({
+  _: [command],
+  debug: isDebugging,
+  json: isOutputJSON,
+  ...argv
+}) => {
+  if (isDebugging) {
+    process.env.DCP_DEBUG = 'dcp-client:compute-groups';
+  }
+
+  spinner = ora({
+    isSilent: isOutputJSON || isDebugging,
+  }).start(
+    `Sending request ${green(command)} to ${green(computeGroupsLocation)}`,
+  );
+
+  try {
+    const response = await callback(argv);
+    const responseJSON = JSON.stringify(response, null, 2);
+    if (isOutputJSON) {
+      console.log(responseJSON);
+    } else {
+      spinner.succeed();
+      console.log('Response:', responseJSON);
+    }
+  } catch (error) {
+    if (isOutputJSON) {
+      console.error(
+        JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
+      );
+    } else {
+      spinner.fail();
+      console.error(error);
+    }
+    process.exitCode = 1;
+  } finally {
+    process.exit();
+  }
+};
+
+/**
+ * Wraps the Compute API using the cli API.
+ */
+async function main() {
+  const { base } = require('dcp/cli');
+  const {
+    cancelJob,
+    cancelAllJobs,
+    create,
+    changeGroup,
+    deleteGroup,
+    listJobs,
+  } = require('dcp/compute-groups');
+  ({
+    scheduler: {
+      services: {
+        computeGroups: { location: computeGroupsLocation },
+      },
+    },
+  } = require('dcp/dcp-config'));
+
+  base('Manage compute groups.')
+    .command(
+      'create <name> [description]',
+      'Create a new compute group',
+      (yargs) =>
+        yargs
+          .positional('name', {
+            type: 'string',
+            description: 'The name of the compute group to create',
+          })
+          .option('description', {
+            alias: 'D',
+            type: 'string',
+            description: 'The description of the compute group to create',
+          })
+          .option('joinKey', {
+            alias: 'K',
+            type: 'string',
+            description:
+              'The join key used to join the created compute group. Can be specified by itself.',
+          })
+          .option('joinSecret', {
+            alias: 'S',
+            type: 'string',
+            description:
+              'The join secret used to join the created compute group. Must be specified along with a join key.',
+          }),
+      wrapAPICall((argv) =>
+        create(argv.name, {
+          description: argv.description,
+          joinKey: argv.joinKey,
+          joinSecret: argv.joinSecret,
+        }),
+      ),
+    )
+    .command(
+      'change <id> [options]',
+      'Change a compute group',
+      (yargs) =>
+        yargs
+          .options({
+            name: { type: 'string' },
+            description: { type: 'string' },
+            joinKey: { type: 'string' },
+            joinSecret: { type: 'string' },
+            joinAddress: { type: 'string' },
+          })
+          .positional('id', {
+            type: 'number',
+            description: 'The id of the compute group to change',
+          }),
+      wrapAPICall((argv) =>
+        changeGroup(argv.id, {
+          name: argv.name,
+          description: argv.description,
+          joinKey: argv.joinKey,
+          joinSecret: argv.joinSecret,
+          joinAddress: argv.joinAddress,
+        }),
+      ),
+    )
+    .command(
+      'delete <id>',
+      'Delete a compute group',
+      (yargs) =>
+        yargs.positional('id', {
+          type: 'number',
+          description: 'The id of the compute group to delete',
+        }),
+      wrapAPICall((argv) => deleteGroup(argv.id)),
+    )
+    .command(
+      'listJobs <id>',
+      'List jobs in a compute group',
+      (yargs) =>
+        yargs.positional('id', {
+          type: 'number',
+          description: 'The id of the compute group to list jobs under',
+        }),
+      wrapAPICall((argv) => listJobs(argv.id)),
+    )
+    .command(
+      'cancelJob <computeGroupId> <jobId>',
+      "Cancel the specified job that's in the specified compute-group",
+      (yargs) =>
+        yargs
+          .positional('computeGroupId', {
+            type: 'number',
+            description: 'The id of the compute group that the job is in',
+          })
+          .positional('jobId', {
+            type: 'string',
+            description: 'The id of the job to cancel',
+          }),
+      wrapAPICall(({ computeGroupId, jobId }) =>
+        cancelJob(computeGroupId, jobId),
+      ),
+    )
+    .command(
+      'cancelAllJobs <computeGroupId>',
+      'Cancel all jobs in the specified compute-group',
+      (yargs) =>
+        yargs.positional('computeGroupId', {
+          type: 'number',
+          description: 'The id of the compute group',
+        }),
+      wrapAPICall(({ computeGroupId }) => cancelAllJobs(computeGroupId)),
+    )
+    .options({
+      json: {
+        alias: 'j',
+        type: 'boolean',
+        default: false,
+        describe: 'Show the output in JSON format',
+      },
+      debug: {
+        alias: 'd',
+        type: 'boolean',
+        default: false,
+        describe: 'Show debugging information',
+      },
+    })
+    .demandCommand(1, 'A command must be specified')
+    .strict()
+    .parse();
+}
+
+initDCPClient()
+  .then(main)
+  .catch((e) => {
+    console.error('Failed to execute command:');
+    console.error(e);
+    process.exit(1);
+  });

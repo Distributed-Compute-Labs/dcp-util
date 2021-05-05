@@ -13,7 +13,7 @@ You need to build a local dcp-client. (And for now, to check out the right branc
 
 In dcp:
 
-    git checkout improvement/dcp-cli-util
+    git checkout improvement/cli-util
     npm link dcp-client
     ./install.sh -N dcp-client
 
