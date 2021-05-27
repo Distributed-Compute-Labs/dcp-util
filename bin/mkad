@@ -67,6 +67,13 @@ async function main() {
             describe: 'Directory to save the generated keystore to',
             default: dotDcpDir,
           },
+          quiet: {
+            alias: 'q',
+            describe:
+              'Enable quiet mode, which hides progress messages and still prints errors',
+            type: 'boolean', 
+            default: false
+          }
         });
     },
     wrapHandler(createKeystore),
@@ -99,6 +106,13 @@ async function main() {
             type: 'boolean',
             default: false,
           },
+          quiet: {
+            alias: 'q',
+            describe:
+              'Enable quiet mode, which hides progress messages and still prints errors',
+            type: 'boolean', 
+            default: false,
+          }
         });
     },
     wrapHandler(showKeystore),
@@ -131,6 +145,13 @@ async function main() {
               'Passphrase to lock the new keystore with, will prompt if not provided',
             type: 'string',
           },
+          quiet: {
+            alias: 'q',
+            describe:
+              'Enable quiet mode, which hides progress messages and still prints errors',
+            type: 'boolean', 
+            default: false
+          }
         });
     },
     wrapHandler(changeKeystorePassphrase),
@@ -156,7 +177,7 @@ main().catch((e) => {
  * @param {string}  argv.dir
  */
 async function createKeystore(argv) {
-  const { passphrase, privateKey, dir } = argv;
+  const { passphrase, privateKey, dir, quiet } = argv;
   let { label } = argv;
 
   // Remove .keystore from label
@@ -181,7 +202,7 @@ async function createKeystore(argv) {
     console.error(`Failed to save keystore: A file named ${filename} already exists in ${dirname}`);
   } else {
     fs.writeFileSync(fullpath, JSON.stringify(ksObj));
-    console.log(`Created keystore ${filename} in ${dirname}`);
+    !quiet && console.log(`Created keystore ${filename} in ${dirname}`);
   }
 }
 
@@ -195,7 +216,7 @@ async function createKeystore(argv) {
  * @param {boolean} argv.showPrivateKey
  */
 async function showKeystore(argv) {
-  const { keystore, dir, passphrase, showPrivateKey } = argv;
+  const { keystore, dir, passphrase, showPrivateKey, quiet } = argv;
 
   let ks;
   if (isPrivateKey(keystore)) {
@@ -208,15 +229,15 @@ async function showKeystore(argv) {
     ks = loadResult.keystore;
   }
 
-  console.log(`Keystore "${keystore}":`);
-  console.group();
-  console.log('Label:', ks.label);
-  console.log('Address:', ks.address.toString());
+  !quiet && console.log(`Keystore "${keystore}":`);
+  !quiet && console.group();
+  !quiet && console.log('Label:', ks.label);
+  !quiet && console.log('Address:', ks.address.toString());
   if (showPrivateKey) {
     if (typeof passphrase === 'string') await ks.unlock(passphrase);
-    console.log('Private Key:', (await ks.getPrivateKey()).toString());
+    quiet && console.log('Private Key:', (await ks.getPrivateKey()).toString());
   }
-  console.groupEnd();
+  !quiet && console.groupEnd();
 }
 
 /**
@@ -229,14 +250,14 @@ async function showKeystore(argv) {
  * @param {string}  argv.newPassphrase
  */
 async function changeKeystorePassphrase(argv) {
-  const { keystore, dir, oldPassphrase, newPassphrase } = argv;
+  const { keystore, dir, oldPassphrase, newPassphrase, quiet } = argv;
 
   const { keystore: oldKeystore, filename: oldFilename } = await load({
     name: keystore,
     dir,
   });
 
-  console.log(`Changing passphrase for keystore in "${oldFilename}"...`);
+  !quiet && console.log(`Changing passphrase for keystore in "${oldFilename}"...`);
 
   const unlockArgs = [];
   if (typeof oldPassphrase === 'string') unlockArgs.push(oldPassphrase);
@@ -267,7 +288,7 @@ async function changeKeystorePassphrase(argv) {
   try {
     // Finally, replace the old keystore with the new one
     fs.renameSync(tempFilename, oldFilename);
-    console.log('Successfully changed keystore passphrase.');
+    !quiet && console.log('Successfully changed keystore passphrase.');
   } catch (e) {
     console.error(e);
     fs.unlinkSync(tempFilename); // delete the temp file on fail
