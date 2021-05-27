@@ -67,13 +67,6 @@ async function main() {
             describe: 'Directory to save the generated keystore to',
             default: dotDcpDir,
           },
-          quiet: {
-            alias: 'q',
-            describe:
-              'Enable quiet mode, which hides progress messages and still prints errors',
-            type: 'boolean', 
-            default: false
-          }
         });
     },
     wrapHandler(createKeystore),
@@ -106,13 +99,6 @@ async function main() {
             type: 'boolean',
             default: false,
           },
-          quiet: {
-            alias: 'q',
-            describe:
-              'Enable quiet mode, which hides progress messages and still prints errors',
-            type: 'boolean', 
-            default: false,
-          }
         });
     },
     wrapHandler(showKeystore),
@@ -145,17 +131,19 @@ async function main() {
               'Passphrase to lock the new keystore with, will prompt if not provided',
             type: 'string',
           },
-          quiet: {
-            alias: 'q',
-            describe:
-              'Enable quiet mode, which hides progress messages and still prints errors',
-            type: 'boolean', 
-            default: false
-          }
         });
     },
     wrapHandler(changeKeystorePassphrase),
   )
+  .options({
+    quiet: {
+      alias: 'q',
+      describe:
+        'Enable quiet mode, which hides progress messages and still prints errors',
+      type: 'boolean', 
+      default: false
+    },
+  })
   .demandCommand(1, 'A command must be specified')
   .strict()
   .parse();
