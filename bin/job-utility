@@ -52,12 +52,12 @@ async function main() {
     'Inspect and manipulate running jobs on the command line.',
   )
     .command(
-      'cancelJob <jobId> <reason> [jobOwner]',
+      'cancelJob <jobAddress> <reason> [jobOwner]',
       'Cancels the specified job with the given reason, halting its execution. Can pass the jobOwner for authorization',
       (yargs) => {
         yargs
-          .positional('jobId', {
-            describe: 'The id of the job',
+          .positional('jobAddress', {
+            describe: 'The address of the job',
             type: 'string',
           })
           .positional('reason', {
@@ -101,12 +101,12 @@ async function main() {
       },
     )
     .command(
-      'countSlices <jobId> [jobOwner]',
+      'countSlices <jobAddress> [jobOwner]',
       "Count slices belonging to the specified job and optionally pass the job's owner (default to the current identity)",
       (yargs) => {
         yargs
-          .positional('jobId', {
-            describe: 'The id of the job',
+          .positional('jobAddress', {
+            describe: 'The address of the job',
             type: 'string',
           })
           .positional('jobOwner', {
@@ -117,22 +117,22 @@ async function main() {
       },
     )
     .command(
-      'elapsedJobTime <jobId>',
+      'elapsedJobTime <jobAddress>',
       'Display how long each slice belonging to the specified job has been running.',
       (yargs) => {
-        yargs.positional('jobId', {
-          describe: 'The id of the job',
+        yargs.positional('jobAddress', {
+          describe: 'The address of the job',
           type: 'string',
         });
       },
     )
     .command(
-      'fetchJobReport <jobId> [jobOwner]',
+      'fetchJobReport <jobAddress> [jobOwner]',
       'Returns information and status of the specified job. Can specify the owner of the job for authorization.',
       (yargs) => {
         yargs
-          .positional('jobId', {
-            describe: 'The id of the job',
+          .positional('jobAddress', {
+            describe: 'The address of the job',
             type: 'string',
           })
           .positional('jobOwner', {
@@ -143,12 +143,12 @@ async function main() {
       },
     )
     .command(
-      'fetchSliceReport <jobId> [jobOwner]',
+      'fetchSliceReport <jobAddress> [jobOwner]',
       'Returns status and history of slices for a specified job. Can specify the owner of the job for authorization.',
       (yargs) => {
         yargs
-          .positional('jobId', {
-            describe: 'The id of the job',
+          .positional('jobAddress', {
+            describe: 'The address of the job',
             type: 'string',
           })
           .positional('jobOwner', {
@@ -202,7 +202,7 @@ async function main() {
  *
  * @param {string} requestRoute
  * @param {object} argv
- * @param {string} argv.jobId
+ * @param {string} argv.jobAddress
  * @param {string} argv.jobOwner
  * @param {string} argv.paymentAccount
  * @param {string} argv.reason
@@ -213,7 +213,7 @@ async function main() {
 async function sendRequest(
   requestRoute,
   {
-    jobId,
+    jobAddress,
     jobOwner,
     paymentAccount,
     reason,
@@ -245,7 +245,7 @@ async function sendRequest(
       requestPayload = {
         ownerAddress: jobOwner,
         reason,
-        job: jobId,
+        job: jobAddress,
       };
       break;
     case 'cancelAllJobs':
@@ -275,27 +275,27 @@ async function sendRequest(
       microservice = 'pheme';
       requestPayload = {
         jobOwner,
-        job: jobId,
+        job: jobAddress,
       };
       break;
     case 'elapsedJobTime':
       microservice = 'job-submit';
       requestPayload = {
-        job: jobId,
+        job: jobAddress,
       };
       break;
     case 'fetchJobReport':
       microservice = 'pheme';
       requestPayload = {
         jobOwner,
-        job: jobId,
+        job: jobAddress,
       };
       break;
     case 'fetchSliceReport':
       microservice = 'pheme';
       requestPayload = {
         jobOwner,
-        job: jobId,
+        job: jobAddress,
       };
       break;
     case 'listJobs':
