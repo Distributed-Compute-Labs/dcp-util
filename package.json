@@ -41,8 +41,10 @@
     "ora": "5.3.0"
   },
   "devDependencies": {
+    "@kingsds/eslint-config": "1.0.1",
     "concat-stream": "2.0.0",
     "cross-spawn": "7.0.3",
+    "eslint": "7.30.0",
     "peter": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/peter.git#develop",
     "zora": "4.0.2"
   }
