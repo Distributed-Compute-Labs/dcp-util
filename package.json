@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "chalk": "4.1.0",
-    "dcp-client": "^4.1.9",
+    "dcp-client": "^4.1.11",
     "debug": "4.3.1",
     "expand-tilde": "2.0.2",
     "ora": "5.3.0"
