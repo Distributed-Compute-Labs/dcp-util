@@ -214,7 +214,7 @@ async function sendRequest(
   requestRoute,
   {
     jobAddress,
-    idKeystoreOwner,
+    jobOwner,
     paymentAccount,
     reason,
     statuses,
@@ -300,13 +300,13 @@ async function sendRequest(
       break;
     case 'listJobs':
       microservice = 'job-submit';
-      if (typeof idKeystoreOwner === 'undefined') {
+      if (typeof jobOwner === 'undefined') {
         requestPayload = {
           idKeystoreOwner: idAddress,
           isSelectingAll: true,
         };
       } else {
-        requestPayload = { idKeystoreOwner };
+        requestPayload = { idKeystoreOwner: jobOwner };
       }
 
       if (statuses) {
@@ -371,7 +371,7 @@ const errorHandler = (error) => {
   }
 
   log(error);
-  console.error(red('Command Error:'), error.message);
+  console.error(red('Command Error:'), error.message, error.stack);
   process.exitCode = 1;
 };
 
