@@ -52,7 +52,7 @@ async function main() {
     'Inspect and manipulate running jobs on the command line.',
   )
     .command(
-      'cancelJob <jobAddress> <reason> [jobOwner]',
+      'cancelJob <jobAddress> [<reason>] [jobOwner]',
       'Cancels the specified job with the given reason, halting its execution. Can pass the jobOwner for authorization',
       (yargs) => {
         yargs
@@ -64,6 +64,7 @@ async function main() {
             describe:
               'The reason for cancelling the job, which workers will see',
             type: 'string',
+            default: 'No reason provided',
           })
           .positional('jobOwner', {
             describe: 'The identity address of the owner of the jobs',
@@ -214,7 +215,7 @@ async function sendRequest(
   requestRoute,
   {
     jobAddress,
-    idKeystoreOwner,
+    jobOwner,
     paymentAccount,
     reason,
     statuses,
@@ -300,13 +301,13 @@ async function sendRequest(
       break;
     case 'listJobs':
       microservice = 'job-submit';
-      if (typeof idKeystoreOwner === 'undefined') {
+      if (typeof jobOwner === 'undefined') {
         requestPayload = {
           idKeystoreOwner: idAddress,
           isSelectingAll: true,
         };
       } else {
-        requestPayload = { idKeystoreOwner };
+        requestPayload = { idKeystoreOwner: jobOwner };
       }
 
       if (statuses) {
@@ -371,7 +372,7 @@ const errorHandler = (error) => {
   }
 
   log(error);
-  console.error(red('Command Error:'), error.message);
+  console.error(red('Command Error:'), error.message, error.stack);
   process.exitCode = 1;
 };
 
