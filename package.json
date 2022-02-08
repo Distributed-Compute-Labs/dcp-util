@@ -1,6 +1,6 @@
 {
   "name": "dcp-util",
-  "version": "2.1.15",
+  "version": "2.1.16",
   "description": "DCP Command Line Utilities",
   "keywords": [
     "dcp"
