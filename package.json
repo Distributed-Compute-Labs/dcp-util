@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "chalk": "4.1.0",
-    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#prod-20220413",
+    "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#develop",
     "debug": "4.3.1",
     "expand-tilde": "2.0.2",
     "ora": "5.3.0"
