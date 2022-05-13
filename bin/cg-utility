@@ -43,7 +43,7 @@ const wrapAPICall = (callback) => async ({
   }).start(
     `Sending request ${green(command)} to ${green(computeGroupsLocation)}`,
   );
-
+  debugger;
   try {
     const response = await callback(argv);
     const responseJSON = JSON.stringify(response, null, 2);
@@ -81,6 +81,7 @@ async function main() {
     deleteGroup,
     listJobs,
   } = require('dcp/compute-groups');
+
   ({
     scheduler: {
       services: {
@@ -125,28 +126,54 @@ async function main() {
       ),
     )
     .command(
-      'change <id> [options]',
+      'change <id> <joinKey> [options]',
       'Change a compute group',
       (yargs) =>
         yargs
           .options({
-            name: { type: 'string' },
-            description: { type: 'string' },
-            joinKey: { type: 'string' },
-            joinSecret: { type: 'string' },
-            joinAddress: { type: 'string' },
+            name:                   { type: 'string' },
+            description:            { type: 'string' },
+            joinHash:               { type: 'string'},    
+            joinAddress:            { type: 'string' | 'Address'},   
+            commissionRate:         { type: 'number' | 'BigNumber'},      
+            commissionAccount:      { type: 'string' | 'Address'},    
+            deployFee:              { type: 'number' | 'BigNumber'}, 
+            deployAccess:           { type: 'string'},
+            addJobFee:              { type: 'number' | 'BigNumber'},
+            maxTotalPayment:        { type: 'number' | 'BigNumber'},
+            maxConcurrentJobs:      { type: 'number'},
+            maxConcurrentWorkers:   { type: 'number'},
+            maxConcurrentSandboxes: { type: 'number'},
+            maxConcurrentCPUs:      { type: 'number'},
+            maxConcurrentGPUs:      { type: 'number'},
+            maxConcurrentEscrow:    { type: 'number' | 'BigNumber'},
           })
           .positional('id', {
-            type: 'number',
-            description: 'The id of the compute group to change',
+            type: 'string',
+            description: 'The opaqueId of the compute group',
+          })
+          .positional('joinKey', {
+            type: 'string',
+            description: 'The joinKey of the compute group',
           }),
       wrapAPICall((argv) =>
-        changeGroup(argv.id, {
+        changeGroup(argv.id, argv.joinKey, {
           name: argv.name,
           description: argv.description,
-          joinKey: argv.joinKey,
-          joinSecret: argv.joinSecret,
+          joinHash: argv.joinHash,
           joinAddress: argv.joinAddress,
+          commissionRate: argv.commissionRate,
+          commissionAccount: argv.commissionAccount,
+          deployFee: argv.deployFee,
+          deployAccess: argv.deployAccess,
+          addJobFee: argv.addJobFee,
+          maxTotalPayment: argv.maxTotalPayment,
+          maxConcurrentJobs: argv.maxConcurrentJobs,
+          maxConcurrentWorkers: argv.maxConcurrentWorkers,
+          maxConcurrentSandboxes: argv.maxConcurrentSandboxes,
+          maxConcurrentCPUs: argv.maxConcurrentCPUs,
+          maxConcurrentGPUs: argv.maxConcurrentGPUs,
+          maxConcurrentEscrow: argv.maxConcurrentEscrow,
         }),
       ),
     )
