@@ -8,6 +8,8 @@
  * - create compute group
  * - change compute group
  * - delete compute group
+ * - cancel a specific job in group
+ * - cancel all jobs in group
  * - list jobs in group
  *
  * Future versions of this utility will also adding/removing jobs from the
@@ -193,7 +195,7 @@ async function main() {
     )
     .command(
       'listJobs [options]',
-      'List jobs in a compute group',
+      'List jobs in a compute group. It needs to be provided with at least one of the options!',
       (yargs) =>
       yargs.options({
         id:           { type: 'string'},  
