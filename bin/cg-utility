@@ -76,12 +76,14 @@ const wrapAPICall = (callback) => async ({
 async function main() {
   const { base } = require('dcp/cli');
   const {
+    createGroup,
+    changeGroup,
     cancelJob,
     cancelAllJobs,
-    create,
-    changeGroup,
     deleteGroup,
     listJobs,
+    removeJob,
+    removeAllJobs,
   } = require('dcp/compute-groups');
 
   ({
@@ -94,7 +96,7 @@ async function main() {
 
   base('Manage compute groups.')
     .command(
-      'create <name> [description]',
+      'create  <name> [description][options]',
       'Create a new compute group',
       (yargs) =>
         yargs
@@ -107,65 +109,38 @@ async function main() {
             type: 'string',
             description: 'The description of the compute group to create',
           })
-          .option('joinKey', {
-            alias: 'K',
-            type: 'string',
-            description:
-              'The join key used to join the created compute group. Can be specified by itself.',
-          })
-          .option('joinSecret', {
-            alias: 'S',
-            type: 'string',
-            description:
-              'The join secret used to join the created compute group. Must be specified along with a join key.',
-          }),
-      wrapAPICall((argv) =>
-        create(argv.name, {
-          description: argv.description,
-          joinKey: argv.joinKey,
-          joinSecret: argv.joinSecret,
-        }),
-      ),
-    )
-    .command(
-      'change <id> <joinKey> [options]',
-      'Change a compute group',
-      (yargs) =>
-        yargs
           .options({
-            name:                   { type: 'string' },
-            description:            { type: 'string' },
+            id:                     { type: 'string' },
+            joinKey:                { type: 'string' },
+            joinSecret:             { type: 'string' },
             joinHash:               { type: 'string'},    
-            joinAddress:            { type: 'string' | 'Address'},   
-            commissionRate:         { type: 'number' | 'BigNumber'},      
-            commissionAccount:      { type: 'string' | 'Address'},    
-            deployFee:              { type: 'number' | 'BigNumber'}, 
+            joinAddress:            { type: 'string'}, 
+
+            commissionRate:         { type: 'number'},      
+            deployFee:              { type: 'number'}, 
             deployAccess:           { type: 'string'},
-            addJobFee:              { type: 'number' | 'BigNumber'},
-            maxTotalPayment:        { type: 'number' | 'BigNumber'},
+            addJobFee:              { type: 'number'},
+            maxTotalPayment:        { type: 'number'},
             maxConcurrentJobs:      { type: 'number'},
             maxConcurrentWorkers:   { type: 'number'},
             maxConcurrentSandboxes: { type: 'number'},
             maxConcurrentCPUs:      { type: 'number'},
             maxConcurrentGPUs:      { type: 'number'},
-            maxConcurrentEscrow:    { type: 'number' | 'BigNumber'},
-          })
-          .positional('id', {
-            type: 'string',
-            description: 'The opaqueId of the compute group',
-          })
-          .positional('joinKey', {
-            type: 'string',
-            description: 'The joinKey of the compute group',
+            maxConcurrentEscrow:    { type: 'number'},
+          }).check((argv) => {
+            if ((argv.joinKey && argv.joinSecret) || (argv.joinKey && argv.joinHash) || (argv.id && argv.joinAddress)) {
+              return true;
+            }
+            throw new Error('"create" command should be provided with t least one of these pairs {joinKey, joinSecret}, {joinKey, joinHash} or {id, joinAddress}.');
           }),
       wrapAPICall((argv) =>
-        changeGroup(argv.id, argv.joinKey, {
-          name: argv.name,
-          description: argv.description,
-          joinHash: argv.joinHash,
-          joinAddress: argv.joinAddress,
+      
+        createGroup(
+          {joinSecret: argv.joinSecret, joinKey: argv.joinKey, joinHash:argv.joinHash, id: argv.id, joinAddress: argv.joinAddress},
+          argv.name,
+          argv.description,
+          {
           commissionRate: argv.commissionRate,
-          commissionAccount: argv.commissionAccount,
           deployFee: argv.deployFee,
           deployAccess: argv.deployAccess,
           addJobFee: argv.addJobFee,
@@ -180,22 +155,112 @@ async function main() {
       ),
     )
     .command(
-      'delete <id> <joinKey>',
+      'change [options]',
+      'Change a compute group',
+      (yargs) =>
+        yargs
+          .options({
+            id:                     { type: 'string' },
+            joinKey:                { type: 'string' },
+
+            name:                   { type: 'string' },
+            description:            { type: 'string' },
+            joinHash:               { type: 'string'},    
+            joinAddress:            { type: 'string'},   
+            commissionRate:         { type: 'number'},      
+            deployFee:              { type: 'number'}, 
+            deployAccess:           { type: 'string'},
+            addJobFee:              { type: 'number'},
+            maxTotalPayment:        { type: 'number'},
+            maxConcurrentJobs:      { type: 'number'},
+            maxConcurrentWorkers:   { type: 'number'},
+            maxConcurrentSandboxes: { type: 'number'},
+            maxConcurrentCPUs:      { type: 'number'},
+            maxConcurrentGPUs:      { type: 'number'},
+            maxConcurrentEscrow:    { type: 'number'},
+          }).check((argv) => {
+            if (argv.joinKey || argv.id ) {
+              return true;
+            }
+            throw new Error('"change" command should be provided with either joinKey or id.');
+          }),
+      wrapAPICall((argv) =>
+        changeGroup(
+        {id: argv.id, joinKey: argv.joinKey},
+         {
+          name: argv.name,
+          description: argv.description,
+          joinHash: argv.joinHash,
+          joinAddress: argv.joinAddress,
+          commissionRate: argv.commissionRate,
+          deployFee: argv.deployFee,
+          deployAccess: argv.deployAccess,
+          addJobFee: argv.addJobFee,
+          maxTotalPayment: argv.maxTotalPayment,
+          maxConcurrentJobs: argv.maxConcurrentJobs,
+          maxConcurrentWorkers: argv.maxConcurrentWorkers,
+          maxConcurrentSandboxes: argv.maxConcurrentSandboxes,
+          maxConcurrentCPUs: argv.maxConcurrentCPUs,
+          maxConcurrentGPUs: argv.maxConcurrentGPUs,
+          maxConcurrentEscrow: argv.maxConcurrentEscrow,
+        }),
+      ),
+    )
+    .command(
+      'delete [options]',
       'Delete a compute group',
       (yargs) =>
-        yargs.positional('id', {
-          type: 'string',
-          description: 'The opaqueId of the compute group to delete',
-        })
-        .positional('joinKey', {
-          type: 'string',
-          description: 'The joinKey of the compute group to delete',
+        yargs.options({
+          id:                     { type: 'string' },
+          joinKey:                { type: 'string' },
+        }).check((argv) => {
+          if (argv.joinKey || argv.id ) {
+            return true;
+          }
+          throw new Error('"delete" command should be provided with either joinKey or id.');
         }),
-      wrapAPICall((argv) => deleteGroup(argv.id, argv.joinKey)),
+      wrapAPICall((argv) => deleteGroup({id: argv.id, joinKey: argv.joinKey})),
     )
     .command(
       'listJobs [options]',
       'List jobs in a compute group. It needs to be provided with at least one of the options!',
+      (yargs) =>
+      yargs.options({
+        id:           { type: 'string'},  
+        joinKey:      { type: 'string'},
+      }).check((argv) => {
+        if (argv.joinKey || argv.id ) {
+          return true;
+        }
+        throw new Error('"listJobs" command should be provided with either joinKey or id.');
+      }),
+      wrapAPICall(argv =>
+        listJobs({
+          id: argv.id,
+          joinKey: argv.joinKey,
+          }
+        )
+      )
+    )
+    .command(
+      'removeJob [options]',
+      'Remove a job in a compute group. It needs to be provided with at least one of the options!',
+      (yargs) =>
+      yargs.options({
+        id:           { type: 'string'},  
+        joinKey:      { type: 'string'},
+      }),
+      wrapAPICall(argv =>
+        listJobs({
+          id: argv.id,
+          joinKey: argv.joinKey,
+          }
+        )
+      )
+    )
+    .command(
+      'removeAllJob [options]',
+      'Remove all jobs in a compute group. It needs to be provided with at least one of the options!',
       (yargs) =>
       yargs.options({
         id:           { type: 'string'},  
