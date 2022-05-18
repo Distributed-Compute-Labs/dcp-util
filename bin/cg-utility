@@ -223,7 +223,7 @@ async function main() {
     )
     .command(
       'listJobs [options]',
-      'List jobs in a compute group. It needs to be provided with at least one of the options!',
+      'List jobs in a compute group.',
       (yargs) =>
       yargs.options({
         id:           { type: 'string'},  
@@ -243,15 +243,25 @@ async function main() {
       )
     )
     .command(
-      'removeJob [options]',
-      'Remove a job in a compute group. It needs to be provided with at least one of the options!',
+      'removeJob <job> [options]',
+      'Remove a job in a compute group.',
       (yargs) =>
-      yargs.options({
+      yargs
+      .positional('job', {
+        type: 'string',
+        description: 'The job address to be removed from the compute group',
+      })
+      .options({
         id:           { type: 'string'},  
         joinKey:      { type: 'string'},
+      }).check((argv) => {
+        if (argv.joinKey || argv.id ) {
+          return true;
+        }
+        throw new Error('"removeJob" command should be provided with either joinKey or id.');
       }),
       wrapAPICall(argv =>
-        listJobs({
+        removeJob(argv.job, {
           id: argv.id,
           joinKey: argv.joinKey,
           }
@@ -259,12 +269,17 @@ async function main() {
       )
     )
     .command(
-      'removeAllJob [options]',
-      'Remove all jobs in a compute group. It needs to be provided with at least one of the options!',
+      'removeAllJobs [options]',
+      'Remove all jobs in a compute group.',
       (yargs) =>
       yargs.options({
         id:           { type: 'string'},  
         joinKey:      { type: 'string'},
+      }).check((argv) => {
+        if (argv.joinKey || argv.id ) {
+          return true;
+        }
+        throw new Error('"removeAllJobs" command should be provided with either joinKey or id.');
       }),
       wrapAPICall(argv =>
         listJobs({
@@ -276,7 +291,7 @@ async function main() {
     )
     .command(
       'cancelJob <job> [options]',
-      "Cancel the specified job that's in the specified compute-group. It needs to be provided with at least one of the options!",
+      "Cancel the specified job that's in the specified compute-group.",
       (yargs) =>
         yargs
           .positional('job', {
@@ -303,7 +318,7 @@ async function main() {
     )
     .command(
       'cancelAllJobs [options]',
-      'Cancel all jobs in the specified compute-group. It needs to be provided with at least one of the options!',
+      'Cancel all jobs in the specified compute-group.',
       (yargs) =>
         yargs.options({
           id:           { type: 'string'},  
