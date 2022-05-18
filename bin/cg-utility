@@ -136,7 +136,13 @@ async function main() {
       wrapAPICall((argv) =>
       
         createGroup(
-          {joinSecret: argv.joinSecret, joinKey: argv.joinKey, joinHash:argv.joinHash, id: argv.id, joinAddress: argv.joinAddress},
+          {
+            joinSecret: argv.joinSecret,
+            joinKey: argv.joinKey,
+            joinHash:argv.joinHash,
+            id: argv.id,
+            joinAddress: argv.joinAddress
+          },
           argv.name,
           argv.description,
           {
@@ -304,6 +310,11 @@ async function main() {
             joinSecret:   { type: 'string'},
             joinHash:     { type: 'string'},
             joinAddress:  { type: 'string'},
+          }).check((argv) => {
+            if ((argv.joinKey && (argv.joinSecret || argv.joinHash)) || (argv.id && argv.joinAddress)) {
+              return true;
+            }
+            throw new Error('"cancelJob" command should be provided with t least one of these pairs {joinKey, joinSecret}, {joinKey, joinHash} or {id, joinAddress}.');
           }),
       wrapAPICall(argv =>
         cancelJob(argv.job, {
@@ -326,6 +337,11 @@ async function main() {
           joinSecret:   { type: 'string'},
           joinHash:     { type: 'string'},
           joinAddress:  { type: 'string'},
+        }).check((argv) => {
+          if ((argv.joinKey && (argv.joinSecret || argv.joinHash)) || (argv.id && argv.joinAddress)) {
+            return true;
+          }
+          throw new Error('"cancelJob" command should be provided with t least one of these pairs {joinKey, joinSecret}, {joinKey, joinHash} or {id, joinAddress}.');
         }),
         wrapAPICall(argv =>
           cancelAllJobs({
