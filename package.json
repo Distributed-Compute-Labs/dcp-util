@@ -34,7 +34,7 @@
   ],
   "scripts": {
     "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags",
-    "test": "peter -v tests"
+    "test": "peter tests"
   },
   "dependencies": {
     "chalk": "4.1.0",
@@ -48,7 +48,7 @@
     "concat-stream": "2.0.0",
     "cross-spawn": "7.0.3",
     "eslint": "7.30.0",
-    "peter": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/peter.git#develop",
+    "peter": "^2.3.2-a",
     "zora": "4.0.2"
   }
 }
