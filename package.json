@@ -15,6 +15,9 @@
   },
   "license": "MIT",
   "author": "Kings Distributed Systems",
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "bin": {
     "bank-utility": "bin/bank-utility",
     "cg-utility": "bin/cg-utility",
