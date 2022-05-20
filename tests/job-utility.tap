@@ -28,7 +28,7 @@ test('Job Utility', async (t) => {
        */
       await executeMkad(['new', 'default', '-p', '']);
     } catch (error) {
-      console.error(error);
+      console.debug(error);
     }
 
     const testCaseDescription = `When no arguments are passed, then help text is displayed describing supported operations (${operationsAndOptions}).`;
