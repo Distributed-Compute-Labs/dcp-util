@@ -160,11 +160,11 @@ async function main() {
       },
     )
     .command(
-      'listJobs [idKeystoreOwner]',
-      'List jobs owned by an identity, or list all of them if idKeystoreOwner is omitted',
+      'listJobs [jobOwner]',
+      'List jobs owned by an identity, or list all of them if jobOwner is omitted',
       (yargs) => {
         yargs
-          .positional('idKeystoreOwner', {
+          .positional('jobOwner', {
             describe: 'The identity address of the owner of the jobs to list',
             type: 'string',
           })
@@ -188,6 +188,13 @@ async function main() {
         default: false,
         describe: 'Show the output in JSON format',
       },
+      all: {
+        alias: 'a',
+        type: 'boolean',
+        default: false,
+        describe: 'List all jobs regardless of owner; requires scheduler admin permission',
+        hidden: true,
+      }
     })
     .demandCommand(1, 'A command must be specified')
     .strict()
@@ -221,6 +228,7 @@ async function sendRequest(
     statuses,
     debug: isDebugging,
     json: isOutputJSON,
+    all: selectAll,
   },
 ) {
   if (isDebugging) {
@@ -304,11 +312,12 @@ async function sendRequest(
       if (typeof jobOwner === 'undefined') {
         requestPayload = {
           idKeystoreOwner: idAddress,
-          isSelectingAll: true,
         };
       } else {
         requestPayload = { idKeystoreOwner: jobOwner };
       }
+
+      requestPayload.isSelectingAll = selectAll;
 
       if (statuses) {
         requestPayload.statuses = statuses;
