@@ -48,7 +48,7 @@
     "concat-stream": "2.0.0",
     "cross-spawn": "7.0.3",
     "eslint": "7.30.0",
-    "peter": "^2.3.2-a",
+    "peter": "^2.3.2",
     "zora": "4.0.2"
   }
 }
