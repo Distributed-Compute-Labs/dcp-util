@@ -63,7 +63,14 @@ test:
   before_script:
     # Setting this as a `variable` breaks npm, making it unable to find scripts
     # under `node_modules/.bin` for whatever reason. e.g. `peter: not found`
-    - export DEBUG=tests
+    # 
+    # Setting this DEBUG variable changes peter's behaviour in unexpected
+    # ways, including making the assorted xxx-utility programs emit help text
+    # on stderr when no command is passed, which peter interprets as an
+    # INTERNAL ERROR and a failed test. ~ER2022-05-30
+    # 
+    # - export DEBUG=tests
+    # 
     # Make a random id keystore for testing so that job-utility doesn't throw
     - mkdir ~/.dcp
     - node bin/mkad new id -p ""
