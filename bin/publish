@@ -17,18 +17,14 @@
  */
 
 const process = require('process');
-const { existsSync } = require('fs');
 
 const { initSync } = require('dcp-client');
-
-const { base, getIdentityKeystore } = require('dcp/cli');
-const { publish } = require('dcp/publish');
 
 /**
  * Utility for deploying DCP Modules from package description files.
  */
 async function main() {
-  const cli = base(
+  const cli = require('dcp/cli').base(
     'Utility to publish a new/updated DCP package',
   )
     .command(
@@ -99,17 +95,23 @@ async function main() {
 }
 
 
+/**
+ *  Publishg a module to the DCP package manager
+ *
+ *  @param  {object} options
+ *  @param  {string} options.packageDescription path to the package description (like package.dcp)
+ *  @return {Promise<publish-result>}         Returns the result from dcp/publish::publish
+ */
 async function cliPublish(options) {
   const { packageDescription } = options;
 
-  if (!existsSync(packageDescription)) {
+  if (!require('fs').existsSync(packageDescription)) {
     console.error(`Failed to publish package: The file "${packageDescription}" does not exist`);
 
     return;
   }
 
-  const idKs = await getIdentityKeystore();
-  return publish(packageDescription, idKs)
+  return require('dcp/publish').publish(packageDescription)
     .then(result => {
       console.log('Successfully published package:\n', JSON.stringify(result, null, 2));
     })
@@ -118,14 +120,29 @@ async function cliPublish(options) {
     });
 }
 
-
+/** handle for the currently-active package-manager connection */
 let packageManagerConnection;
+
+/**
+ *  Open a new connection to the package-manager, and attach a `close` handler
+ *  to maintain usable connections until closed manually.
+ */
 function openPackageManagerConnection() {
   packageManagerConnection = new (require('dcp/protocol').Connection)(require('dcp/dcp-config').packageManager.location);
 
   packageManagerConnection.on('close', openPackageManagerConnection);
 }
 
+/**
+ *  List packages available on the package-manager
+ *
+ *  @param  {object} options
+ *  @param  {string} options.q        optional substring to search package names for
+ *  @param  {string} options.skip     skip rows before returning results
+ *  @param  {string} options.limit    limit number of results to fetch
+ *  @param  {string} options.all      if set, fetch repeatedly until we have all results 
+ *  @return {Promise<PackageDescription[]>}    resolves to an array of PackageDescriptions
+ */
 async function cliList(options) {
   const { q, skip, limit, all } = options;
 
@@ -136,12 +153,13 @@ async function cliList(options) {
     const packages = [];
 
     if (all) {
-      let next = skip;
+      // if skip is undefined, default `next` to 0 to get into the while loop
+      let next = skip || 0;
 
       while (typeof next === 'number') {
         const { success, payload } = await packageManagerConnection.send('listModules', {
           q,
-          skip,
+          skip: next,
           limit,
         });
         if (success) {
@@ -191,7 +209,6 @@ async function cliList(options) {
       await packageManagerConnection.close();
     }
   }
-
 }
 
 initSync();
