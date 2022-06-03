@@ -28,7 +28,7 @@ const { publish } = require('dcp/publish');
  * Utility for deploying DCP Modules from package description files.
  */
 async function main() {
-  const { packageDescription } = base(
+  const cli = base(
     'Utility to publish a new/updated DCP package',
   )
     .command(
@@ -49,31 +49,155 @@ async function main() {
           normalize: true,
         });
       },
+      cliPublish
+    )
+    .command(
+      'listModules [q]',
+      'List available modules',
+      (yargs) => {
+        yargs.positional('q', {
+          describe: 'String to search package names for',
+          type: 'string',
+        })
+        .option('skip', {
+          describe: 'Skip this many results before returning any',
+          type: 'number',
+          default: undefined,
+        })
+        .option('limit', {
+          describe: 'Number of results to return',
+          type: 'number',
+          default: undefined,
+        })
+        .option('all', {
+          describe: 'Return all available results',
+          type: 'boolean',
+          default: false,
+        })
+        .option('json', {
+          describe: 'Return results in JSON format',
+          type: 'boolean',
+          default: false,
+        })
+        .option('pretty', {
+          describe: 'Return results in pretty-printed JSON',
+          type: 'boolean',
+          default: false,
+        })
+        .option('verbose', {
+          describe: 'Return more detail in non-JSON output',
+          type: 'boolean',
+          default: false,
+        });
+      },
+      cliList
     )
     .strict()
     .parse();
 
+  return cli.argv;
+}
+
+
+async function cliPublish(options) {
+  const { packageDescription } = options;
+
   if (!existsSync(packageDescription)) {
-    console.error(
-      `Failed to publish package: The file "${packageDescription}" does not exist`,
-    );
+    console.error(`Failed to publish package: The file "${packageDescription}" does not exist`);
 
     return;
   }
 
   const idKs = await getIdentityKeystore();
-  const result = await publish(packageDescription, idKs);
-  console.log(
-    'Successfully published package:\n',
-    JSON.stringify(result, null, 2),
-  );
+  return publish(packageDescription, idKs)
+    .then(result => {
+      console.log('Successfully published package:\n', JSON.stringify(result, null, 2));
+    })
+    .catch(error => {
+      console.error('Failed to publish package:', error.code, error.messagge);
+    });
 }
 
-initSync()
+
+let packageManagerConnection;
+function openPackageManagerConnection() {
+  packageManagerConnection = new (require('dcp/protocol').Connection)(require('dcp/dcp-config').packageManager.location);
+
+  packageManagerConnection.on('close', openPackageManagerConnection);
+}
+
+async function cliList(options) {
+  const { q, skip, limit, all } = options;
+
+  try
+  {
+    openPackageManagerConnection();
+
+    const packages = [];
+
+    if (all) {
+      let next = skip;
+
+      while (typeof next === 'number') {
+        const { success, payload } = await packageManagerConnection.send('listModules', {
+          q,
+          skip,
+          limit,
+        });
+        if (success) {
+          packages.push(...payload.packages);
+          next = payload.next;    // when payload.next is undefined, the while loop will end
+        }
+      }
+    }
+    else {
+      const { success, payload } = await packageManagerConnection.send('listModules', {
+        q,
+        skip,
+        limit,
+      });
+      if (success)
+        packages.push(...payload.packages);
+    }
+
+    if (options.json || options.pretty)
+      console.log(JSON.stringify(packages, null, (options.pretty ? 2 : undefined)));
+    else if (options.verbose)
+      packages.forEach(pkgDesc => {
+        console.log(`Module: ${pkgDesc.name}
+  owner: ${pkgDesc.owner}
+  version: ${pkgDesc.version}
+  published: ${new Date(pkgDesc.published)}
+  Files:`);
+        Object.keys(pkgDesc.files).forEach(f => console.log(`    ${f}`));
+      });
+    else
+      packages.forEach(pkgDesc => {
+        console.log(pkgDesc.name, pkgDesc.version, new Date(pkgDesc.published));
+      });
+
+    return packages;
+  }
+  catch(error)
+  {
+    console.error('Failed to list packages:', error.code, error.message);
+    return false;
+  }
+  finally
+  {
+    if (packageManagerConnection)
+    {
+      packageManagerConnection.off('close', openPackageManagerConnection);
+      await packageManagerConnection.close();
+    }
+  }
+
+}
+
+initSync();
 main()
   .catch((e) => {
     console.error('Failed to execute command:');
     console.error(e);
     process.exitCode = 1;
-  })
-  .finally(() => setImmediate(process.exit));
+  });
