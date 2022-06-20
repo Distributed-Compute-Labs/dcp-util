@@ -55,36 +55,36 @@ async function main() {
           describe: 'String to search package names for',
           type: 'string',
         })
-        .option('skip', {
-          describe: 'Skip this many results before returning any',
-          type: 'number',
-          default: undefined,
-        })
-        .option('limit', {
-          describe: 'Number of results to return',
-          type: 'number',
-          default: undefined,
-        })
-        .option('all', {
-          describe: 'Return all available results',
-          type: 'boolean',
-          default: false,
-        })
-        .option('json', {
-          describe: 'Return results in JSON format',
-          type: 'boolean',
-          default: false,
-        })
-        .option('pretty', {
-          describe: 'Return results in pretty-printed JSON',
-          type: 'boolean',
-          default: false,
-        })
-        .option('verbose', {
-          describe: 'Return more detail in non-JSON output',
-          type: 'boolean',
-          default: false,
-        });
+          .option('skip', {
+            describe: 'Skip this many results before returning any',
+            type: 'number',
+            default: undefined,
+          })
+          .option('limit', {
+            describe: 'Number of results to return',
+            type: 'number',
+            default: undefined,
+          })
+          .option('all', {
+            describe: 'Return all available results',
+            type: 'boolean',
+            default: false,
+          })
+          .option('json', {
+            describe: 'Return results in JSON format',
+            type: 'boolean',
+            default: false,
+          })
+          .option('pretty', {
+            describe: 'Return results in pretty-printed JSON',
+            type: 'boolean',
+            default: false,
+          })
+          .option('verbose', {
+            describe: 'Return more detail in non-JSON output',
+            type: 'boolean',
+            default: false,
+          });
       },
       cliList
     )
@@ -102,10 +102,12 @@ async function main() {
  *  @param  {string} options.packageDescription path to the package description (like package.dcp)
  *  @return {Promise<publish-result>}         Returns the result from dcp/publish::publish
  */
-async function cliPublish(options) {
+async function cliPublish(options)
+{
   const { packageDescription } = options;
 
-  if (!require('fs').existsSync(packageDescription)) {
+  if (!require('fs').existsSync(packageDescription))
+  {
     console.error(`Failed to publish package: The file "${packageDescription}" does not exist`);
 
     return;
@@ -127,7 +129,8 @@ let packageManagerConnection;
  *  Open a new connection to the package-manager, and attach a `close` handler
  *  to maintain usable connections until closed manually.
  */
-function openPackageManagerConnection() {
+function openPackageManagerConnection()
+{
   packageManagerConnection = new (require('dcp/protocol').Connection)(require('dcp/dcp-config').packageManager.location);
 
   packageManagerConnection.on('close', openPackageManagerConnection);
@@ -143,7 +146,8 @@ function openPackageManagerConnection() {
  *  @param  {string} options.all      if set, fetch repeatedly until we have all results 
  *  @return {Promise<PackageDescription[]>}    resolves to an array of PackageDescriptions
  */
-async function cliList(options) {
+async function cliList(options)
+{
   const { q, skip, limit, all } = options;
 
   try
@@ -152,17 +156,20 @@ async function cliList(options) {
 
     const packages = [];
 
-    if (all) {
+    if (all)
+    {
       // if skip is undefined, default `next` to 0 to get into the while loop
       let next = skip || 0;
 
-      while (typeof next === 'number') {
+      while (typeof next === 'number')
+      {
         const { success, payload } = await packageManagerConnection.send('listModules', {
           q,
           skip: next,
           limit,
         });
-        if (success) {
+        if (success)
+        {
           packages.push(...payload.packages);
           next = payload.next;    // when payload.next is undefined, the while loop will end
         }
