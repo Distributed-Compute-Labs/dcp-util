@@ -303,7 +303,7 @@ async function sendRequest(
       };
       break;
     case 'listJobs':
-      const requestPayload = {};
+      requestPayload = {};
       microservice = 'job-submit';
 
       if (statuses) {
