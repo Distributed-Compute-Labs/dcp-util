@@ -49,7 +49,7 @@ async function main() {
     )
     .command(
       'listModules [q]',
-      'List available modules',
+      'List available modules, along with their version and date published',
       (yargs) => {
         yargs.positional('q', {
           describe: 'String to search package names for',
