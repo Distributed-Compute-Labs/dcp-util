@@ -160,14 +160,10 @@ async function main() {
       },
     )
     .command(
-      'listJobs [jobOwner]',
-      'List jobs owned by an identity, or list all of them if jobOwner is omitted',
+      'listJobs',
+      'List all jobs owned by the account making the request',
       (yargs) => {
         yargs
-          .positional('jobOwner', {
-            describe: 'The identity address of the owner of the jobs to list',
-            type: 'string',
-          })
           .option('statuses', {
             alias: 's',
             describe: 'The status(es) of the jobs to list',
@@ -228,7 +224,6 @@ async function sendRequest(
     statuses,
     debug: isDebugging,
     json: isOutputJSON,
-    all: selectAll,
   },
 ) {
   if (isDebugging) {
@@ -308,16 +303,8 @@ async function sendRequest(
       };
       break;
     case 'listJobs':
+      requestPayload = {};
       microservice = 'job-submit';
-      if (typeof jobOwner === 'undefined') {
-        requestPayload = {
-          idKeystoreOwner: idAddress,
-        };
-      } else {
-        requestPayload = { idKeystoreOwner: jobOwner };
-      }
-
-      requestPayload.isSelectingAll = selectAll;
 
       if (statuses) {
         requestPayload.statuses = statuses;
