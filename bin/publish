@@ -118,7 +118,7 @@ async function cliPublish(options)
       console.log('Successfully published package:\n', JSON.stringify(result, null, 2));
     })
     .catch(error => {
-      console.error('Failed to publish package:', error.code, error.messagge);
+      console.error('Failed to publish package:', error.code, error.message);
     });
 }
 
