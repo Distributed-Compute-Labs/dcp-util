@@ -173,6 +173,8 @@ async function cliList(options)
           packages.push(...payload.packages);
           next = payload.next;    // when payload.next is undefined, the while loop will end
         }
+        else
+          throw payload;
       }
     }
     else {
@@ -183,6 +185,8 @@ async function cliList(options)
       });
       if (success)
         packages.push(...payload.packages);
+      else
+        throw payload;
     }
 
     if (options.json || options.pretty)
