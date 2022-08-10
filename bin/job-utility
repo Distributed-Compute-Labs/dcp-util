@@ -304,7 +304,7 @@ async function sendRequest(
       break;
     case 'listJobs':
       requestPayload = {};
-      microservice = 'job-submit';
+      microservice = 'pheme';
 
       if (statuses) {
         requestPayload.statuses = statuses;
