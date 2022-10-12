@@ -37,7 +37,7 @@
     "test": "peter tests"
   },
   "dependencies": {
-    "chalk": "4.1.0",
+    "chalk": "^4.1.2",
     "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#develop",
     "debug": "4.3.1",
     "expand-tilde": "2.0.2",
