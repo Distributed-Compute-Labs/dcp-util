@@ -8,8 +8,8 @@
  * - create compute group
  * - change compute group
  * - delete compute group
- * - cancel a specific job in group
- * - cancel all jobs in group
+ * - remove a specific job in group
+ * - remove all jobs in group
  * - list jobs in group
  *
  * Future versions of this utility will also adding/removing jobs from the
@@ -78,8 +78,6 @@ async function main() {
   const {
     createGroup,
     changeGroup,
-    cancelJob,
-    cancelAllJobs,
     deleteGroup,
     listJobs,
     removeJob,
@@ -294,65 +292,7 @@ async function main() {
           }
         )
       )
-    )
-    .command(
-      'cancelJob <job> [options]',
-      "Cancel the specified job that's in the specified compute-group.",
-      (yargs) =>
-        yargs
-          .positional('job', {
-            type: 'string',
-            description: 'The job address of the job to cancel',
-          })
-          .options({
-            id:           { type: 'string'},  
-            joinKey:      { type: 'string'},
-            joinSecret:   { type: 'string'},
-            joinHash:     { type: 'string'},
-            joinAddress:  { type: 'string'},
-          }).check((argv) => {
-            if ((argv.joinKey && (argv.joinSecret || argv.joinHash)) || (argv.id && argv.joinAddress)) {
-              return true;
-            }
-            throw new Error('"cancelJob" command should be provided with t least one of these pairs {joinKey, joinSecret}, {joinKey, joinHash} or {id, joinAddress}.');
-          }),
-      wrapAPICall(argv =>
-        cancelJob(argv.job, {
-          id: argv.id,
-          joinKey: argv.joinKey,
-          joinSecret: argv.joinSecret,
-          joinHash: argv.joinHash,
-          joinAddress: argv.joinAddress
-          }
-        ),
-      ),
-    )
-    .command(
-      'cancelAllJobs [options]',
-      'Cancel all jobs in the specified compute-group.',
-      (yargs) =>
-        yargs.options({
-          id:           { type: 'string'},  
-          joinKey:      { type: 'string'},
-          joinSecret:   { type: 'string'},
-          joinHash:     { type: 'string'},
-          joinAddress:  { type: 'string'},
-        }).check((argv) => {
-          if ((argv.joinKey && (argv.joinSecret || argv.joinHash)) || (argv.id && argv.joinAddress)) {
-            return true;
-          }
-          throw new Error('"cancelJob" command should be provided with t least one of these pairs {joinKey, joinSecret}, {joinKey, joinHash} or {id, joinAddress}.');
-        }),
-        wrapAPICall(argv =>
-          cancelAllJobs({
-            id: argv.id,
-            joinKey: argv.joinKey,
-            joinSecret: argv.joinSecret,
-            joinHash: argv.joinHash,
-            joinAddress: argv.joinAddress
-            })
-          )
-      ).options({
+    ).options({
         json: {
           alias: 'j',
           type: 'boolean',

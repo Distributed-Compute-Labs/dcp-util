@@ -9,8 +9,6 @@ const execute = create('bin/cg-utility');
 test('Compute Group Utility', async (t) => {
   t.test('Help Text', async (t) => {
     const operationsAndOptions = [
-      'cancel',
-      'cancelAllJobs',
       'change',
       'create',
       'delete',
