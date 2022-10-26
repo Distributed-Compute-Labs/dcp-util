@@ -41,7 +41,6 @@
     "dcp-client": "git+ssh://git@gitlab.com/Distributed-Compute-Protocol/dcp-client.git#develop",
     "debug": "4.3.1",
     "expand-tilde": "2.0.2",
-    "kvin": "^1.2.12",
     "ora": "5.3.0"
   },
   "devDependencies": {
