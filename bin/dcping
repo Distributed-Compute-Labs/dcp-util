@@ -11,17 +11,11 @@
  * @date         May 2019
  */
 
-require('dcp-rtlink').init();
-const cli = require('dcp/common/cli');
-const { DcpURL } = require('dcp/common/dcp-url');
+const dcpClient = require('dcp-client');
+const cli = require('dcp/cli');
+const { compute } = dcpClient.initSync();
 
 cli.name = 'Ping the DCP network';
-
-var dcpConfig
-var debug = process.env.DEBUG && !!process.env.DEBUG.match(/\bdcping\b/)
-
-// rpn is a HTTP request client with promise support
-const rpn = require('request-promise-native')
 
 // number of jobs (pings) sent to scheduler
 let jobsSent = 0
@@ -54,7 +48,7 @@ process.on('SIGINT', () => {
   endProgram();
 })
 
-const options = require('dcp/cli').base()
+const options = cli.base()
   .option('count', {
     alias: 'c',
     description: 'Number of times to ping the scheduler',
@@ -127,7 +121,7 @@ else if ((options.count === 0) && (options.interval)) {
   mode = 'interval';
 }
 
-const costProfile = parseFloat(options.cost) || 0.0015;
+const costProfile = options.cost || compute.marketValue();
 
 const verbose = options.verbose;
 
@@ -143,7 +137,6 @@ console.log('consequent operating environment:', {
   costProfile,
   verbose,
 })
-process.exit(123);
 
 
 /** main program exit point
@@ -229,17 +222,6 @@ function rpnPrettyReject(error) {
   return message
 }    
 
-/** loads the compute and protocol modules of DCP into the namespace
- */
-function loadCompute () {
-  return require('dcp-client').init(options.scheduler)
-    .then(() => {
-      require('dcp/node-libs/config').load();
-      return cli.getAccountKeystore();
-    })
-    .then(ks => keystore = ks );
-}
-
 /** called when a job is accepted by the scheduler
  */
 function onAccepted (jobID) {
@@ -282,7 +264,7 @@ async function ping (numSlices) {
   }
 
   // sets up the job
-  const job = require('dcp/compute').for([input], trivialWork)
+  const job = compute.for([input], trivialWork);
   var resultFn = onResult.bind(job)
   job.on('accepted', () => onAccepted(job.id))
   job.on('result', resultFn)
@@ -302,7 +284,7 @@ async function ping (numSlices) {
       let timeout = false;
       
       console.log('using keystore:', keystore);
-      job.exec(costProfile, keystore).then((ev) => resolve(ev), (ev) => reject('error in job creation ' + ev))
+      job.exec(costProfile).then((ev) => resolve(ev), (ev) => reject('error in job creation ' + ev))
         .finally(()=> {
           if (timeout) {
             clearTimeout(timeout);
@@ -354,8 +336,6 @@ function updateSliceCount () {
 /** main program entry point
  */
 async function main () {
-  // loads compute
-  await loadCompute()
   console.log('DCPing scheduler: ' + options.scheduler)
 
   switch (mode) {
