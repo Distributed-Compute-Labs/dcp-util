@@ -64,8 +64,10 @@ async function main() {
             type: 'string',
           },
           dir: {
+            alias: 'd',
             describe: 'Directory to save the generated keystore to',
             default: dotDcpDir,
+            type: 'string',
           },
         });
     },
