@@ -21,6 +21,7 @@
   "bin": {
     "bank-utility": "bin/bank-utility",
     "cg-utility": "bin/cg-utility",
+    "dcping": "bin/dcping",
     "job-utility": "bin/job-utility",
     "mkad": "bin/mkad",
     "publish": "bin/publish",
