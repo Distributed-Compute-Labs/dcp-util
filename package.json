@@ -1,6 +1,6 @@
 {
   "name": "dcp-util",
-  "version": "2.2.22",
+  "version": "2.2.23",
   "description": "DCP Command Line Utilities",
   "keywords": [
     "dcp"
@@ -37,7 +37,7 @@
     "test": "peter tests"
   },
   "dependencies": {
-    "chalk": "4.1.2",
+    "chalk": "^4.1.2",
     "dcp-client": "^4.2.24",
     "debug": "4.3.1",
     "expand-tilde": "2.0.2",
