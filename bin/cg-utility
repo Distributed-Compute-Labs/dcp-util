@@ -306,9 +306,56 @@ async function main() {
           describe: 'Show debugging information',
         },
       })
+    .command(
+      'hash [joinKey] [joinSecret]',
+      'Calculate a joinHash',
+      (yargs) => yargs
+        .positional('joinKey', {
+          description: 'The group\'s joinKey',
+          type: 'string',
+        })
+        .positional('joinSecret', {
+          description: 'The group\'s joinSecret',
+          type: 'string',
+        })
+        .option('verbose', {
+          description: 'Provide verbose output',
+          alias: 'v',
+          type: 'boolean',
+          default: false,
+        }),
+      joinHash
+    )
     .demandCommand(1, 'A command must be specified')
     .strict()
     .parse();
+}
+
+/**
+ *  Calculate the joinHash for a given joinKey and joinSecret
+ *
+ *  @param  {string} options.joinKey    The group's joinKey
+ *  @param  {string} options.joinSecret The group's joinSecret, in cleartext
+ *  @return {string}                    The calculates joinHash
+ */
+function joinHash({ joinKey, joinSecret, verbose })
+{
+  const { calculateJoinHash } = require('dcp/compute-groups');
+
+  const joinHash = calculateJoinHash({ joinKey, joinSecret });
+
+  if (verbose)
+  {
+    console.debug('calculate hash:');
+    console.debug('joinKey:    ', joinKey);
+    console.debug('joinSecret: ', joinSecret);
+    console.debug('joinHash:   ', joinHash);
+  }
+  else
+  {
+    console.log(joinHash);
+  }
+  return joinHash;
 }
 
 initDCPClient()
