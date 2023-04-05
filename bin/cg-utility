@@ -307,7 +307,7 @@ async function main() {
         },
       })
     .command(
-      'hash [joinKey] [joinSecret]',
+      'hash {joinKey} {joinSecret}',
       'Calculate a joinHash',
       (yargs) => yargs
         .positional('joinKey', {
