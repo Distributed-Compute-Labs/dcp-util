@@ -10,17 +10,19 @@ default:
   tags:
     - dcp
     - linux
-  image: node:lts
+  cache: &default-cache
+    - key:
+        prefix: $CI_COMMIT_REF_SLUG
+        files:
+          - package-lock.json
+      paths:
+        - node_modules
 
-# This folder is cached between builds
-# http://docs.gitlab.com/ee/ci/yaml/README.html#cache
-cache:
-  key:
-    files:
-      - package.json
-      - package-lock.json
-  paths:
-    - node_modules
+variables:
+  # Can only cache files in the current build directory.
+  npm_config_cache: .cache/npm/
+  # Suppress funding & audit messages.
+  npm_config_fund: 'false'
 
 stages:
   - build
@@ -29,6 +31,19 @@ stages:
 
 build:
   stage: build
+  # Has an npm version w/ `lockfileVersion` 3.
+  image: node:20
+  cache:
+    # Prevent overriding the persistence of node_modules for jobs in later
+    # stages.
+    - *default-cache
+    # Make clean install's on the same branch faster.
+    - key:
+        prefix: $CI_COMMIT_REF_SLUG
+        files:
+          - package-lock.json
+      paths:
+        - $npm_config_cache
   before_script:
     ##
     ## Install ssh-agent if not already installed, it is required by Docker.
@@ -71,7 +86,7 @@ build:
 
   script:
     # install instead of ci to take advantage of caching node_modules
-    - npm install
+    - npm clean-install
 
 tidelift:
   stage: build
@@ -94,6 +109,14 @@ tidelift:
 
 test:
   stage: test
+  # Test against multiple versions of node.
+  parallel:
+    matrix:
+      - NODE_IMAGE: 
+        - node:16
+        - node:18
+        - node:20
+  image: $NODE_IMAGE
   before_script:
     # Setting this as a `variable` breaks npm, making it unable to find scripts
     # under `node_modules/.bin` for whatever reason. e.g. `peter: not found`
