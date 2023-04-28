@@ -7,7 +7,7 @@
 
 site_name: dcp-util
 repo_url: https://gitlab.com/Distributed-Compute-Protocol/dcp-util
-edit_uri: edit/main/docs
+edit_uri: edit/develop/docs
 docs_dir: .
 nav:
   - README.md

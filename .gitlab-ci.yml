@@ -117,11 +117,8 @@ test:
 
 publish_docs:
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_REF_NAME == "develop"'
-    - if: '$CI_COMMIT_REF_NAME == "main"'
-    - changes:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
         - catalog-info.yaml
         - docs/mkdocs.yml
         - docs/*.md
@@ -136,7 +133,6 @@ publish_docs:
   image: nikolaik/python-nodejs:python3.11-nodejs18-slim
   script:
     - npm install -g @techdocs/cli
-    - python3 -m pip install mkdocs mkdocs-techdocs-core==1.*
-    - pip install mkdocs-same-dir
+    - pip install mkdocs mkdocs-techdocs-core==1.*  mkdocs-same-dir
     - wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && chmod a+x /usr/local/bin/yq
     - ./publish-docs.sh
