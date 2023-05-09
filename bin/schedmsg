@@ -162,7 +162,7 @@ async function sendMessage(argv, command, payload = {}) {
   eventRouterConnection = new Connection(schedulerLocation.resolve('events'));
 
   console.log(
-    `Sending SchedMsg to scheduler ${green(argv.scheduler)}:`,
+    `Sending SchedMsg to scheduler ${green(argv.dcpScheduler)}:`,
     message,
   );
 
