@@ -1,6 +1,6 @@
 {
   "name": "dcp-util",
-  "version": "2.2.26",
+  "version": "2.2.27",
   "description": "DCP Command Line Utilities",
   "keywords": [
     "dcp"
@@ -15,9 +15,6 @@
   },
   "license": "MIT",
   "author": "Kings Distributed Systems",
-  "engines": {
-    "node": ">=14.0.0"
-  },
   "bin": {
     "bank-utility": "bin/bank-utility",
     "cg-utility": "bin/cg-utility",
@@ -51,5 +48,9 @@
     "eslint": "7.30.0",
     "peter": "^2.3.5",
     "zora": "4.0.2"
+  },
+  "engines": {
+    "node": ">=16",
+    "npm": ">=7"
   }
 }
