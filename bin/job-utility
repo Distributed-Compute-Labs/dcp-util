@@ -339,7 +339,7 @@ async function sendRequest(
   const {
     success,
     payload: responsePayload,
-  } = await microserviceConnection.send(requestRoute, requestPayload);
+  } = await microserviceConnection.send(new microserviceConnection.Request(requestRoute, requestPayload));
 
   if (isOutputJSON) {
     console.log(JSON.stringify(responsePayload, null, 2));
