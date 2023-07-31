@@ -163,11 +163,16 @@ async function cliList(options)
 
       while (typeof next === 'number')
       {
-        const { success, payload } = await packageManagerConnection.send('listModules', {
-          q,
-          skip: next,
-          limit,
-        });
+        const { success, payload } = await packageManagerConnection.send(
+          new packageManagerConnection.Request(
+            'listModules',
+            {
+              q,
+              skip: next,
+              limit,
+            }
+          )
+        );
         if (success)
         {
           packages.push(...payload.packages);
@@ -178,11 +183,16 @@ async function cliList(options)
       }
     }
     else {
-      const { success, payload } = await packageManagerConnection.send('listModules', {
-        q,
-        skip,
-        limit,
-      });
+      const { success, payload } = await packageManagerConnection.send(
+        new packageManagerConnection.Request(
+          'listModules',
+          {
+            q,
+            skip,
+            limit
+          }
+        )
+      );
       if (success)
         packages.push(...payload.packages);
       else
