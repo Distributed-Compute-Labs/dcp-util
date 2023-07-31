@@ -170,7 +170,7 @@ async function sendMessage(argv, command, payload = {}) {
   const {
     success,
     payload: responsePayload,
-  } = await eventRouterConnection.send('sendSchedMsg', message, targetIdentity);
+  } = await eventRouterConnection.send(new eventRouterConnection.Request('sendSchedMsg', message, targetIdentity));
 
   log(responsePayload);
   if (!success) {
