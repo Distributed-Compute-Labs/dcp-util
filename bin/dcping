@@ -24,37 +24,37 @@ const options = cli.base()
     description: 'Number of times to ping the scheduler',
     default: 3,
     defaultDescription: 'Ping continuously until the program is terminated',
-    type: 'number'
+    type: 'number',
   })
   .option('slices', {
     alias: 's',
     description: 'Slices per job',
     default: 3,
-    type: 'number'
+    type: 'number',
   })
   .option('wait', {
     alias: 'W',
     description: 'Timeout between each job',
     default: 5,
-    type: 'number'
+    type: 'number',
   })
   .option('discrete', {
     alias: 'd',
     description: 'Set discrete as a job requirement',
     default: true,
-    type: 'boolean'
+    type: 'boolean',
   })
   .option('verbose', {
     alias: 'v',
     description: 'Verbose output for debugging purposes',
     default: false,
-    type: 'boolean'
+    type: 'boolean',
   })
   .option('flood', {
     alias: 'f',
     description: 'Ping the scheduler as fast as possible',
     default: false,
-    type: 'boolean'
+    type: 'boolean',
   })
   .option('interval', {
     default: 0,
@@ -65,22 +65,22 @@ const options = cli.base()
     alias: 'C',
     description: 'Payment offer per slice',
     default: 0.0015,
-    type: 'number'
+    type: 'number',
   })
   .option('scheduler', {
     alias: 'S',
     description: 'Scheduler to deploy pings against',
     default: process.env.DCP_SCHEDULER_LOCATION,
-    type: 'string'
+    type: 'string',
   })
   .option('supervisor', {
     description: 'Defaults to Sup2, set as 1 to change.',
     default: 2,
-    type: 'number'
+    type: 'number',
   })
   .option('keystore', {
     description: 'Specify the name of a keystore to use. Uses default keystore if not specified.',
-    type: 'string'
+    type: 'string',
   })
   .epilogue('This tool is a simple tool to check the health of the network based on the number of slices returned, and how fast they returned.')
   .argv;
@@ -140,7 +140,7 @@ verbose && console.log('DCPing selected options:', {
   interval,
   scheduler,
   supervisor: options.supervisor,
-  verbose
+  verbose,
 });
 
 process.on('SIGINT', () => {

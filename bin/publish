@@ -189,7 +189,7 @@ async function cliList(options)
           {
             q,
             skip,
-            limit
+            limit,
           }
         )
       );

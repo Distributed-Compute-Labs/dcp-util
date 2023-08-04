@@ -107,7 +107,7 @@ async function getBalance(options) {
     new bankConnection.Request(
       'viewAccount',
       { address: ks.address },
-      ks
+      ks,
     )
   );
 
@@ -169,9 +169,9 @@ async function transferCredits({
         {
           fromAccount: ks.address,
           toAccount,
-          amount
+          amount,
         },
-        ks
+        ks,
       )
     );
 
