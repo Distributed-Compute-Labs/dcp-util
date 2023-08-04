@@ -15,6 +15,7 @@
 require('dcp-client').initSync();
 const cli = require('dcp/cli');
 const os = require('os');
+const wallet = require('dcp/wallet');
 
 cli.name = 'Ping the DCP Network';
 
@@ -85,7 +86,6 @@ const options = cli.base()
   .epilogue('This tool is a simple tool to check the health of the network based on the number of slices returned, and how fast they returned.')
   .argv;
 
-const wallet = require('dcp/wallet');
 const scheduler = options.scheduler || process.env.DCP_SCHEDULER_LOCATION;
 const jobsToDeploy = options.count || 3;
 const slicesPerJob = options.slices || 3;
