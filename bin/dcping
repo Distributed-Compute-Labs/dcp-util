@@ -87,8 +87,8 @@ const options = cli.base()
   .argv;
 
 const scheduler = options.scheduler || process.env.DCP_SCHEDULER_LOCATION;
-const jobsToDeploy = options.count || 3;
-const slicesPerJob = options.slices || 3;
+const jobsToDeploy = options.count;
+const slicesPerJob = options.slices;
 let paymentKeystore = false;
 const discrete = options.discrete;
 
