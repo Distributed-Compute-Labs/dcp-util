@@ -204,7 +204,7 @@ async function ping(sliceCount)
   const startTime = Date.now();
   try
   {
-    await new Promise(async (resolve, reject) => {
+    await new Promise((resolve, reject) => {
       let timeout = null;
       job.exec(slicePaymentOffer, paymentKeystore).then(() => resolve()).catch((err) => reject(err)).finally(() => {
         if (timeout)
@@ -266,7 +266,7 @@ async function main()
     case 'interval':
       ping(slicesPerJob);
 
-      setInterval(() => ping (slicesPerJob), interval * 60 * 1000);
+      setInterval(() => ping(slicesPerJob), interval * 60 * 1000);
       break;
     default:
       break;
