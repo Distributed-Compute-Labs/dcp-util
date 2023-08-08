@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# @file         job-utility-cancel-all-jobsjob.bash
+# @file         job-utility-cancel-all-jobs.bash
 #
 #               This job deploys 5 jobs, and checks that using
 #               the cancelAllJob operation found in job-utility
