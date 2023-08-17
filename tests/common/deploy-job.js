@@ -32,14 +32,8 @@ async function runTest()
   let argvLength = process.argv.length;
   if (process.argv[argvLength - 1])
   {
-    if (isNaN(process.argv[argvLength - 1]))
-    {
-      // do nothing
-    }
-    else
-    {
+    if (!isNaN(process.argv[argvLength - 1]))
       jobsToDeploy = process.argv[argvLength - 1];
-    }
   }
 
   let ids = [];
