@@ -38,9 +38,8 @@ async function runTest()
 
   let ids = [];
   for (let i = 0; i < jobsToDeploy; i++)
-  {
     ids.push(await deployJob());
-  }
+
   console.log(ids.join(' '));
 
   process.exit(0);
