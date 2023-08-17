@@ -41,8 +41,6 @@ async function runTest()
     ids.push(await deployJob());
 
   console.log(ids.join(' '));
-
-  process.exit(0);
 }
 
 require('dcp-client').init().then(runTest);
