@@ -15,11 +15,10 @@ set -eu
 cd $(dirname "${0}")
 
 if !type node > /dev/null 2>&1; then
-  echo "Node is not installed"
+  echo "Node is not installed" >&2
   exit 1
 fi
 
-echo "Deploying jobs"
 jobId=$(node ./common/deploy-job.js 1)
 
 utilOutput=$(../bin/job-utility cancelJob "${jobId}")
@@ -33,6 +32,6 @@ if [[ "$?" -eq 0 && $utilOutput == *"${jobId}"* ]]; then
     exit 1
   fi
 else
-  echo "cancelJob operation failed"
+  echo "cancelJob operation failed" >&2
   exit 1
 fi
