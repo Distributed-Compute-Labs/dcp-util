@@ -14,7 +14,6 @@ test('Job Utility', async (t) => {
       'cancelJob',
       'countJobs',
       'countSlices',
-      'elapsedJobTime',
       'fetchJobReport',
       'fetchSliceReport',
       'listJobs',

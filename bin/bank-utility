@@ -104,9 +104,11 @@ async function getBalance(options) {
   bankConnection = getBankConnection();
 
   const { payload } = await bankConnection.send(
-    'viewAccount',
-    { address: ks.address },
-    ks,
+    new bankConnection.Request(
+      'viewAccount',
+      { address: ks.address },
+      ks,
+    )
   );
 
   if (options.json) {
@@ -162,13 +164,15 @@ async function transferCredits({
 
   try {
     const { success, payload } = await bankConnection.send(
-      'transferCredits',
-      {
-        fromAccount: ks.address,
-        toAccount,
-        amount,
-      },
-      ks,
+      new bankConnection.Request(
+        'transferCredits',
+        {
+          fromAccount: ks.address,
+          toAccount,
+          amount,
+        },
+        ks,
+      )
     );
 
     if (!success) {

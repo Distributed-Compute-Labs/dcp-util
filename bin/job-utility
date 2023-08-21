@@ -118,16 +118,6 @@ async function main() {
       },
     )
     .command(
-      'elapsedJobTime <jobAddress>',
-      'Display how long each slice belonging to the specified job has been running.',
-      (yargs) => {
-        yargs.positional('jobAddress', {
-          describe: 'The address of the job',
-          type: 'string',
-        });
-      },
-    )
-    .command(
       'fetchJobReport <jobAddress> [jobOwner]',
       'Returns information and status of the specified job. Can specify the owner of the job for authorization.',
       (yargs) => {
@@ -282,12 +272,6 @@ async function sendRequest(
         job: jobAddress,
       };
       break;
-    case 'elapsedJobTime':
-      microservice = 'job-submit';
-      requestPayload = {
-        job: jobAddress,
-      };
-      break;
     case 'fetchJobReport':
       microservice = 'pheme';
       requestPayload = {
@@ -339,7 +323,7 @@ async function sendRequest(
   const {
     success,
     payload: responsePayload,
-  } = await microserviceConnection.send(requestRoute, requestPayload);
+  } = await microserviceConnection.send(new microserviceConnection.Request(requestRoute, requestPayload));
 
   if (isOutputJSON) {
     console.log(JSON.stringify(responsePayload, null, 2));
