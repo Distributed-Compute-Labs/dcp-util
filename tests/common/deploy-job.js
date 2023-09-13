@@ -23,6 +23,7 @@ async function deployJob()
 
     job.on('accepted', (ev) => { return resolve(ev.id) });
     job.exec();
+    job.unref();
   });
 }
 
