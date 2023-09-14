@@ -14,20 +14,20 @@
 
 'use strict';
 
-async function deployJob()
+function deployJob()
 {
-  return new Promise(async (resolve) => {
+  return new Promise((resolve, reject) => {
     const compute = require('dcp/compute');
 
     const job = compute.for([1,2,3,4,5], (num) => { progress(); return num; });
 
     job.on('accepted', (ev) => { return resolve(ev.id) });
-    job.exec();
+    job.exec().catch(reject);
     job.unref();
   });
 }
 
-async function runTest()
+async function deployJobs()
 {
   let jobsToDeploy = 3;
   let argvLength = process.argv.length;
@@ -44,4 +44,10 @@ async function runTest()
   console.log(ids.join(' '));
 }
 
-require('dcp-client').init().then(runTest);
+require('dcp-client')
+  .init()
+  .then(deployJobs)
+  .catch((error) => {
+    console.error('Job deploy failed due to', error);
+    process.exit(1);
+  });
