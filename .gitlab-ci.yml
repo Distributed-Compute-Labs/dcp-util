@@ -8,7 +8,7 @@
 default:
   # Use in-house runners.
   tags:
-    - dcp
+    - dcp-core
     - linux
   cache: &default-cache
     - key:
