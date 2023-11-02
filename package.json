@@ -43,7 +43,6 @@
   },
   "devDependencies": {
     "@kingsds/eslint-config": "1.0.1",
-    "@techdocs/cli": "1.5.1",
     "concat-stream": "2.0.0",
     "cross-spawn": "7.0.3",
     "eslint": "7.30.0",
