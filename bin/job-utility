@@ -245,6 +245,7 @@ async function sendRequest(
   },
 ) {
   const { RangeObject } = require('dcp/range-object');
+  const { fetchURI } = require('dcp/utils');
 
   if (isDebugging) {
     debug.enable('job-utility');
@@ -388,16 +389,15 @@ async function sendRequest(
     if (responsePayload.length > 1 && !output.match(/\{slice\}/))
     {
       // no slice placeholder in filename; save only last result
-      const [result] = responsePayload.slice(-1);
-      require('fs').writeFileSync(output, result.value);
+      responsePayload.splice(0, responsePayload.length - 1);
     }
-    else
+
+    for ({slice, value} of responsePayload)
     {
-      responsePayload.forEach(({ slice, value }) => {
-        const filename = output.replace(/\{slice\}/, slice);
-        require('fs').writeFileSync(filename, value);
-      });
-    }
+      const filename = output.replace(/\{slice\}/, slice);
+      const datum = await fetchURI(value);
+      require('fs').writeFileSync(filename, JSON.stringify(datum));
+    };
   }
   else
   {
