@@ -175,6 +175,12 @@ async function main() {
             alias: 'e',
             describe: 'The last sliceNumber to fetch results for (inclusive). Default: same as start.',
             type: 'number',
+          })
+          .option('output', {
+            alias: 'o',
+            describe: 'Filename or pattern including "{slice}" in which to save result data.',
+            type: 'string',
+            normalize: true,
           });
       },
     )
@@ -235,6 +241,7 @@ async function sendRequest(
     json: isOutputJSON,
     start,
     end,
+    output,
   },
 ) {
   const { RangeObject } = require('dcp/range-object');
@@ -338,7 +345,7 @@ async function sendRequest(
   const microserviceURL = schedulerURL.resolve(microservice);
 
   spinner = ora({
-    isSilent: isOutputJSON,
+    isSilent: isOutputJSON || output,
   }).start(
     `Sending request ${green(requestRoute)} to ${green(microserviceURL)}`,
   );
@@ -375,7 +382,25 @@ async function sendRequest(
     );
 
     process.exitCode = 1;
-  } else {
+  }
+  else if (output)
+  {
+    if (responsePayload.length > 1 && !output.match(/\{slice\}/))
+    {
+      // no slice placeholder in filename; save only last result
+      const [result] = responsePayload.slice(-1);
+      require('fs').writeFileSync(output, result.value);
+    }
+    else
+    {
+      responsePayload.forEach(({ slice, value }) => {
+        const filename = output.replace(/\{slice\}/, slice);
+        require('fs').writeFileSync(filename, value);
+      });
+    }
+  }
+  else
+  {
     spinner.succeed();
     console.log('Response:', JSON.stringify(responsePayload, null, 2));
   }
