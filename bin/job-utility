@@ -386,6 +386,7 @@ async function sendRequest(
   }
   else if (output)
   {
+    spinner.succeed();
     if (responsePayload.length > 1 && !output.match(/\{slice\}/))
     {
       // no slice placeholder in filename; save only last result
