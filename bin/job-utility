@@ -166,6 +166,10 @@ async function main() {
       'Fetch results for a past job',
       (yargs) => {
         yargs
+          .option('jobAddress', {
+            describe: 'The job address to fetch results for',
+            type: 'string',
+          })
           .option('start', {
             alias: 's',
             describe: 'The first sliceNumber to fetch results for',
