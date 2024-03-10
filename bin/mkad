@@ -7,17 +7,21 @@
  *  @date       April 2020
  */
 
+require('dcp-client');
+
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const process = require('process');
-const expandTilde = require('expand-tilde');
-
-require('dcp-client');
+const expandPath = require('dcp/utils');
 
 const { base } = require('dcp/cli');
-const { dotDcpDir } = require('dcp/dcp-dot-dir');
 const { Keystore, isPrivateKey, load } = require('dcp/wallet');
+
+/* dotDcpDir defined to be forward/backwards compatible with API changes in DCP. Simplify any time 
+ * after May 2024 /wg
+ */
+const dotDcpDir = require('dcp/dcp-dot-dir').dotDcpDir || require('dcp/dcp-dot-dir').getDotDcpDir();
 
 /**
  * @param handler
@@ -183,8 +187,10 @@ async function createKeystore(argv) {
   const ksObj = ks.toJSON();
   ksObj.label = label;
 
+  if (dir !== dotDcpDir)
+    dir = expandPath(dir, homeDir)
   const filename = `${label}.keystore`;
-  const fullpath = path.resolve(expandTilde(dir), filename);
+  const fullpath = path.resolve(dir, filename);
   const dirname = path.dirname(fullpath);
   if (!fs.existsSync(dirname)) {
     console.error(`Failed to save keystore: Directory ${dirname} does not exist`);
