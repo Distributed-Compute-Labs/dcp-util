@@ -161,6 +161,31 @@ async function main() {
           });
       },
     )
+    .command(
+      'fetchResult <jobAddress> <start> [end]',
+      'Fetch results for a past job',
+      (yargs) => {
+        yargs
+          .positional('jobAddress', {
+            describe: 'The job address to fetch results for',
+            type: 'string',
+          })
+          .positional('start', {
+            describe: 'The first sliceNumber to fetch results for',
+            type: 'number',
+          })
+          .positional('end', {
+            describe: 'The last sliceNumber to fetch results for (inclusive). Default: same as start.',
+            type: 'number',
+          })
+          .option('output', {
+            alias: 'o',
+            describe: 'Filename or pattern including "{slice}" in which to save result data.',
+            type: 'string',
+            normalize: true,
+          });
+      },
+    )
     .options({
       debug: {
         alias: 'd',
@@ -196,13 +221,15 @@ async function main() {
  *
  * @param {string} requestRoute
  * @param {object} argv
- * @param {string} argv.jobAddress
- * @param {string} argv.jobOwner
- * @param {string} argv.paymentAccount
- * @param {string} argv.reason
- * @param {string[]} argv.statuses
- * @param {boolean} argv.debug
- * @param {boolean} argv.json
+ * @param {string} argv.jobAddress      Job to operate on
+ * @param {string} argv.jobOwner        Address of job owner identity
+ * @param {string} argv.paymentAccount  Address of payment account
+ * @param {string} argv.reason          Reason to cancel job
+ * @param {string[]} argv.statuses      List of job statuses to list
+ * @param {boolean} argv.debug          Show debug output
+ * @param {boolean} argv.json           Emit bare json output
+ * @param {number} argv.start           First slice to fetch
+ * @param {number} argv.end             Last slice to fetch
  */
 async function sendRequest(
   requestRoute,
@@ -214,8 +241,14 @@ async function sendRequest(
     statuses,
     debug: isDebugging,
     json: isOutputJSON,
+    start,
+    end,
+    output,
   },
 ) {
+  const { RangeObject } = require('dcp/range-object');
+  const { fetchURI } = require('dcp/utils');
+
   if (isDebugging) {
     debug.enable('job-utility');
   }
@@ -294,6 +327,18 @@ async function sendRequest(
         requestPayload.statuses = statuses;
       }
       break;
+    case 'fetchResult':
+      requestPayload = {};
+      microservice = 'result-submitter';
+
+      const range = new RangeObject(start, end || start);
+
+      requestPayload = {
+        job: jobAddress,
+        owner: requestIdentity.address,
+        range,
+      }
+      break;
     default:
       assert(false, 'An invalid command was specified');
   }
@@ -303,7 +348,7 @@ async function sendRequest(
   const microserviceURL = schedulerURL.resolve(microservice);
 
   spinner = ora({
-    isSilent: isOutputJSON,
+    isSilent: isOutputJSON || output,
   }).start(
     `Sending request ${green(requestRoute)} to ${green(microserviceURL)}`,
   );
@@ -323,7 +368,7 @@ async function sendRequest(
   const {
     success,
     payload: responsePayload,
-  } = await microserviceConnection.send(new microserviceConnection.Request(requestRoute, requestPayload));
+  } = await microserviceConnection.send(new microserviceConnection.Request(requestRoute, requestPayload, requestIdentity));
 
   if (isOutputJSON) {
     console.log(JSON.stringify(responsePayload, null, 2));
@@ -340,7 +385,25 @@ async function sendRequest(
     );
 
     process.exitCode = 1;
-  } else {
+  }
+  else if (output)
+  {
+    spinner.succeed();
+    if (responsePayload.length > 1 && !output.match(/\{slice\}/))
+    {
+      // no slice placeholder in filename; save only last result
+      responsePayload.splice(0, responsePayload.length - 1);
+    }
+
+    for ({slice, value} of responsePayload)
+    {
+      const filename = output.replace(/\{slice\}/, slice);
+      const datum = await fetchURI(value);
+      require('fs').writeFileSync(filename, JSON.stringify(datum));
+    };
+  }
+  else
+  {
     spinner.succeed();
     console.log('Response:', JSON.stringify(responsePayload, null, 2));
   }
