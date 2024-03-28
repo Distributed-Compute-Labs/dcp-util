@@ -13,7 +13,6 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const process = require('process');
-const expandPath = require('dcp/utils');
 
 const { base } = require('dcp/cli');
 const { Keystore, isPrivateKey, load } = require('dcp/wallet');
@@ -171,7 +170,7 @@ main().catch((e) => {
  * @param {string}  argv.dir
  */
 async function createKeystore(argv) {
-  const { passphrase, privateKey, dir, quiet } = argv;
+  var { passphrase, privateKey, dir, quiet } = argv;
   let { label } = argv;
 
   // Remove .keystore from label
@@ -188,7 +187,7 @@ async function createKeystore(argv) {
   ksObj.label = label;
 
   if (dir !== dotDcpDir)
-    dir = expandPath(dir, homeDir)
+    dir = require('dcp/utils').expandPath(dir)
   const filename = `${label}.keystore`;
   const fullpath = path.resolve(dir, filename);
   const dirname = path.dirname(fullpath);
