@@ -26,11 +26,10 @@ function main() {
   ({ base, getAccountKeystore } = require('dcp/cli'));
   ({ Address } = require('dcp/wallet'));
   ({ Connection } = require('dcp/protocol-v4'));
-  ({
-    bank: { location: bankLocation },
-  } = require('dcp/dcp-config'));
+  bank = require('dcp/dcp-config').bank.services.bankTeller;
+  ( bankLocation = bank.location);
 
-  getBankConnection = () => new Connection(bankLocation.resolve('bank-teller'));
+  getBankConnection = () => new Connection(bank);
 
   return new Promise((resolve, _reject) => {
     base('CLI for common Bank operations')
@@ -103,13 +102,13 @@ async function getBalance(options) {
 
   bankConnection = getBankConnection();
 
-  const { payload } = await bankConnection.send(
-    new bankConnection.Request(
-      'viewAccount',
-      { address: ks.address },
-      ks,
-    )
+  const req = new bankConnection.Request(
+    'viewAccount',
+    { address: ks.address }
   );
+  req.authorize(ks);
+
+  const { payload } = await bankConnection.send(req);
 
   if (options.json) {
     console.log(JSON.stringify(payload, null, 2));
@@ -162,18 +161,18 @@ async function transferCredits({
 
   bankConnection = getBankConnection();
 
+  const req = new bankConnection.Request(
+    'transferCredits',
+    {
+      fromAccount: ks.address,
+      toAccount,
+      amount,
+    }
+  );
+  req.authorize(ks);
+
   try {
-    const { success, payload } = await bankConnection.send(
-      new bankConnection.Request(
-        'transferCredits',
-        {
-          fromAccount: ks.address,
-          toAccount,
-          amount,
-        },
-        ks,
-      )
-    );
+    const { success, payload } = await bankConnection.send( req );
 
     if (!success) {
       throw payload;
