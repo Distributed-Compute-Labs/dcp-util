@@ -23,7 +23,7 @@ fi
 jobIds=$(node ./common/deploy-job.js 5)
 read -r -a jobIds <<< $jobIds
 
-utilOutput=$(../bin/job-utility cancelAllJobs test)
+utilOutput=$(../bin/job-utility cancelAllJobs test -i default)
 for address in "${jobIds[@]}"; do
   if [[ "$?" -ne 0 && $utilOutput != *"${address}"* ]]; then
     echo "cancelJob operation did not cancel job with address: $address" >&2
