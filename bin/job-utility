@@ -7,7 +7,7 @@
  * @date   April 2019
  */
 
-'use strict'
+'use strict';
 
 const process = require('process');
 const assert = require('assert').strict;

@@ -6,6 +6,8 @@
  *  @date       August 2020
  */
 
+'use strict';
+
 const debug = require('debug');
 const { init: initDCPClient } = require('dcp-client');
 
