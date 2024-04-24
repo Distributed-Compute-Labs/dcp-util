@@ -278,7 +278,6 @@ async function sendRequest(
       };
       break;
     case 'cancelAllJobs':
-      // requestIdentity = accountKeystore;
       microservice = 'jobSubmit';
       if (reason === '') {
         throw new Error('An empty reason cannot be given for cancelling jobs.');
