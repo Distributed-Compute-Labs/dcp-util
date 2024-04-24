@@ -106,7 +106,7 @@ async function getBalance(options) {
     'viewAccount',
     { address: ks.address }
   );
-  req.authorize(ks);
+  await req.authorize(ks);
 
   const { payload } = await bankConnection.send(req);
 
@@ -169,7 +169,7 @@ async function transferCredits({
       amount,
     }
   );
-  req.authorize(ks);
+  await req.authorize(ks);
 
   try {
     const { success, payload } = await bankConnection.send( req );

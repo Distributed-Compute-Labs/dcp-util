@@ -370,7 +370,7 @@ async function sendRequest(
 
   microserviceConnection = new Connection(microserviceTarget, requestIdentity);
   const req = new microserviceConnection.Request(requestRoute, requestPayload);
-  req.authorize(requestIdentity);
+  await req.authorize(requestIdentity);
   const {
     success,
     payload: responsePayload,
