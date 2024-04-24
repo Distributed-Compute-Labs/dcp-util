@@ -18,6 +18,7 @@ let Connection;
 let bankLocation;
 let getBankConnection;
 let bankConnection;
+let bank;
 
 const log = debug('bank-utility');
 
