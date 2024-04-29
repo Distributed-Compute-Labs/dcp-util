@@ -41,7 +41,7 @@ async function main() {
   ({ base } = require('dcp/cli'));
   ({ Connection } = require('dcp/protocol-v4'));
   ({ getId, get: getAccountKeystore } = require('dcp/wallet'));
-  ({ scheduler } = require('dcp/dcp-config'));
+  scheduler = require('dcp/dcp-config').scheduler;
   schedulerURL = scheduler.location;
 
   accountKeystore = await getAccountKeystore();
