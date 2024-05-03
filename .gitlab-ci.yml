@@ -23,6 +23,8 @@ variables:
   npm_config_cache: .cache/npm/
   # Suppress funding & audit messages.
   npm_config_fund: 'false'
+  # Test against staging by default rather than prod to avoid errors from a
+  # newer client talking to an older server.
   DCP_SCHEDULER_LOCATION:
     description: The scheduler to run the tests against.
     value: https://scheduler.distributed.computer/
@@ -149,8 +151,13 @@ test:
     # Make a random id keystore for testing so that job-utility doesn't throw
     - mkdir ~/.dcp
     - node bin/mkad new id -p ""
+    - npm ls dcp-client
   script:
-    - npm run test -- --verbose
+    - npx peter --verbose --junit test_report.xml tests/ 
+  artifacts:
+    reports:
+      junit:
+        - test_report.xml
 
 publish_docs:
   rules:
