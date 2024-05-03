@@ -27,7 +27,7 @@ variables:
   # newer client talking to an older server.
   DCP_SCHEDULER_LOCATION:
     description: The scheduler to run the tests against.
-    value: https://scheduler.staging.distributive.network/
+    value: https://scheduler.distributive.network/
     options:
       - https://scheduler.staging.distributive.network/
       - https://scheduler.distributed.computer/
