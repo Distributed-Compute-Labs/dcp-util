@@ -7,6 +7,8 @@
  * @date   April 2019
  */
 
+'use strict';
+
 const process = require('process');
 const assert = require('assert').strict;
 const { green, red } = require('chalk');
@@ -21,6 +23,7 @@ let base;
 let Connection;
 let getId;
 let getAccountKeystore;
+let scheduler;
 let schedulerURL;
 
 let accountKeystore;
@@ -38,9 +41,8 @@ async function main() {
   ({ base } = require('dcp/cli'));
   ({ Connection } = require('dcp/protocol-v4'));
   ({ getId, get: getAccountKeystore } = require('dcp/wallet'));
-  ({
-    scheduler: { location: schedulerURL },
-  } = require('dcp/dcp-config'));
+  scheduler = require('dcp/dcp-config').scheduler;
+  schedulerURL = scheduler.location;
 
   accountKeystore = await getAccountKeystore();
   accountAddress = String(accountKeystore.address);
@@ -262,7 +264,7 @@ async function sendRequest(
   let microservice;
   switch (requestRoute) {
     case 'cancelJob':
-      microservice = 'job-submit';
+      microservice = 'jobSubmit';
       if (reason === '') {
         throw new Error(
           'An empty reason should not be given for cancelling jobs.',
@@ -276,8 +278,7 @@ async function sendRequest(
       };
       break;
     case 'cancelAllJobs':
-      requestIdentity = accountKeystore;
-      microservice = 'job-submit';
+      microservice = 'jobSubmit';
       if (reason === '') {
         throw new Error('An empty reason cannot be given for cancelling jobs.');
       }
@@ -329,7 +330,7 @@ async function sendRequest(
       break;
     case 'fetchResult':
       requestPayload = {};
-      microservice = 'result-submitter';
+      microservice = 'resultSubmitter';
 
       const range = new RangeObject(start, end || start);
 
@@ -345,12 +346,14 @@ async function sendRequest(
 
   log('requestPayload:', requestPayload);
 
-  const microserviceURL = schedulerURL.resolve(microservice);
+  const microserviceTarget = scheduler.services[microservice];
+  log('microservice:', microservice);
+  log('microserviceTarget:', microserviceTarget);
 
   spinner = ora({
     isSilent: isOutputJSON || output,
   }).start(
-    `Sending request ${green(requestRoute)} to ${green(microserviceURL)}`,
+    `Sending request ${green(requestRoute)} to ${green(microserviceTarget.location)}`,
   );
 
   /**
@@ -364,11 +367,13 @@ async function sendRequest(
     logError(...args);
   };
 
-  microserviceConnection = new Connection(microserviceURL, requestIdentity);
+  microserviceConnection = new Connection(microserviceTarget, requestIdentity);
+  const req = new microserviceConnection.Request(requestRoute, requestPayload);
+  await req.authorize(requestIdentity);
   const {
     success,
     payload: responsePayload,
-  } = await microserviceConnection.send(new microserviceConnection.Request(requestRoute, requestPayload, requestIdentity));
+  } = await microserviceConnection.send(req);
 
   if (isOutputJSON) {
     console.log(JSON.stringify(responsePayload, null, 2));
