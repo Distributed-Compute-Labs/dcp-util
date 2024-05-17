@@ -22,6 +22,8 @@
  * @date Oct 2020
  */
 
+'use strict';
+
 const process = require('process');
 const { green } = require('chalk');
 const ora = require('ora');
