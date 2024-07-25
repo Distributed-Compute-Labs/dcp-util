@@ -131,7 +131,7 @@ let packageManagerConnection;
  */
 function openPackageManagerConnection()
 {
-  packageManagerConnection = new (require('dcp/protocol').Connection)(require('dcp/dcp-config').packageManager.location);
+  packageManagerConnection = new (require('dcp/protocol').Connection)(require('dcp/dcp-config').packageManager);
 
   packageManagerConnection.on('close', openPackageManagerConnection);
 }
