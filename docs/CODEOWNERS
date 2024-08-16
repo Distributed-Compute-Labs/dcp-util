@@ -7,6 +7,16 @@
 
 [Eddie]
 /package-lock.json @eroosenmaallen
+/.eslintrc.json @eroosenmaallen
+/.git @eroosenmaallen
+/.gitignore @eroosenmaallen
+/.gitlab-ci.yml @eroosenmaallen
+/.npmrc @eroosenmaallen
+/.tidelift @eroosenmaallen
+/README.md @eroosenmaallen
+/bin/ @eroosenmaallen
+/docs/ @eroosenmaallen
+/tests/ @eroosenmaallen
 
 [Eddie or Wes]
-@eroosenmaallen @wesgarland
+/package.json @eroosenmaallen @wesgarland
