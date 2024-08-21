@@ -38,7 +38,7 @@ function main() {
     base('CLI for common Bank operations')
       .command('balance', 'Request account balances', {}, getBalance)
       .command(
-        'transfer <amount> <toAccount>',
+        'transfer <amount> <target> [source] [signingSource]',
         'Transfer credits',
         (yargs) => {
           yargs
@@ -46,10 +46,18 @@ function main() {
               describe: 'The amount of credits to transfer',
               type: 'number',
             })
-            .positional('toAccount', {
+            .positional('target', {
               describe: 'The address of the account to transfer the credits to',
               type: 'string',
               coerce: (arg) => new Address(arg).address,
+            })
+            .option('source', {
+              describe: 'The address of the account to withdraw the credits from',
+              type: 'string',
+            })
+            .option('signingSource', {
+              describe: 'The authoritative keystore signing the transfer',
+              type: 'string',
             });
         },
         transferCredits,
@@ -136,7 +144,9 @@ async function getBalance(options) {
  *
  * @param {object} options - Parsed Yargs options
  * @param {number} options.amount - Amount to transfer
- * @param {string} options.toAccount - Address to transfer to
+ * @param {string} options.targetAccount - Address to transfer to
+ * @param {string} options.sourceAccount - Address to transfer from
+ * @param {string} options.signingAccount - Authoritative entity signing the transfer
  * @param {boolean} options.debug
  * @param {boolean} options.json
  * @param {boolean} options.quiet
@@ -144,7 +154,9 @@ async function getBalance(options) {
  */
 async function transferCredits({
   amount,
-  toAccount,
+  target,
+  source,
+  signingSource,
   debug: isDebugging,
   json: isOutputJSON,
   quiet: isOutputQuiet,
@@ -153,25 +165,67 @@ async function transferCredits({
     debug.enable('bank-utility');
   }
 
-  const ks = await getAccountKeystore();
-
+  const wallet = require('dcp/wallet');
+  let sourceKs;
+  if (source)
+  {
+    if (!signingSource)
+    {
+      if (!isOutputQuiet && !isOutputJSON)
+        console.log(`No signing source specified, using ${source}`)
+      sourceKs = await wallet.get(source);
+      source = sourceKs.address;
+      signingSource = sourceKs.label;
+    }
+    else
+    {
+      const tempSrc = source;
+      try
+      {
+        source = new Address(tempSrc).address; /* source is an address */
+      }
+      catch (e)
+      {
+        if (e instanceof TypeError)
+        {
+          sourceKs = await wallet.get(tempSrc); /* source is a keystore label */
+          source = sourceKs.address;
+        }
+        else
+        {
+          throw e;
+        }
+      }
+    }
+  }
+  else
+  {
+    if (!isOutputQuiet && !isOutputJSON)
+      console.log('No source or signing source specified, using default')
+    sourceKs = await wallet.get();
+    source = sourceKs.address;
+    signingSource = sourceKs.label;
+  }
+  
   if (!isOutputQuiet && !isOutputJSON) {
     console.log('Sending transfer');
-    console.log(`  From Address: ${ks.address}`);
-    console.log(`  To Address:   ${toAccount}`);
-    console.log(`  Amount:       ${amount}`);
+    console.log(`  Target:          ${target}`);
+    console.log(`  Source:          ${source}`);
+    console.log(`  Signing Source:  ${signingSource} -> ${(await wallet.get(signingSource)).address}`);
+    console.log(`  Amount:          ${amount}`);
   }
 
   bankConnection = getBankConnection();
+  const signingKs = await wallet.get(signingSource);
 
   const transferDetails = {
-    fromAccount: ks.address,
-    toAccount,
+    fromAccount: source,
+    toAccount: target,
+    signingSource: signingKs.address,
     amount,
   };
   const req = new bankConnection.Request('transferCredits', transferDetails);
-  await req.authorize(ks);
-
+  await req.authorize(signingKs);
   try {
     const { success, payload } = await bankConnection.send( req );
 
@@ -199,7 +253,7 @@ async function transferCredits({
 
     if (error.message.includes('Bad checksum for address')) {
       console.error(
-        `Error: Address ${toAccount} has an invalid checksum. Please verify the address and try again.`,
+        `Error: Address ${target} has an invalid checksum. Please verify the address and try again.`,
       );
 
       return error;
